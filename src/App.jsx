@@ -1,4 +1,24 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+// Persistenz via Netlify Blobs
+async function dbGet(key) {
+  try {
+    const r = await fetch("/.netlify/functions/store", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ method: "get", path: key })
+    });
+    const d = await r.json();
+    return d.ok ? d.data : null;
+  } catch { return null; }
+}
+async function dbSet(key, value) {
+  try {
+    await fetch("/.netlify/functions/store", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ method: "set", path: key, value })
+    });
+  } catch {}
+}
+
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings, Flag,
   Users, Bell, LogOut, Plus, Search, Clock, Check, X, Edit2, Trash2,
@@ -346,11 +366,12 @@ function Sidebar({active,onNav,user,onLogout,pend}){
     </div>
   );
 }
-function TopBar({title,user}){
+function TopBar({title,user,saving}){
   return(
     <div style={{height:54,background:C.surface,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",padding:"0 22px",gap:14,flexShrink:0}}>
       <div style={{fontWeight:800,fontSize:15,color:C.text}}>{title}</div>
       <div style={{flex:1}}/>
+      {saving&&<div style={{fontSize:11,color:"#48BB78",display:"flex",alignItems:"center",gap:5}}><span style={{width:6,height:6,borderRadius:"50%",background:"#48BB78",display:"inline-block"}}/>Gespeichert ✓</div>}
       <div style={{display:"flex",alignItems:"center",gap:8,paddingLeft:14,borderLeft:`1px solid ${C.border}`}}>
         <Avatar initials={user.avatar} size={28}/>
         <div><div style={{fontSize:13,fontWeight:700,color:C.text}}>{user.name}</div><Badge color={ROLES[user.role].color}>{ROLES[user.role].label}</Badge></div>
@@ -1268,8 +1289,45 @@ export default function App(){
   const [edPost,setEdPost]=useState(null);
   const [schPost,setSchPost]=useState(null);
   const [filt,setFilt]=useState("all");
+  const [dbReady,setDbReady]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const saveTimer=useRef(null);
+
+  // Daten laden nach Login
+  useEffect(()=>{
+    if(!user){setDbReady(false);return;}
+    const ukey="user_"+user.email.replace(/[^a-z0-9]/gi,"_");
+    (async()=>{
+      const saved=await dbGet(ukey);
+      if(saved){
+        if(saved.posts?.length)setPosts(saved.posts);
+        if(saved.campaigns?.length)setCampaigns(saved.campaigns);
+        if(saved.items?.length)setItems(saved.items);
+      }
+      setDbReady(true);
+    })();
+  },[user]);
+
+  // Auto-save bei Änderungen
+  useEffect(()=>{
+    if(!user||!dbReady)return;
+    clearTimeout(saveTimer.current);
+    setSaving(true);
+    saveTimer.current=setTimeout(async()=>{
+      const ukey="user_"+user.email.replace(/[^a-z0-9]/gi,"_");
+      await dbSet(ukey,{posts,campaigns,items});
+      setSaving(false);
+    },1500);
+  },[posts,campaigns,items]);
 
   if(!user) return <Login onLogin={setUser}/>;
+  if(!dbReady&&user) return(
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,flexDirection:"column",gap:16}}>
+      <div style={{width:40,height:40,border:`3px solid ${C.border}`,borderTop:`3px solid ${C.accent}`,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+      <div style={{fontSize:14,color:C.textMute}}>Deine Daten werden geladen…</div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   const save=p=>{setPosts(prev=>prev.find(x=>x.id===p.id)?prev.map(x=>x.id===p.id?p:x):[...prev,p]);setEdPost(null);};
   const saveSch=p=>{setPosts(prev=>prev.map(x=>x.id===p.id?p:x));setSchPost(null);};
@@ -1288,7 +1346,7 @@ export default function App(){
       <style>{CSS}</style>
       <Sidebar active={nav} onNav={goNav} user={user} onLogout={()=>setUser(null)} pend={posts.filter(p=>p.status==="pending").length}/>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <TopBar title={TITLE[nav]||"SocialFlow"} user={user}/>
+        <TopBar title={TITLE[nav]||"SocialFlow"} user={user} saving={saving}/>
         {nav==="dashboard"   &&<Dashboard posts={posts} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
         {nav==="publisher"   &&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={filt} setFilt={setFilt}/>}
         {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts} onEditPost={setEdPost}/>}
