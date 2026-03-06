@@ -28,7 +28,7 @@ import {
   Tag, MapPin, Zap, FileText, Eye
 } from "lucide-react";
 
-// Ã¢ÂÂÃ¢ÂÂ FONT & COLORS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ FONT & COLORS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 const FONT = "'DM Sans', system-ui, sans-serif";
 const IW = 1.7;
 const C = {
@@ -48,7 +48,7 @@ const CSS = `
   * { box-sizing:border-box; }  body { margin:0; }
 `;
 
-// Ã¢ÂÂÃ¢ÂÂ DOMAIN DATA Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DOMAIN DATA ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 const CHANNELS = [
   { id:"instagram", label:"Instagram",  color:"#E1306C", bg:"#fff0f6", maxChars:2200  },
   { id:"twitter",   label:"X/Twitter",  color:"#000000", bg:"#f7f7f7", maxChars:280   },
@@ -71,29 +71,29 @@ const STAGES = [
   { id:"draft",     label:"Entwurf",        color:"#B54708", bg:"#FFFAEB", border:"#FDE68A", header:"#FEF3C7" },
   { id:"pending",   label:"Zur Freigabe",   color:"#175CD3", bg:"#EFF8FF", border:"#BFDBFE", header:"#DBEAFE" },
   { id:"scheduled", label:"Geplant",        color:"#027A48", bg:"#ECFDF3", border:"#A7F3D0", header:"#D1FAE5" },
-  { id:"published", label:"VerÃÂ¶ffentlicht", color:"#6941C6", bg:"#F9F5FF", border:"#DDD6FE", header:"#EDE9FE" },
+  { id:"published", label:"VerÃÂÃÂ¶ffentlicht", color:"#6941C6", bg:"#F9F5FF", border:"#DDD6FE", header:"#EDE9FE" },
 ];
 const CAMP_COLORS = ["#E53E3E","#0077B5","#027A48","#B54708","#6941C6","#E1306C","#25D366","#F59E0B","#06B6D4","#EC4899"];
-const CAMP_EMOJIS = ["Ã°ÂÂÂ¯","Ã°ÂÂÂ","Ã°ÂÂÂª","Ã°ÂÂÂ¸","Ã°ÂÂÂ","Ã°ÂÂÂ","Ã°ÂÂÂ","Ã¢ÂÂ¤Ã¯Â¸Â","Ã°ÂÂÂ","Ã°ÂÂÂ","Ã°ÂÂÂ","Ã°ÂÂÂ¥","Ã°ÂÂÂ¡","Ã¢ÂÂÃ¯Â¸Â","Ã¢ÂÂ¡","Ã°ÂÂÂ"];
+const CAMP_EMOJIS = ["ÃÂ°ÃÂÃÂÃÂ¯","ÃÂ°ÃÂÃÂÃÂ","ÃÂ°ÃÂÃÂÃÂª","ÃÂ°ÃÂÃÂÃÂ¸","ÃÂ°ÃÂÃÂÃÂ","ÃÂ°ÃÂÃÂÃÂ","ÃÂ°ÃÂÃÂÃÂ","ÃÂ¢ÃÂÃÂ¤ÃÂ¯ÃÂ¸ÃÂ","ÃÂ°ÃÂÃÂÃÂ","ÃÂ°ÃÂÃÂÃÂ","ÃÂ°ÃÂÃÂÃÂ","ÃÂ°ÃÂÃÂÃÂ¥","ÃÂ°ÃÂÃÂÃÂ¡","ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ","ÃÂ¢ÃÂÃÂ¡","ÃÂ°ÃÂÃÂÃÂ"];
 const DEMO_CAMPAIGNS = [
-  { id:"c1", name:"Sommer-Sale",   emoji:"Ã¢ÂÂÃ¯Â¸Â", color:"#F59E0B", description:"Posts fÃÂ¼r den Sommer Sale" },
-  { id:"c2", name:"Produktlaunch", emoji:"Ã°ÂÂÂ", color:"#6941C6", description:"Launch Q2 2026" },
+  { id:"c1", name:"Sommer-Sale",   emoji:"ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ", color:"#F59E0B", description:"Posts fÃÂÃÂ¼r den Sommer Sale" },
+  { id:"c2", name:"Produktlaunch", emoji:"ÃÂ°ÃÂÃÂÃÂ", color:"#6941C6", description:"Launch Q2 2026" },
 ];
 const DEMO_POSTS = [
-  { id:"p1", title:"Produktlaunch Q2",  content:"Unser neues Produkt ist da! Ã°ÂÂÂ", hashtags:"#launch #neu",     channels:["instagram","linkedin"], scheduledDate:"2026-03-15", scheduledTime:"09:00", status:"scheduled", mediaId:null, campaignId:"c2" },
-  { id:"p2", title:"Tipp der Woche",    content:"RegelmÃÂ¤ÃÂiges Posting steigert deine Reichweite um 40%.", hashtags:"#marketing", channels:["twitter","facebook"],  scheduledDate:"",          scheduledTime:"",      status:"draft",     mediaId:null, campaignId:null },
-  { id:"p3", title:"Behind the Scenes", content:"Blick hinter die Kulissen! Ã°ÂÂÂª", hashtags:"#team #bts",       channels:["instagram","whatsapp"],  scheduledDate:"2026-03-20", scheduledTime:"18:00", status:"scheduled", mediaId:null, campaignId:null },
-  { id:"p4", title:"Kundenreview",      content:"Was unsere Kunden sagen. Danke! Ã¢ÂÂ¤Ã¯Â¸Â", hashtags:"#review",    channels:["instagram","linkedin"],  scheduledDate:"",          scheduledTime:"",      status:"pending",   mediaId:null, campaignId:null },
-  { id:"p5", title:"Sommer Sale",       content:"Ã¢ÂÂÃ¯Â¸Â Bis zu 40% Rabatt Ã¢ÂÂ nur kurze Zeit!", hashtags:"#sale", channels:["instagram","facebook","tiktok"], scheduledDate:"2026-06-01", scheduledTime:"10:00", status:"draft", mediaId:null, campaignId:"c1" },
+  { id:"p1", title:"Produktlaunch Q2",  content:"Unser neues Produkt ist da! ÃÂ°ÃÂÃÂÃÂ", hashtags:"#launch #neu",     channels:["instagram","linkedin"], scheduledDate:"2026-03-15", scheduledTime:"09:00", status:"scheduled", mediaId:null, campaignId:"c2" },
+  { id:"p2", title:"Tipp der Woche",    content:"RegelmÃÂÃÂ¤ÃÂÃÂiges Posting steigert deine Reichweite um 40%.", hashtags:"#marketing", channels:["twitter","facebook"],  scheduledDate:"",          scheduledTime:"",      status:"draft",     mediaId:null, campaignId:null },
+  { id:"p3", title:"Behind the Scenes", content:"Blick hinter die Kulissen! ÃÂ°ÃÂÃÂÃÂª", hashtags:"#team #bts",       channels:["instagram","whatsapp"],  scheduledDate:"2026-03-20", scheduledTime:"18:00", status:"scheduled", mediaId:null, campaignId:null },
+  { id:"p4", title:"Kundenreview",      content:"Was unsere Kunden sagen. Danke! ÃÂ¢ÃÂÃÂ¤ÃÂ¯ÃÂ¸ÃÂ", hashtags:"#review",    channels:["instagram","linkedin"],  scheduledDate:"",          scheduledTime:"",      status:"pending",   mediaId:null, campaignId:null },
+  { id:"p5", title:"Sommer Sale",       content:"ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Bis zu 40% Rabatt ÃÂ¢ÃÂÃÂ nur kurze Zeit!", hashtags:"#sale", channels:["instagram","facebook","tiktok"], scheduledDate:"2026-06-01", scheduledTime:"10:00", status:"draft", mediaId:null, campaignId:"c1" },
 ];
 
-// Ã¢ÂÂÃ¢ÂÂ UTILS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ UTILS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 const uid = () => Math.random().toString(36).slice(2,10);
 const fileToDataURL = f => new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
 const getMediaType = f => f.type.startsWith("video/")?"video": f.name.toLowerCase().includes("logo")?"logo": f.type.startsWith("image/")?"image":"document";
 const fmtDate = d => d ? new Date(d).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"}) : "";
 
-// Ã¢ÂÂÃ¢ÂÂ AI SERVICE Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ AI SERVICE ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function aiCall(messages, max_tokens=800) {
   const r = await fetch("/.netlify/functions/ai",{
     method:"POST",
@@ -103,22 +103,22 @@ async function aiCall(messages, max_tokens=800) {
   return (await r.json()).content?.[0]?.text||"";
 }
 const AI = {
-  optimize:(text,ch,tone)=>aiCall([{role:"user",content:`Optimiere fÃÂ¼r ${ch}. Ton:${tone}. NUR Text:\n${text}`}]),
-  hashtags:(text,ch)=>aiCall([{role:"user",content:`5-10 Hashtags fÃÂ¼r ${ch}. NUR Hashtags:\n${text}`}],200),
+  optimize:(text,ch,tone)=>aiCall([{role:"user",content:`Optimiere fÃÂÃÂ¼r ${ch}. Ton:${tone}. NUR Text:\n${text}`}]),
+  hashtags:(text,ch)=>aiCall([{role:"user",content:`5-10 Hashtags fÃÂÃÂ¼r ${ch}. NUR Hashtags:\n${text}`}],200),
   variants:async(text,ch)=>{
-    const raw=await aiCall([{role:"user",content:`3 Varianten fÃÂ¼r ${ch}: professionell,locker,aufmerksamkeitsstark. NUR JSON:{"variants":[{"tone":"","text":""}]}`}],1200);
+    const raw=await aiCall([{role:"user",content:`3 Varianten fÃÂÃÂ¼r ${ch}: professionell,locker,aufmerksamkeitsstark. NUR JSON:{"variants":[{"tone":"","text":""}]}`}],1200);
     try{return JSON.parse(raw.replace(/```json|```/g,"").trim()).variants||[];}catch{return[];}
   },
   analyzeImg:async(dataUrl)=>{
     const b64=dataUrl.split(",")[1],mime=dataUrl.split(";")[0].split(":")[1]||"image/jpeg";
     const raw=await aiCall([{role:"user",content:[
       {type:"image",source:{type:"base64",media_type:mime,data:b64}},
-      {type:"text",text:'Analysiere fÃÂ¼r Social Media. NUR JSON:{"tags":[],"description":"","suggestedAlt":"","mood":""}'}
+      {type:"text",text:'Analysiere fÃÂÃÂ¼r Social Media. NUR JSON:{"tags":[],"description":"","suggestedAlt":"","mood":""}'}
     ]}],400);
     try{return JSON.parse(raw.replace(/```json|```/g,"").trim());}catch{return{};}
   },
 };
-// Ã¢ÂÂÃ¢ÂÂ UI PRIMITIVES Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ UI PRIMITIVES ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function Sp({color="#fff"}){return <div style={{width:14,height:14,borderRadius:"50%",border:`2px solid ${color}30`,borderTopColor:color,animation:"spin .7s linear infinite",flexShrink:0}}/>;}
 function Badge({color,bg,children}){return <span style={{display:"inline-flex",alignItems:"center",gap:3,background:bg||C.borderLight,color:color||C.textSoft,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,whiteSpace:"nowrap"}}>{children}</span>;}
 function Avatar({initials,size=32,color=C.accent}){return <div style={{width:size,height:size,borderRadius:"50%",background:color+"22",color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:size*.36,flexShrink:0,border:`1.5px solid ${color}33`}}>{initials}</div>;}
@@ -184,9 +184,56 @@ function SCrd({icon:Icon,label,value,delta,color,onClick}){
       </div>
       <div style={{fontSize:26,fontWeight:900,color:C.text,letterSpacing:"-.8px",lineHeight:1}}>{value}</div>
       <div style={{fontSize:12,fontWeight:500,color:C.textSoft,marginTop:5,display:"flex",alignItems:"center"}}>
-        {label}{onClick&&<span style={{marginLeft:"auto",fontSize:11,color:c,fontWeight:700}}>â</span>}
+        {label}{onClick&&<span style={{marginLeft:"auto",fontSize:11,color:c,fontWeight:700}}>Ã¢ÂÂ</span>}
       </div>
     </div>
   );
 }
-
+function PostCard({post,items,campaigns,onEdit,onSched,onDel,onApprove,role}){
+  const [tab,setTab]=useState(post.channels?.[0]||"instagram");
+  const media=items.find(m=>m.id===post.mediaId);
+  const camp=campaigns?.find(c=>c.id===post.campaignId);
+  const PC=PREV[tab]||PREV.instagram;
+  const can=p=>ROLES[role]?.can.includes(p);
+  const bg=CHANNELS.find(c=>c.id===tab)?.bg||C.bg;
+  return(
+    <div style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",transition:"box-shadow .2s",display:"flex",flexDirection:"column",height:560,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}
+      onMouseEnter={e=>e.currentTarget.style.boxShadow="0 6px 24px rgba(0,0,0,.1)"}
+      onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,.04)"}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",borderBottom:`1px solid ${C.borderLight}`,flexShrink:0}}>
+        <div style={{minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>{post.title||"Kein Titel"}</div>
+          {camp&&<div style={{fontSize:10,color:C.textSoft,marginTop:1}}>{camp.emoji} {camp.name}</div>}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+          <SBadge status={post.status}/>
+          {can("delete")&&<button onClick={()=>onDel(post.id)} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:2,display:"flex"}}><X size={13} strokeWidth={2}/></button>}
+        </div>
+      </div>
+      {post.channels?.length>0&&<div style={{display:"flex",borderBottom:`1px solid ${C.borderLight}`,overflowX:"auto",flexShrink:0}}>
+        {post.channels.map(cid=>{const c=CHANNELS.find(x=>x.id===cid);const on=tab===cid;
+          return <button key={cid} onClick={()=>setTab(cid)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,padding:"6px 10px",border:"none",borderBottom:`2px solid ${on?c?.color:"transparent"}`,background:"transparent",color:on?c?.color:C.textMute,fontWeight:on?700:500,fontSize:11,cursor:"pointer",fontFamily:FONT}}>
+            <ChIco id={cid} size={11}/>{c?.label}
+          </button>;
+        })}
+      </div>}
+      <div style={{flex:1,background:bg,overflow:"hidden",padding:"8px 8px 0"}}>
+        <PC post={post} media={media}/>
+      </div>
+      {post.status==="scheduled"&&post.scheduledDate&&<div style={{padding:"5px 12px",background:C.successBg,borderTop:`1px solid #A7F3D0`,display:"flex",alignItems:"center",gap:6,fontSize:11,color:C.success,fontWeight:600,flexShrink:0}}>
+        <Calendar size={11} strokeWidth={2}/>{fmtDate(post.scheduledDate)}{post.scheduledTime&&` · ${post.scheduledTime}`}
+      </div>}
+      {post.status==="pending"&&can("approve")&&<div style={{padding:"7px 12px",background:C.infoBg,borderTop:`1px solid #BFDBFE`,display:"flex",gap:7,alignItems:"center",flexShrink:0}}>
+        <span style={{flex:1,fontSize:11,color:C.info,fontWeight:600}}>Wartet auf Freigabe</span>
+        <Btn size="sm" variant="success" onClick={()=>onApprove(post.id,"scheduled")}><Check size={11} strokeWidth={2.5}/>OK</Btn>
+        <Btn size="sm" variant="danger"  onClick={()=>onApprove(post.id,"draft")}><X size={11} strokeWidth={2.5}/>Ablehnen</Btn>
+      </div>}
+      <div style={{display:"flex",borderTop:`1px solid ${C.borderLight}`,flexShrink:0}}>
+        {can("write")&&<button onClick={()=>onEdit(post)} style={{flex:1,padding:"9px 0",background:"none",border:"none",color:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,borderRight:`1px solid ${C.borderLight}`,fontFamily:FONT}}><Edit2 size={12} strokeWidth={IW}/>Bearbeiten</button>}
+        <button onClick={()=>onSched(post)} style={{flex:1,padding:"9px 0",background:"none",border:"none",color:post.status==="scheduled"?C.success:C.accent,fontWeight:700,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,fontFamily:FONT}}>
+          <Calendar size={12} strokeWidth={IW}/>{post.status==="scheduled"?"Ändern":"Planen"}
+        </button>
+      </div>
+    </div>
+  );
+}
