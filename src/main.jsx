@@ -7,9 +7,9 @@ import App from './App.jsx'
 const PUBLISHABLE_KEY = 'pk_test_ZW5nYWdpbmctYWxwYWNhLTYxLmNsZXJrLmFjY291bnRzLmRldiQ'
 
 createRoot(document.getElementById('root')).render(
-    <StrictMode>
-        <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-              <App />
-        </ClerkProvider>ClerkProvider>
-    </StrictMode>StrictMode>
-  )</StrictMode>
+  <StrictMode>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <App />
+    </ClerkProvider>
+  </StrictMode>
+)
