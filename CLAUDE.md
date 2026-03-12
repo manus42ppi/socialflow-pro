@@ -1,21 +1,18 @@
-# SocialFlow Pro – Claude Code Projektkontext
+# SocialFlow Pro – Projektkontext für Claude Code
 
-## Projekt-Übersicht
-- **App:** SocialFlow Pro v5
-- **Stack:** React + Vite, lucide-react
-- **Repo:** https://github.com/manus42ppi/socialflow-pro
-- **Live:** https://socialflow-pro.netlify.app
-- **Lokaler Pfad:** /Users/mas/DEV/socialflow-pro
-
-## Wichtigste Regel
-- Die gesamte App lebt in EINER Datei: src/App.jsx
-- KI-Assistent nutzt /.netlify/functions/ai als Proxy (NIEMALS direkt api.anthropic.com)
-
-## Deployment
-1. Änderungen machen
-2. git add -A && git commit -m "beschreibung" && git push
-3. Netlify deployed automatisch (~15 Sek)
-
-## Bekannte Stolpersteine
-- Build-Fehler = meist extra } am Dateiende
-- lucide-react Icons müssen oben im Import stehen
+## Stack
+- **Frontend:** React + Vite (socialflow-pro)
+- - **Backend:** Node.js/Express (socialflow-backend) → Port 3001
+  - - **AI Service:** Node.js Proxy (socialflow-ai) → Port 3002
+    - - **Live:** https://socialflow-pro.pages.dev (Cloudflare Pages)
+     
+      - ## Wichtige Hinweise
+      - - KI-Assistent nutzt den AI-Service als Proxy (NIEMALS direkt api.anthropic.com im Frontend)
+        - - Clerk wird für Auth genutzt (Dev-Key in main.jsx)
+          - - `.env` Dateien NIEMALS committen
+           
+            - ## Workflow
+            - 1. Code ändern und auf GitHub pushen (main branch)
+              2. 2. Cloudflare Pages deployed automatisch (~30 Sek)
+                 3. 3. Live-URL: https://socialflow-pro.pages.dev
+                    4. 
