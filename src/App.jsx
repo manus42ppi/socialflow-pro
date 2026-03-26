@@ -247,11 +247,11 @@ function ChIco({id,size=14,color}){
 function IGPrev({post,media}){
   return <div style={{fontFamily:"'Helvetica Neue',sans-serif",background:"#fff",border:"1px solid #dbdbdb",borderRadius:8,overflow:"hidden",fontSize:13}}>
     <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
-      <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(45deg,#f09433,#dc2743,#bc1888)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11}}>{post.title?.[0]||"U"}</div>
+      <div style={{width:32,height:32,borderRadius:"50%",background:C.text,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11}}>{post.title?.[0]||"U"}</div>
       <div><div style={{fontWeight:700}}>dein_account</div><div style={{fontSize:11,color:"#8e8e8e"}}>Gesponsert</div></div>
       <span style={{marginLeft:"auto",fontSize:18}}>···</span>
     </div>
-    {media?.url?<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>:<div style={{aspectRatio:"1/1",background:"linear-gradient(135deg,#fce4ec,#f8bbd0)",display:"flex",alignItems:"center",justifyContent:"center"}}><Instagram size={36} color="#E1306C" strokeWidth={1}/></div>}
+    {media?.url?<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>:<div style={{aspectRatio:"1/1",background:C.borderLight,display:"flex",alignItems:"center",justifyContent:"center"}}><ChIco id="instagram" size={32} color={C.textMute}/></div>}
     <div style={{padding:"10px 12px"}}>
       <div style={{display:"flex",gap:12,fontSize:18,marginBottom:6}}>🤍 💬 ↗ <span style={{marginLeft:"auto"}}>🔖</span></div>
       <div><span style={{fontWeight:700}}>dein_account</span> {post.content||"Text hier…"}</div>
@@ -274,7 +274,7 @@ function TWPrev({post,media}){
 function LIPrev({post,media}){
   return <div style={{fontFamily:"-apple-system,sans-serif",background:"#fff",border:"1px solid #e0e0e0",borderRadius:8,overflow:"hidden",fontSize:13}}>
     <div style={{padding:"12px 14px",display:"flex",gap:10}}>
-      <div style={{width:40,height:40,borderRadius:"50%",background:"#0077B5",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:13}}>{post.title?.[0]||"U"}</div>
+      <div style={{width:40,height:40,borderRadius:"50%",background:C.text,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:13}}>{post.title?.[0]||"U"}</div>
       <div><div style={{fontWeight:700}}>Dein Name</div><div style={{fontSize:11,color:"#666"}}>Position · 1. Grad</div></div>
     </div>
     <div style={{padding:"0 14px 10px",lineHeight:1.6}}>{post.content||"Post…"}</div>
@@ -287,7 +287,7 @@ function LIPrev({post,media}){
 function FBPrev({post,media}){
   return <div style={{fontFamily:"Helvetica,sans-serif",background:"#fff",border:"1px solid #dddfe2",borderRadius:8,overflow:"hidden",fontSize:13}}>
     <div style={{padding:"10px 12px",display:"flex",gap:8}}>
-      <div style={{width:36,height:36,borderRadius:"50%",background:"#1877F2",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12}}>{post.title?.[0]||"U"}</div>
+      <div style={{width:36,height:36,borderRadius:"50%",background:C.text,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12}}>{post.title?.[0]||"U"}</div>
       <div><div style={{fontWeight:700}}>Deine Seite</div><div style={{fontSize:11,color:"#65676b"}}>Gerade · 🌐</div></div>
     </div>
     <div style={{padding:"0 12px 10px",lineHeight:1.5}}>{post.content||"Post…"}</div>
@@ -309,10 +309,10 @@ function TKPrev({post,media}){
   </div>;
 }
 function WAPrev({post,media}){
-  return <div style={{background:"#ECE5DD",borderRadius:10,overflow:"hidden",fontSize:13}}>
-    <div style={{background:"#075E54",padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
-      <div style={{width:32,height:32,borderRadius:"50%",background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12}}>{post.title?.[0]||"B"}</div>
-      <div><div style={{fontWeight:700,color:"#fff",fontSize:13}}>Dein Business</div><div style={{fontSize:10,color:"rgba(255,255,255,.65)"}}>Aktiv</div></div>
+  return <div style={{background:"#F0F0EC",borderRadius:10,overflow:"hidden",fontSize:13}}>
+    <div style={{background:C.text,padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12}}>{post.title?.[0]||"B"}</div>
+      <div><div style={{fontWeight:700,color:"#fff",fontSize:13}}>Dein Business</div><div style={{fontSize:10,color:"rgba(255,255,255,.5)"}}>Aktiv</div></div>
     </div>
     <div style={{padding:"12px 10px",minHeight:80}}>
       <div style={{background:"#fff",borderRadius:"0 10px 10px 10px",padding:"8px 12px",display:"inline-block",maxWidth:"85%",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
@@ -1264,8 +1264,6 @@ function PostCard({post,items,campaigns,onEdit,onSched,onDel,onApprove,role}){
   const camp=campaigns?.find(c=>c.id===post.campaignId);
   const PC=PREV[tab]||PREV.instagram;
   const can=p=>ROLES[role]?.can.includes(p);
-  const chColor=CHANNELS.find(c=>c.id===tab)?.color||C.accent;
-  const chBg=CHANNELS.find(c=>c.id===tab)?.bg||C.bg;
 
   return(
     <Card style={{overflow:"hidden",transition:"all .18s",display:"flex",flexDirection:"column"}}
@@ -1286,7 +1284,7 @@ function PostCard({post,items,campaigns,onEdit,onSched,onDel,onApprove,role}){
 
       {/* ── Channel tabs (fixed height) ── */}
       {post.channels?.length>0&&(
-        <div style={{display:"flex",height:32,borderTop:`1px solid ${C.borderLight}`,borderBottom:`1px solid ${C.borderLight}`,overflowX:"auto",background:C.bg,flexShrink:0}}>
+        <div style={{display:"flex",height:32,borderTop:`1px solid ${C.borderLight}`,borderBottom:`1px solid ${C.border}`,overflowX:"auto",background:C.bg,flexShrink:0}}>
           {post.channels.map(cid=>{
             const ch=CHANNELS.find(x=>x.id===cid);
             const on=tab===cid;
@@ -1294,13 +1292,13 @@ function PostCard({post,items,campaigns,onEdit,onSched,onDel,onApprove,role}){
               <button key={cid} onClick={()=>setTab(cid)} style={{
                 flexShrink:0,height:"100%",display:"flex",alignItems:"center",gap:4,
                 padding:"0 10px",border:"none",
-                borderBottom:`2px solid ${on?ch?.color:"transparent"}`,
-                background:on?`${ch?.color}08`:"transparent",
-                color:on?ch?.color:C.textMute,
+                borderBottom:`2px solid ${on?C.text:"transparent"}`,
+                background:"transparent",
+                color:on?C.text:C.textMute,
                 fontWeight:on?700:500,fontSize:11,cursor:"pointer",fontFamily:FONT,
                 transition:"all .12s",
               }}>
-                <ChIco id={cid} size={11}/>{ch?.label}
+                <ChIco id={cid} size={11} color={on?C.text:C.textMute}/>{ch?.label}
               </button>
             );
           })}
@@ -1308,7 +1306,7 @@ function PostCard({post,items,campaigns,onEdit,onSched,onDel,onApprove,role}){
       )}
 
       {/* ── Preview – clipped tight around the social post ── */}
-      <div style={{background:chBg, padding:"8px 8px 0"}}>
+      <div style={{background:C.bg, padding:"8px 8px 0"}}>
         <div style={{
           width:"100%",
           overflow:"hidden",
@@ -1330,15 +1328,15 @@ function PostCard({post,items,campaigns,onEdit,onSched,onDel,onApprove,role}){
 
       {/* ── Schedule bar ── */}
       {post.status==="scheduled"&&post.scheduledDate&&(
-        <div style={{height:36,padding:"0 12px",background:C.successBg,borderTop:`1px solid #A7F3D0`,display:"flex",alignItems:"center",gap:6,fontSize:11.5,color:C.success,fontWeight:700,flexShrink:0}}>
-          <Calendar size={12} strokeWidth={2.5}/>{fmtDate(post.scheduledDate)}{post.scheduledTime&&` · ${post.scheduledTime}`}
+        <div style={{height:34,padding:"0 12px",background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:6,fontSize:11.5,color:C.textMid,fontWeight:600,flexShrink:0}}>
+          <Calendar size={12} strokeWidth={2} color={C.textMute}/>{fmtDate(post.scheduledDate)}{post.scheduledTime&&` · ${post.scheduledTime}`}
         </div>
       )}
 
       {/* ── Approval bar ── */}
       {post.status==="pending"&&can("approve")&&(
-        <div style={{height:36,padding:"0 12px",background:C.infoBg,borderTop:`1px solid #BFDBFE`,display:"flex",gap:7,alignItems:"center",flexShrink:0}}>
-          <span style={{flex:1,fontSize:11.5,color:C.info,fontWeight:600}}>Wartet auf Freigabe</span>
+        <div style={{height:34,padding:"0 10px",background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+          <span style={{flex:1,fontSize:11,color:C.textSoft,fontWeight:600}}>Wartet auf Freigabe</span>
           <Btn size="sm" variant="success" onClick={()=>onApprove(post.id,"scheduled")}><Check size={11} strokeWidth={2.5}/>OK</Btn>
           <Btn size="sm" variant="danger"  onClick={()=>onApprove(post.id,"draft")}><X size={11} strokeWidth={2.5}/>Ablehnen</Btn>
         </div>
