@@ -9,26 +9,27 @@ import {
 } from "lucide-react";
 
 // ── FONT & COLORS ──────────────────────────────────────────────────────────
-const FONT = "'Cabinet Grotesk', 'DM Sans', system-ui, sans-serif";
-const FONT_DISPLAY = "'Syne', 'Cabinet Grotesk', system-ui, sans-serif";
+const FONT = "'Inter', 'DM Sans', system-ui, sans-serif";
+const FONT_DISPLAY = "'Syne', 'Inter', system-ui, sans-serif";
 const IW = 1.7;
 const C = {
-  bg:"#F4F5F8", sidebar:"#0A0C10",
-  sidebarMid:"#111318",
-  surface:"#FFFFFF", border:"#E2E6EE", borderLight:"#EDEEF4",
-  text:"#0D1526", textMid:"#2E3A52", textSoft:"#5C6880", textMute:"#9BA8BC",
-  accent:"#D63B3B", accentLight:"#FEF1F1", accentGlow:"rgba(214,59,59,0.12)",
-  success:"#027A48", successBg:"#ECFDF3",
-  warning:"#B54708", warningBg:"#FFFAEB",
-  info:"#1757C2", infoBg:"#EEF5FF",
-  purple:"#5E35B1", purpleBg:"#F3EFFF",
-  purpleGlow:"rgba(94,53,177,0.15)",
-  ai1:"#5E35B1", ai2:"#D63B3B",
+  bg:"#F7F7F5", sidebar:"#111110",
+  sidebarMid:"#1A1A18",
+  surface:"#FFFFFF", border:"#E8E8E4", borderLight:"#F0F0EC",
+  text:"#111110", textMid:"#3D3D3A", textSoft:"#787873", textMute:"#AEAEA8",
+  accent:"#5B5BD6", accentLight:"#EDEDFF", accentGlow:"rgba(91,91,214,0.12)",
+  success:"#30A46C", successBg:"#E5F7EF",
+  warning:"#C4511E", warningBg:"#FFF0E6",
+  info:"#5B5BD6", infoBg:"#EDEDFF",
+  purple:"#5B5BD6", purpleBg:"#EDEDFF",
+  purpleGlow:"rgba(91,91,214,0.15)",
+  ai1:"#5B5BD6", ai2:"#7C7CE8",
+  red:"#E5484D", redLight:"#FFECEC",
   glass:"rgba(255,255,255,0.7)",
   glassStroke:"rgba(255,255,255,0.9)",
 };
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap');
   @keyframes spin { to { transform:rotate(360deg); } }
   @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
@@ -145,7 +146,7 @@ function Avatar({initials,size=32,color=C.accent}){return <div style={{width:siz
 
 function Btn({children,variant="primary",size="md",onClick,disabled=false,style={}}){
   const V={
-    primary:{background:`linear-gradient(135deg,${C.accent},#c0392b)`,color:"#fff",border:"none",boxShadow:`0 2px 8px ${C.accentGlow}`},
+    primary:{background:C.text,color:"#fff",border:"none",boxShadow:"none"},
     secondary:{background:C.surface,color:C.textMid,border:`1px solid ${C.border}`,boxShadow:"0 1px 3px rgba(0,0,0,.04)"},
     ghost:{background:"transparent",color:C.textSoft,border:"none"},
     danger:{background:C.accentLight,color:C.accent,border:`1px solid #FECACA`},
@@ -205,19 +206,40 @@ function SCrd({icon:Icon,label,value,delta,color,onClick}){
   );
 }
 
-// ── CHANNEL ICONS ──────────────────────────────────────────────────────────
-function WAIco({size=14,color="#25D366"}){
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <path fill={color} d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-    <path fill={color} d="M12 2C6.477 2 2 6.477 2 12c0 1.89.524 3.655 1.435 5.163L2 22l4.956-1.405A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.946 7.946 0 01-4.088-1.128l-.292-.174-3.037.86.862-3.043-.19-.311A7.96 7.96 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
-  </svg>;
-}
-const CHICO={instagram:Instagram,twitter:Twitter,linkedin:Linkedin,facebook:Facebook};
-const CHCLR={instagram:"#E1306C",twitter:"#000",linkedin:"#0077B5",facebook:"#1877F2",whatsapp:"#25D366"};
-function ChIco({id,size=14}){
-  if(id==="whatsapp")return <WAIco size={size} color="#25D366"/>;
-  const Ic=CHICO[id]||Globe;
-  return <Ic size={size} color={CHCLR[id]||C.textSoft} strokeWidth={IW}/>;
+// ── CHANNEL ICONS (custom SVG – brand color or monochrome via color prop) ──
+const CHCLR={instagram:"#E1306C",twitter:"#000000",linkedin:"#0077B5",facebook:"#1877F2",whatsapp:"#25D366"};
+function ChIco({id,size=14,color}){
+  const col=color||CHCLR[id]||C.textSoft;
+  if(id==="instagram") return(
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="2" y="2" width="20" height="20" rx="5" stroke={col} strokeWidth="2"/>
+      <circle cx="12" cy="12" r="4" stroke={col} strokeWidth="2"/>
+      <circle cx="17.5" cy="6.5" r="1.3" fill={col}/>
+    </svg>
+  );
+  if(id==="twitter") return(
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={col}>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.838L2.016 2.25H8.48l4.26 5.632 5.504-5.632z"/>
+    </svg>
+  );
+  if(id==="linkedin") return(
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="2" y="2" width="20" height="20" rx="3" stroke={col} strokeWidth="2"/>
+      <path d="M7 10v7M7 7.5v.01M11 10v7M11 13a3 3 0 016 0v4" stroke={col} strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+  if(id==="facebook") return(
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" stroke={col} strokeWidth="1.8" strokeLinejoin="round"/>
+    </svg>
+  );
+  if(id==="whatsapp") return(
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.954 9.954 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" stroke={col} strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M8.5 8.5s.5 1 1.5 2 2 1.5 2 1.5l1.5-1 2 3.5s-2 1.5-3.5.5C10 14 8 12 7 10c-1-2 1.5-1.5 1.5-1.5z" stroke={col} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+  return <Globe size={size} color={col} strokeWidth={IW}/>;
 }
 
 // ── CHANNEL PREVIEWS ───────────────────────────────────────────────────────
@@ -351,7 +373,7 @@ function Login({onLogin}){
               </div>
             </div>
             {err&&<div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(214,59,59,.15)",border:`1px solid ${C.accent}40`,borderRadius:9,padding:"8px 12px",fontSize:13,color:"#fca5a5"}}><AlertCircle size={14} strokeWidth={2}/>{err}</div>}
-            <button onClick={go} disabled={ld} style={{padding:"11px 16px",borderRadius:10,border:"none",background:`linear-gradient(135deg,${C.accent},#a02828)`,color:"#fff",fontWeight:700,fontSize:14,cursor:ld?"not-allowed":"pointer",fontFamily:FONT,display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:`0 4px 20px ${C.accentGlow}`,transition:"all .18s"}}>
+            <button onClick={go} disabled={ld} style={{padding:"11px 16px",borderRadius:10,border:"none",background:`linear-gradient(135deg,${C.accent},#4444b8)`,color:"#fff",fontWeight:700,fontSize:14,cursor:ld?"not-allowed":"pointer",fontFamily:FONT,display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:`0 4px 20px ${C.accentGlow}`,transition:"all .18s"}}>
               {ld?<><Sp/>Anmelden…</>:"Anmelden"}
             </button>
           </div>
@@ -382,13 +404,13 @@ function Sidebar({active,onNav,user,onLogout,pend}){
   const items=NAV.filter(n=>!n.adm||user.role==="admin");
   return(
     <div style={{width:64,background:C.sidebar,display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 0 12px",gap:2,flexShrink:0,borderRight:`1px solid rgba(255,255,255,.04)`}}>
-      <div style={{width:40,height:40,borderRadius:12,background:`linear-gradient(135deg,${C.accent},#a02828)`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:18,boxShadow:`0 4px 16px ${C.accentGlow}`}}><Layers size={19} color="#fff" strokeWidth={1.5}/></div>
+      <div style={{width:40,height:40,borderRadius:12,background:`linear-gradient(135deg,${C.accent},#4444b8)`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:18,boxShadow:`0 4px 16px ${C.accentGlow}`}}><Layers size={19} color="#fff" strokeWidth={1.5}/></div>
       {items.map(({id,label,I})=>{const on=active===id;
         return <button key={id} onClick={()=>onNav(id)} title={label} style={{position:"relative",width:44,height:44,borderRadius:12,border:"none",background:on?"rgba(255,255,255,.09)":"transparent",color:on?"#fff":"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .18s"}}
           onMouseEnter={e=>{if(!on){e.currentTarget.style.background="rgba(255,255,255,.06)";e.currentTarget.style.color="#9CA3AF";}}}
           onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#4A5568";}}}>
           <I size={18} strokeWidth={IW}/>
-          {on&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:20,background:`linear-gradient(180deg,${C.accent},#a02828)`,borderRadius:"0 3px 3px 0",boxShadow:`2px 0 8px ${C.accentGlow}`}}/>}
+          {on&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:20,background:C.accent,borderRadius:"0 3px 3px 0",boxShadow:`2px 0 8px ${C.accentGlow}`}}/>}
         </button>;
       })}
       <div style={{flex:1}}/>
@@ -401,15 +423,23 @@ function Sidebar({active,onNav,user,onLogout,pend}){
     </div>
   );
 }
-function TopBar({title,user}){
+function TopBar({title,user,onNew}){
   return(
-    <div style={{height:56,background:C.surface,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",padding:"0 24px",gap:14,flexShrink:0,boxShadow:"0 1px 0 rgba(0,0,0,.04)"}}>
-      <div style={{fontFamily:FONT_DISPLAY,fontWeight:700,fontSize:16,color:C.text,letterSpacing:"-.01em"}}>{title}</div>
+    <div style={{height:50,background:C.surface,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",padding:"0 22px",gap:12,flexShrink:0}}>
+      <div style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:15,color:C.text,letterSpacing:"-.01em"}}>{title}</div>
       <div style={{flex:1}}/>
-      <div style={{display:"flex",alignItems:"center",gap:10,paddingLeft:16,borderLeft:`1px solid ${C.border}`}}>
-        <Avatar initials={user.avatar} size={30}/>
-        <div><div style={{fontSize:13,fontWeight:700,color:C.text,lineHeight:1.2}}>{user.name}</div><Badge color={ROLES[user.role].color}>{ROLES[user.role].label}</Badge></div>
+      <div style={{display:"flex",alignItems:"center",gap:7,background:C.bg,border:`1px solid ${C.border}`,borderRadius:7,padding:"5px 11px",fontSize:12,color:C.textSoft,width:190}}>
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="5" stroke={C.textMute} strokeWidth="1.5"/><path d="M10 10l2.5 2.5" stroke={C.textMute} strokeWidth="1.5" strokeLinecap="round"/></svg>
+        Suchen…
+        <span style={{marginLeft:"auto",fontSize:10,color:C.textMute}}>⌘K</span>
       </div>
+      <button style={{width:34,height:34,borderRadius:7,border:`1px solid ${C.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:C.textSoft}}>
+        <Bell size={16} strokeWidth={IW}/>
+      </button>
+      <Btn onClick={onNew} style={{gap:5}}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+        Neuer Post
+      </Btn>
     </div>
   );
 }
@@ -1629,10 +1659,15 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   const drafts=posts.filter(p=>p.status==="draft");
   const pend=posts.filter(p=>p.status==="pending");
   const recent=[...posts].slice(-6).reverse();
-  const [hovCard,setHovCard]=useState(null);
 
-  const hour=new Date().getHours();
+  // Live clock
+  const [now,setNow]=useState(new Date());
+  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),10000);return()=>clearInterval(t);},[]);
+  const hour=now.getHours();
   const greeting=hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
+  const timeStr=now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  const dateStr=now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const kw=Math.ceil((now-new Date(now.getFullYear(),0,1)+new Date(now.getFullYear(),0,1).getDay()*86400000)/(7*86400000));
 
   // Sparkline SVG
   const sparkData=[3,7,4,9,6,11,8,14,10,16,12,18];
@@ -1725,161 +1760,202 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
     </div>;
   };
 
-  const QAction=({icon:Icon,label,color,onClick})=>(
-    <button onClick={onClick} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"8px 10px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.textMid,fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT,transition:"all .15s"}}
-      onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.color=color;e.currentTarget.style.background=color+"0A";}}
-      onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMid;e.currentTarget.style.background="#fff";}}>
-      <Icon size={13} strokeWidth={2}/>{label}
-    </button>
-  );
+  // ── SVG icon helpers (monochrome, inline) ──────────────────────────────
+  const SvgCheck =()=><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 7l4 5 8-9" stroke={C.text} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+  const SvgDoc   =()=><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 2h10a1 1 0 011 1v5a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z" stroke={C.text} strokeWidth="1.4"/><path d="M4 5h6M4 7h3" stroke={C.text} strokeWidth="1.4" strokeLinecap="round"/></svg>;
+  const SvgClock =()=><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke={C.text} strokeWidth="1.4"/><path d="M7 4v3.5l2 1.5" stroke={C.text} strokeWidth="1.4" strokeLinecap="round"/></svg>;
+  const SvgTrend =()=><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 10l3-4 3 3 2.5-4L13 8" stroke={C.text} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+  const QaIcon=({type})=>{
+    const s={stroke:C.text,strokeWidth:"1.4",strokeLinecap:"round",strokeLinejoin:"round"};
+    if(type==="post")   return <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M11.5 2.5a1.5 1.5 0 012.1 2.1L5 13H2.5l.5-2.5L11.5 2.5z" {...s}/></svg>;
+    if(type==="cal")    return <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="1.5" stroke={C.text} strokeWidth="1.4"/><path d="M5 1v4M11 1v4M1 7h14" {...s}/></svg>;
+    if(type==="upload") return <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 10V2M5 5l3-3 3 3" {...s}/><path d="M2 12v1.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V12" {...s}/></svg>;
+    if(type==="perf")   return <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 13V9M6 13V6M10 13V3M14 13V1" {...s}/></svg>;
+    if(type==="camp")   return <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke={C.text} strokeWidth="1.4"/><path d="M8 4.5v3.5l2.5 1.5" {...s}/></svg>;
+    return null;
+  };
+
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.05)"};
+  const hoverCard=e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.08)";e.currentTarget.style.transform="translateY(-1px)";};
+  const leaveCard=e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.05)";e.currentTarget.style.transform="";};
 
   return(
-    <div style={{flex:1,overflow:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:16,background:"#F6F7FB"}}>
+    <div style={{flex:1,overflow:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:12,background:C.bg}}>
 
-      {/* ── Hero Header – FIXED: proper height, no clipping ── */}
-      <div style={{
-        borderRadius:18,position:"relative",
-        background:"linear-gradient(130deg,#0B0D14 0%,#141829 55%,#0E1220 100%)",
-        padding:"22px 26px",
-        boxShadow:"0 4px 32px rgba(0,0,0,.16)",
-        overflow:"hidden",
-        minHeight:96,
-      }}>
-        {/* Subtle dot grid */}
-        <div style={{position:"absolute",inset:0,backgroundImage:"radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px)",backgroundSize:"22px 22px",pointerEvents:"none"}}/>
-        {/* Glow accents */}
-        <div style={{position:"absolute",top:-50,right:120,width:180,height:180,borderRadius:"50%",background:`radial-gradient(circle,${C.accent}14 0%,transparent 65%)`,pointerEvents:"none"}}/>
-        <div style={{position:"absolute",bottom:-50,right:20,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${C.purple}10 0%,transparent 65%)`,pointerEvents:"none"}}/>
+      {/* ── HERO: dark clock | greeting | KPIs ── */}
+      <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:124}}>
+        {/* Clock block */}
+        <div style={{background:C.text,padding:"20px 26px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:164}}>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:38,fontWeight:800,color:"#fff",lineHeight:1,letterSpacing:"-1px"}}>{timeStr}</div>
+          <div style={{fontSize:10,fontWeight:600,color:"#555550",textTransform:"uppercase",letterSpacing:".6px",marginTop:4}}>Uhr</div>
+          <div style={{fontSize:11,fontWeight:500,color:"#666660",marginTop:8,lineHeight:1.4}}>{dateStr}</div>
+          <div style={{fontSize:10,color:"#3a3a38",marginTop:2}}>KW {kw}</div>
+        </div>
 
-        <div style={{position:"relative",zIndex:1,display:"flex",justifyContent:"space-between",alignItems:"center",gap:20}}>
-          <div>
-            <div style={{fontSize:10.5,color:"rgba(255,255,255,.35)",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>
-              {new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}
-            </div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:20,fontWeight:800,color:"#fff",letterSpacing:"-.02em",lineHeight:1.2}}>
-              {greeting}, {user.name.split(" ")[0]} 👋
-            </div>
-            <div style={{fontSize:12.5,color:"rgba(255,255,255,.45)",marginTop:5,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-              <span style={{display:"flex",alignItems:"center",gap:4}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:"#22C55E",boxShadow:"0 0 6px #22C55E"}}/>
-                <strong style={{color:"rgba(255,255,255,.75)"}}>{sched.length}</strong> geplant
-              </span>
-              <span style={{color:"rgba(255,255,255,.2)"}}>·</span>
-              <span><strong style={{color:"rgba(255,255,255,.75)"}}>{pend.length}</strong> zur Freigabe</span>
-              <span style={{color:"rgba(255,255,255,.2)"}}>·</span>
-              <span><strong style={{color:"rgba(255,255,255,.75)"}}>{campaigns.length}</strong> Kampagnen</span>
-            </div>
+        {/* Greeting */}
+        <div style={{padding:"20px 26px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
+          <div style={{fontSize:10,fontWeight:600,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:21,fontWeight:800,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]} 👋</div>
+          <div style={{display:"flex",gap:6,marginTop:9,flexWrap:"wrap"}}>
+            {pend.length>0&&<span style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.redLight,color:C.red}}>{pend.length} zur Freigabe</span>}
+            {sched.length>0&&<span style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.accentLight,color:C.accent}}>{sched.length} heute geplant</span>}
           </div>
-          {/* Reach badge */}
-          <div style={{flexShrink:0,background:"rgba(255,255,255,.07)",backdropFilter:"blur(12px)",borderRadius:14,padding:"12px 18px",border:"1px solid rgba(255,255,255,.1)",textAlign:"center",minWidth:120}}>
-            <div style={{fontSize:9.5,fontWeight:700,color:"rgba(255,255,255,.35)",letterSpacing:".1em",marginBottom:3}}>REICHWEITE</div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"-.03em"}}>44.3K</div>
-            <div style={{fontSize:10.5,color:"#4ADE80",fontWeight:700,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",gap:2}}>
-              <ArrowUp size={9} strokeWidth={3}/>18% diese Woche
-            </div>
+        </div>
+
+        {/* KPIs */}
+        <div style={{display:"flex"}}>
+          <div style={{padding:"20px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>44.3K</div>
+            <div style={{fontSize:11,color:C.textSoft,marginTop:2}}>Reichweite</div>
+            <div style={{fontSize:10,fontWeight:700,color:C.success,marginTop:4}}>↑ 18% diese Woche</div>
+          </div>
+          <div style={{padding:"20px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>5.7%</div>
+            <div style={{fontSize:11,color:C.textSoft,marginTop:2}}>Ø Engagement</div>
+            <div style={{fontSize:10,fontWeight:700,color:C.success,marginTop:4}}>↑ 2% vs. Vorwoche</div>
           </div>
         </div>
       </div>
 
-      {/* ── 4 KPI Cards ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
-        <KpiCard id="s1" icon={Send}       label="Geplante Posts"  value={sched.length}     delta={12} color={C.success} trend={sparkData}              onClick={()=>onFilterNav("publisher","scheduled")}/>
-        <KpiCard id="s2" icon={FileText}   label="Entwürfe"        value={drafts.length}    delta={-3} color="#D97706"   trend={[...sparkData].reverse()} onClick={()=>onFilterNav("publisher","draft")}/>
-        <KpiCard id="s3" icon={Inbox}      label="Zur Freigabe"    value={pend.length}      delta={0}  color={C.info}    trend={sparkData.slice(4)}        onClick={()=>onFilterNav("publisher","pending")}/>
-        <KpiCard id="s4" icon={TrendingUp} label="Ø Engagement"    value="5.7%"             delta={2}  color={C.purple}  trend={sparkData}/>
-      </div>
-
-      {/* ── Middle row: 3 cols ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 300px",gap:12}}>
-
-        {/* Letzte Aktivität */}
-        <div style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
-          <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{fontWeight:700,fontSize:13,color:C.text}}>Letzte Aktivität</div>
-            <button onClick={()=>onNav("publisher")} style={{fontSize:11,color:C.accent,fontWeight:700,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
-          </div>
-          <div style={{padding:"2px 16px 6px"}}>
-            {recent.length===0
-              ?<div style={{padding:"28px 0",textAlign:"center",color:C.textMute,fontSize:12}}>Noch keine Posts</div>
-              :recent.slice(0,5).map((p,i)=><StatusRow key={p.id} post={p} last={i===Math.min(recent.length,5)-1}/>)
-            }
-          </div>
-        </div>
-
-        {/* Kanal-Donut + Quick Actions */}
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          <div style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,padding:"14px 16px",flex:1,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
-            <div style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:12}}>Posts je Kanal</div>
-            <DonutChart/>
-          </div>
-          <div style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
-            <div style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".07em",marginBottom:8}}>SCHNELLZUGRIFF</div>
-            <div style={{display:"flex",gap:7}}>
-              <QAction icon={Plus}     label="Neuer Post" color={C.accent}  onClick={()=>onNav("publisher")}/>
-              <QAction icon={Calendar} label="Kalender"   color={C.info}    onClick={()=>onNav("calendar")}/>
-              <QAction icon={Image}    label="Medien"     color="#0077B5"   onClick={()=>onNav("media")}/>
+      {/* ── QUICK ACTIONS ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>
+        {[
+          {type:"post",  label:"Post erstellen",  sub:"Neuer Inhalt",    nav:"publisher"},
+          {type:"cal",   label:"Kalender",         sub:"Zeitplan",        nav:"calendar"},
+          {type:"upload",label:"Medien hochladen", sub:"Bilder & Videos", nav:"media"},
+          {type:"perf",  label:"Performance",      sub:"Auswertungen",    nav:"performance"},
+          {type:"camp",  label:"Kampagne",          sub:"Neue Kampagne",   nav:"campaigns"},
+        ].map((qa,i)=>(
+          <div key={i} onClick={()=>onNav(qa.nav)}
+            style={{...card,padding:14,display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,cursor:"pointer",transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="#888";hoverCard(e);}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;leaveCard(e);}}>
+            <div style={{width:30,height:30,borderRadius:7,background:C.bg,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <QaIcon type={qa.type}/>
+            </div>
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>{qa.label}</div>
+              <div style={{fontSize:10,color:C.textMute,marginTop:2}}>{qa.sub}</div>
             </div>
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Kampagnen */}
-        <div style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
-          <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-            <div style={{fontWeight:700,fontSize:13,color:C.text}}>Kampagnen</div>
-            <button onClick={()=>onNav("campaigns")} style={{fontSize:11,color:C.accent,fontWeight:700,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
+      {/* ── STAT CARDS ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+        {[
+          {Ico:SvgCheck,label:"Geplante Posts", value:sched.length, delta:"+12%", up:true,  barW:"35%",barC:C.accent, nav:()=>onFilterNav("publisher","scheduled")},
+          {Ico:SvgDoc,  label:"Entwürfe",       value:drafts.length,delta:"−3%",  up:false, barW:"20%",barC:C.warning,nav:()=>onFilterNav("publisher","draft")},
+          {Ico:SvgClock,label:"Zur Freigabe",   value:pend.length,  delta:"±0%",  up:null,  barW:"10%",barC:C.red,   nav:()=>onFilterNav("publisher","pending")},
+          {Ico:SvgTrend,label:"Ø Engagement",   value:"5.7%",       delta:"+2%",  up:true,  barW:"57%",barC:C.success},
+        ].map((sc,i)=>(
+          <div key={i} onClick={sc.nav}
+            style={{...card,padding:"14px 16px",cursor:sc.nav?"pointer":"default",transition:"all .15s"}}
+            onMouseEnter={e=>{if(sc.nav)hoverCard(e);}}
+            onMouseLeave={e=>{if(sc.nav)leaveCard(e);}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <div style={{width:28,height:28,borderRadius:7,background:C.bg,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <sc.Ico/>
+              </div>
+              <span style={{fontSize:11,fontWeight:600,padding:"2px 7px",borderRadius:5,background:sc.up===true?C.successBg:sc.up===false?C.redLight:C.bg,color:sc.up===true?C.success:sc.up===false?C.red:C.textSoft}}>{sc.delta}</span>
+            </div>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:26,fontWeight:800,lineHeight:1,color:C.text}}>{sc.value}</div>
+            <div style={{fontSize:11,color:C.textSoft,marginTop:3}}>{sc.label}</div>
+            <div style={{height:3,borderRadius:99,marginTop:12,background:C.borderLight,overflow:"hidden"}}>
+              <div style={{height:"100%",width:sc.barW,borderRadius:99,background:sc.barC}}/>
+            </div>
           </div>
-          <div style={{flex:1,overflow:"hidden"}}>
-            {campaigns.length===0
-              ?<div style={{padding:"28px 16px",textAlign:"center",color:C.textMute,fontSize:12}}>Keine Kampagnen</div>
-              :campaigns.slice(0,3).map((c,i)=>{
-                const n=posts.filter(p=>p.campaignId===c.id).length;
-                const prog=Math.min(100,n*25);
-                return <div key={c.id} style={{padding:"10px 16px",borderBottom:i<Math.min(campaigns.length,3)-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",transition:"background .12s"}}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-                  onClick={()=>onNav("campaigns")}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                    <div style={{width:28,height:28,borderRadius:7,background:c.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{c.emoji}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:12.5,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
-                      <div style={{fontSize:10.5,color:C.textSoft}}>{n} Post{n!==1?"s":""}</div>
-                    </div>
+        ))}
+      </div>
+
+      {/* ── TWO COL: posts list + right panel ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:12}}>
+
+        {/* Posts list */}
+        <div style={{...card,overflow:"hidden"}}>
+          <div style={{padding:"11px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontWeight:700,fontSize:13}}>Letzte Posts</span>
+              <div style={{display:"flex",gap:1,padding:3,background:C.bg,borderRadius:7,border:`1px solid ${C.border}`}}>
+                {["Alle","Geplant","Entwürfe"].map((t,i)=>(
+                  <span key={i} style={{padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,cursor:"pointer",color:i===0?C.text:C.textSoft,background:i===0?C.surface:"transparent"}}>{t}</span>
+                ))}
+              </div>
+            </div>
+            <button onClick={()=>onNav("publisher")} style={{fontSize:12,color:C.accent,fontWeight:500,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
+          </div>
+          {recent.length===0
+            ?<div style={{padding:"32px 0",textAlign:"center",color:C.textMute,fontSize:12}}>Noch keine Posts</div>
+            :recent.slice(0,5).map((p,i)=>{
+              const sMap={scheduled:{c:C.accent,bg:C.accentLight,l:"Geplant"},draft:{c:C.textSoft,bg:C.bg,l:"Entwurf"},pending:{c:C.warning,bg:C.warningBg,l:"Review"},published:{c:C.success,bg:C.successBg,l:"Live"}};
+              const s=sMap[p.status]||sMap.draft;
+              return <div key={p.id} style={{padding:"9px 16px",borderBottom:i<Math.min(recent.length,5)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"background .1s"}}
+                onClick={()=>onNav("publisher")}
+                onMouseEnter={e=>e.currentTarget.style.background="#F5F5FF"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <div style={{width:32,height:32,borderRadius:7,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${C.border}`,background:C.bg,fontSize:14}}>
+                  {campaigns.find(c=>c.id===p.campaignId)?.emoji||"📄"}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:12,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title||"Kein Titel"}</div>
+                  <div style={{fontSize:11,color:C.textSoft,marginTop:2,display:"flex",alignItems:"center",gap:5}}>
+                    {p.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={11} color={C.textMute}/>)}
+                    <span>{p.scheduledDate?`· ${p.scheduledDate}`:p.status==="pending"?"· Zur Freigabe":"· Entwurf"}</span>
                   </div>
-                  <div style={{height:3,borderRadius:2,background:C.borderLight}}>
-                    <div style={{height:"100%",width:`${prog}%`,borderRadius:2,background:c.color,transition:"width .4s"}}/>
+                </div>
+                <span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:5,background:s.bg,color:s.c,flexShrink:0}}>{s.l}</span>
+              </div>;
+            })
+          }
+        </div>
+
+        {/* Right panel */}
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+
+          {/* Posts je Kanal */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"11px 16px",borderBottom:`1px solid ${C.borderLight}`}}>
+              <span style={{fontWeight:700,fontSize:13}}>Posts je Kanal</span>
+            </div>
+            {CHANNELS.map((ch,i)=>{
+              const n=posts.filter(p=>p.channels?.includes(ch.id)).length;
+              const total=Math.max(1,posts.length);
+              return <div key={ch.id} style={{padding:"8px 16px",borderBottom:i<CHANNELS.length-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{fontSize:12,fontWeight:600,color:C.textMid,width:82,display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                  <ChIco id={ch.id} size={13} color={C.text}/>
+                  {ch.label}
+                </div>
+                <div style={{flex:1,height:5,background:C.borderLight,borderRadius:99,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${(n/total)*100}%`,background:C.text,borderRadius:99}}/>
+                </div>
+                <span style={{fontSize:11,fontWeight:600,color:C.textSoft,width:16,textAlign:"right",flexShrink:0}}>{n}</span>
+              </div>;
+            })}
+          </div>
+
+          {/* Kampagnen */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"11px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontWeight:700,fontSize:13}}>Kampagnen</span>
+              <button onClick={()=>onNav("campaigns")} style={{fontSize:12,color:C.accent,fontWeight:500,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
+            </div>
+            {campaigns.length===0
+              ?<div style={{padding:"20px 16px",textAlign:"center",color:C.textMute,fontSize:12}}>Keine Kampagnen</div>
+              :campaigns.slice(0,4).map((c,i)=>{
+                const n=posts.filter(p=>p.campaignId===c.id).length;
+                return <div key={c.id} style={{padding:"9px 16px",borderBottom:i<Math.min(campaigns.length,4)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",transition:"background .1s"}}
+                  onClick={()=>onNav("campaigns")}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:c.color,flexShrink:0}}/>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>{c.name}</div>
+                    <div style={{fontSize:11,color:C.textMute,marginTop:1}}>{n} Post{n!==1?"s":""} · aktiv</div>
                   </div>
                 </div>;
               })
             }
           </div>
-          <div style={{padding:"10px 14px",borderTop:`1px solid ${C.borderLight}`,flexShrink:0}}>
-            <button onClick={()=>onNav("campaigns")} style={{width:"100%",padding:"7px",borderRadius:8,border:`1.5px dashed ${C.border}`,background:"transparent",color:C.textSoft,fontSize:11.5,fontWeight:600,cursor:"pointer",fontFamily:FONT,transition:"all .15s",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.color=C.accent;}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textSoft;}}>
-              <Plus size={12} strokeWidth={2.5}/>Neue Kampagne
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Performance Streifen ── */}
-      <div style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,padding:"14px 18px",boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontWeight:700,fontSize:13,color:C.text}}>Performance Übersicht</div>
-          <button onClick={()=>onNav("performance")} style={{fontSize:11,color:C.accent,fontWeight:700,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Details →</button>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>
-          {CHANNELS.map(ch=>{
-            const D={instagram:{reach:"12.4K",eng:"5.4%"},twitter:{reach:"8.9K",eng:"3.2%"},linkedin:{reach:"6.7K",eng:"4.8%"},facebook:{reach:"5.2K",eng:"2.1%"},whatsapp:{reach:"3.2K",eng:"12%"}};
-            const d=D[ch.id]||{reach:"—",eng:"—"};
-            return <div key={ch.id} style={{padding:"10px 12px",borderRadius:11,background:ch.color+"08",border:`1px solid ${ch.color}18`,textAlign:"center"}}>
-              <div style={{display:"flex",justifyContent:"center",marginBottom:6}}><ChIco id={ch.id} size={16}/></div>
-              <div style={{fontSize:10.5,fontWeight:700,color:C.textMid,marginBottom:4}}>{ch.label}</div>
-              <div style={{fontSize:16,fontWeight:800,color:C.text,letterSpacing:"-.02em"}}>{d.reach}</div>
-              <div style={{fontSize:10,color:C.textSoft,marginBottom:5}}>Reichweite</div>
-              <div style={{fontSize:10.5,fontWeight:700,color:ch.color,background:ch.color+"15",padding:"2px 7px",borderRadius:20,display:"inline-block"}}>{d.eng}</div>
-            </div>;
-          })}
         </div>
       </div>
 
@@ -2437,7 +2513,7 @@ export default function App(){
       <style>{CSS}</style>
       <Sidebar active={nav} onNav={goNav} user={user} onLogout={()=>setUser(null)} pend={posts.filter(p=>p.status==="pending").length}/>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <TopBar title={TITLE[nav]||"SocialFlow"} user={user}/>
+        <TopBar title={TITLE[nav]||"SocialFlow"} user={user} onNew={newPost}/>
         {nav==="dashboard"   &&<Dashboard posts={posts} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
         {nav==="publisher"   &&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={filt} setFilt={setFilt}/>}
         {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts} onEditPost={setEdPost}/>}
