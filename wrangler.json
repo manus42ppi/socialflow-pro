@@ -1,5 +1,11 @@
 {
   "name": "socialflow-pro",
   "compatibility_date": "2024-09-23",
-  "pages_build_output_dir": "dist"
+  "pages_build_output_dir": "dist",
+  "kv_namespaces": [
+    {
+      "binding": "SOCIALFLOW_KV",
+      "id": "8e28fb1366f24425b4eae791e88e50f2"
+    }
+  ]
 }
