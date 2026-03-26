@@ -736,9 +736,60 @@ function AIPanel({content,chId,onApply,onApplyHT}){
 }
 
 // ── MEDIA PICKER MODAL (inline – bleibt über dem Editor) ───────────────────
-function MediaPicker({items,onSelect,onUpload,onUpdate,onClose}){
-  const [q,setQ]=useState(""); const [f,setF]=useState("all");
-  const ref=useRef();
+// ── STOCK IMAGE SEARCH ─────────────────────────────────────────────────────
+const STOCK_SRCS=[
+  {id:"unsplash",label:"Unsplash",dot:"#111111",keyUrl:"https://unsplash.com/developers"},
+  {id:"pexels",  label:"Pexels",  dot:"#05A081",keyUrl:"https://www.pexels.com/api/"},
+  {id:"pixabay", label:"Pixabay", dot:"#2EC261",keyUrl:"https://pixabay.com/api/docs/"},
+];
+const skGet=id=>localStorage.getItem(`sf_sk_${id}`)||"";
+const skSet=(id,v)=>localStorage.setItem(`sf_sk_${id}`,v);
+async function stockSearch(src,q){
+  if(!q.trim())return[];
+  const k=skGet(src);
+  if(!k)return null; // null = key not configured
+  try{
+    if(src==="unsplash"){
+      const r=await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=24`,{headers:{Authorization:`Client-ID ${k}`}});
+      if(!r.ok)return[];
+      const d=await r.json();
+      return(d.results||[]).map(x=>({id:`un_${x.id}`,name:x.alt_description||x.id,url:x.urls.small,type:"image",source:"unsplash",author:x.user.name,dlLoc:x.links.download_location,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:(x.tags||[]).map(t=>t.title).join(", "),description:x.description||x.alt_description||""}));
+    }
+    if(src==="pexels"){
+      const r=await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=24`,{headers:{Authorization:k}});
+      if(!r.ok)return[];
+      const d=await r.json();
+      return(d.photos||[]).map(x=>({id:`px_${x.id}`,name:x.alt||`Pexels ${x.id}`,url:x.src.medium,type:"image",source:"pexels",author:x.photographer,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:"",description:x.alt||""}));
+    }
+    if(src==="pixabay"){
+      const r=await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(k)}&q=${encodeURIComponent(q)}&per_page=24&image_type=photo&safesearch=true`);
+      if(!r.ok)return[];
+      const d=await r.json();
+      return(d.hits||[]).map(x=>({id:`pb_${x.id}`,name:x.tags||`Pixabay ${x.id}`,url:x.webformatURL,type:"image",source:"pixabay",author:x.user,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:x.tags||"",description:x.tags||""}));
+    }
+  }catch{return[];}
+  return[];
+}
+
+// ── SOURCE BADGE ────────────────────────────────────────────────────────────
+function SrcBadge({source}){
+  const s=STOCK_SRCS.find(x=>x.id===source);
+  if(!s)return null;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:3,background:C.borderLight,color:C.textSoft,fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:20,letterSpacing:".02em"}}>
+    <div style={{width:5,height:5,borderRadius:"50%",background:s.dot,flexShrink:0}}/>{s.label}
+  </span>;
+}
+
+// ── MEDIA PICKER ────────────────────────────────────────────────────────────
+function MediaPicker({items,posts=[],onSelect,onUpload,onUpdate,onClose}){
+  const [q,setQ]=useState("");
+  const [src,setSrc]=useState("library");
+  const [extRes,setExtRes]=useState({unsplash:undefined,pexels:undefined,pixabay:undefined});
+  const [extLd,setExtLd]=useState(false);
+  const [showKeys,setShowKeys]=useState(false);
+  const [keys,setKeys]=useState({unsplash:skGet("unsplash"),pexels:skGet("pexels"),pixabay:skGet("pixabay")});
+  const ref=useRef(); const timer=useRef();
+
   const upload=useCallback(async files=>{
     for(const file of Array.from(files)){
       const url=await fileToDataURL(file);
@@ -746,58 +797,163 @@ function MediaPicker({items,onSelect,onUpload,onUpdate,onClose}){
       const item={id,name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:true};
       onUpload(item); onSelect(item);
       if(item.type==="image"){
-        AI.analyzeImg(url).then(r=>{
-          onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});
-        }).catch(()=>onUpdate({...item,analyzing:false}));
-      } else {
-        onUpdate({...item,analyzing:false});
-      }
+        AI.analyzeImg(url).then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});}).catch(()=>onUpdate({...item,analyzing:false}));
+      } else { onUpdate({...item,analyzing:false}); }
       return;
     }
   },[onUpload,onSelect,onUpdate]);
-  const list=items.filter(m=>(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase()))&&(f==="all"||m.type===f));
+
+  // Debounced external search
+  useEffect(()=>{
+    if(src==="library")return;
+    clearTimeout(timer.current);
+    if(!q.trim()){setExtRes(p=>({...p,[src]:undefined}));return;}
+    timer.current=setTimeout(async()=>{
+      setExtLd(true);
+      const res=await stockSearch(src,q);
+      setExtRes(p=>({...p,[src]:res}));
+      setExtLd(false);
+    },600);
+    return()=>clearTimeout(timer.current);
+  },[q,src]);
+
+  const saveKey=(id,v)=>{skSet(id,v);setKeys(p=>({...p,[id]:v}));};
+
+  const selectExt=async ext=>{
+    if(ext.source==="unsplash"&&ext.dlLoc){const k=skGet("unsplash");if(k)fetch(ext.dlLoc,{headers:{Authorization:`Client-ID ${k}`}}).catch(()=>{});}
+    const item={...ext,id:uid()};
+    onUpload(item); onSelect(item);
+  };
+
+  const libList=items.filter(m=>(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase())));
+  const usedIn=id=>posts.filter(p=>p.mediaId===id);
+  const extData=extRes[src];
+
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <Card style={{width:"100%",maxWidth:700,maxHeight:"78vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 64px rgba(0,0,0,.25)"}}>
-        <div style={{padding:"14px 18px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:12}}>
+      <Card style={{width:"100%",maxWidth:840,maxHeight:"84vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 64px rgba(0,0,0,.25)"}}>
+
+        {/* Header */}
+        <div style={{padding:"13px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
           <div style={{flex:1,fontWeight:800,fontSize:15,color:C.text}}>Medium auswählen</div>
+          <button onClick={()=>setShowKeys(s=>!s)} style={{background:showKeys?C.borderLight:"none",border:`1px solid ${C.border}`,borderRadius:7,color:C.textSoft,cursor:"pointer",padding:"5px 10px",fontSize:11,fontWeight:600,display:"flex",alignItems:"center",gap:5,fontFamily:FONT}}>
+            <Settings size={11} strokeWidth={2}/>API-Keys
+            {STOCK_SRCS.some(s=>keys[s.id])&&<span style={{width:6,height:6,borderRadius:"50%",background:C.success,display:"inline-block"}}/>}
+          </button>
           <Btn size="sm" onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Hochladen</Btn>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer"}}><X size={20} strokeWidth={2}/></button>
           <input ref={ref} type="file" multiple accept="image/*,video/*" style={{display:"none"}} onChange={e=>upload(e.target.files)}/>
         </div>
-        <div style={{padding:"10px 18px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",gap:10}}>
+
+        {/* API Key panel */}
+        {showKeys&&<div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,background:C.bg,display:"flex",gap:12,flexShrink:0}}>
+          {STOCK_SRCS.map(s=>(
+            <div key={s.id} style={{flex:1}}>
+              <div style={{fontSize:10.5,fontWeight:700,color:C.textMid,marginBottom:5,display:"flex",alignItems:"center",gap:5}}>
+                <div style={{width:7,height:7,borderRadius:"50%",background:keys[s.id]?C.success:C.border}}/>
+                {s.label}
+                <a href={s.keyUrl} target="_blank" rel="noreferrer" style={{fontSize:9,color:C.accent,textDecoration:"none",marginLeft:"auto"}}>Key holen →</a>
+              </div>
+              <input value={keys[s.id]} onChange={e=>saveKey(s.id,e.target.value)} placeholder={`${s.label} API Key…`} type="password" style={{width:"100%",padding:"6px 9px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:11,outline:"none",fontFamily:FONT,boxSizing:"border-box",background:C.surface}}/>
+            </div>
+          ))}
+        </div>}
+
+        {/* Source tabs + search */}
+        <div style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
+          <div style={{display:"flex",background:C.borderLight,borderRadius:8,padding:3,gap:2,flexShrink:0}}>
+            {[{id:"library",label:"Bibliothek"},...STOCK_SRCS].map(s=>{
+              const on=src===s.id; const hasKey=s.id==="library"||!!keys[s.id];
+              return <button key={s.id} onClick={()=>setSrc(s.id)} style={{padding:"4px 10px",borderRadius:6,border:"none",background:on?C.surface:"transparent",color:on?C.text:C.textSoft,fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:4,boxShadow:on?"0 1px 3px rgba(0,0,0,.07)":"none",transition:"all .12s"}}>
+                {s.id!=="library"&&<div style={{width:6,height:6,borderRadius:"50%",background:hasKey?s.dot:C.border,flexShrink:0}}/>}
+                {s.label}
+              </button>;
+            })}
+          </div>
           <div style={{position:"relative",flex:1}}>
             <Search size={13} color={C.textMute} strokeWidth={IW} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
-            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Suche…" style={{width:"100%",padding:"7px 10px 7px 28px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder={src==="library"?"Name oder Tags…":`In ${STOCK_SRCS.find(s=>s.id===src)?.label||""} suchen…`} style={{width:"100%",padding:"7px 10px 7px 28px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
           </div>
-          {["all","image","video","logo"].map(t=>(
-            <button key={t} onClick={()=>setF(t)} style={{padding:"6px 12px",borderRadius:7,border:"none",background:f===t?C.text:C.borderLight,color:f===t?"#fff":C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>
-              {{all:"Alle",image:"Bilder",video:"Videos",logo:"Logos"}[t]}
-            </button>
-          ))}
         </div>
-        <div style={{flex:1,overflow:"auto",padding:16}}>
-          {list.length===0?(
-            <div style={{textAlign:"center",padding:"40px 20px",color:C.textMute}}>
+
+        {/* Content */}
+        <div style={{flex:1,overflow:"auto",padding:14}}>
+
+          {/* ── Library tab ── */}
+          {src==="library"&&(libList.length===0?(
+            <div style={{textAlign:"center",padding:"44px 20px",color:C.textMute}}>
               <Image size={34} strokeWidth={1} style={{margin:"0 auto 10px",display:"block"}}/>
-              <div style={{fontWeight:600,marginBottom:10}}>{items.length===0?"Noch keine Medien":"Keine Treffer"}</div>
+              <div style={{fontWeight:600,marginBottom:10,color:C.textMid}}>{items.length===0?"Noch keine Medien":"Keine Treffer"}</div>
               <Btn size="sm" onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Bild hochladen</Btn>
             </div>
           ):(
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:10}}>
-              {list.map(item=>(
-                <div key={item.id} onClick={()=>onSelect(item)} style={{borderRadius:9,overflow:"hidden",cursor:"pointer",border:`2px solid transparent`,transition:"all .15s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";}}>
-                  <img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(item),display:"block"}}/>
-                  <div style={{padding:"6px 8px",background:C.surface}}>
-                    <div style={{fontSize:11,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
-                    <div style={{fontSize:10,color:C.textMute}}>{item.type}</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(128px,1fr))",gap:10}}>
+              {libList.map(item=>{
+                const used=usedIn(item.id);
+                return <div key={item.id} onClick={()=>onSelect(item)} style={{borderRadius:9,overflow:"hidden",cursor:"pointer",border:`2px solid transparent`,transition:"all .15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
+                  <div style={{position:"relative"}}>
+                    <img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(item),display:"block"}}/>
+                    {used.length>0&&<div title={used.map(p=>p.title).join(" · ")} style={{position:"absolute",top:5,left:5,background:"rgba(0,0,0,.6)",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:20,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3}}>
+                      <Check size={8} strokeWidth={3}/>{used.length}×
+                    </div>}
                   </div>
-                </div>
-              ))}
+                  <div style={{padding:"5px 7px",background:C.surface}}>
+                    <div style={{fontSize:10.5,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+                    {used.length>0
+                      ?<div style={{fontSize:9.5,color:C.textMute,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📌 {used.map(p=>p.title).join(", ")}</div>
+                      :<div style={{fontSize:9.5,color:C.textMute}}>{item.source?<SrcBadge source={item.source}/>:item.type}</div>}
+                  </div>
+                </div>;
+              })}
             </div>
-          )}
+          ))}
+
+          {/* ── External source tabs ── */}
+          {src!=="library"&&(!keys[src]?(
+            <div style={{textAlign:"center",padding:"52px 20px",color:C.textMute}}>
+              <div style={{width:48,height:48,borderRadius:14,background:C.borderLight,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}><Search size={22} color={C.textMute} strokeWidth={1.5}/></div>
+              <div style={{fontWeight:700,fontSize:13,color:C.textMid,marginBottom:6}}>API Key fehlt</div>
+              <div style={{fontSize:12,marginBottom:14,color:C.textSoft}}>Trage oben deinen {STOCK_SRCS.find(s=>s.id===src)?.label} API Key ein.</div>
+              <Btn size="sm" variant="secondary" onClick={()=>setShowKeys(true)}><Settings size={12} strokeWidth={2}/>Keys einrichten</Btn>
+            </div>
+          ):!q.trim()?(
+            <div style={{textAlign:"center",padding:"52px 20px",color:C.textMute}}>
+              <Search size={32} strokeWidth={1} style={{margin:"0 auto 10px",display:"block"}}/>
+              <div style={{fontWeight:600,fontSize:13,color:C.textMid}}>Suchbegriff eingeben</div>
+              <div style={{fontSize:12,marginTop:4}}>Suche kostenlose Bilder in {STOCK_SRCS.find(s=>s.id===src)?.label}</div>
+            </div>
+          ):extLd?(
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:"52px 20px",color:C.textMute}}>
+              <div style={{width:26,height:26,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+              <div style={{fontSize:12}}>Suche in {STOCK_SRCS.find(s=>s.id===src)?.label}…</div>
+            </div>
+          ):(extData===null||extData?.length===0)?(
+            <div style={{textAlign:"center",padding:"40px 20px",color:C.textMute}}>
+              <div style={{fontWeight:600,fontSize:13,color:C.textMid}}>Keine Treffer für „{q}"</div>
+            </div>
+          ):(
+            <div>
+              <div style={{fontSize:11,color:C.textMute,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+                <div style={{width:7,height:7,borderRadius:"50%",background:STOCK_SRCS.find(s=>s.id===src)?.dot}}/>
+                <strong style={{color:C.textMid}}>{extData?.length}</strong> lizenzfreie Bilder von {STOCK_SRCS.find(s=>s.id===src)?.label}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(128px,1fr))",gap:10}}>
+                {(extData||[]).map(item=>(
+                  <div key={item.id} onClick={()=>selectExt(item)} style={{borderRadius:9,overflow:"hidden",cursor:"pointer",border:`2px solid transparent`,transition:"all .15s"}}
+                    onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
+                    onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
+                    <img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} loading="lazy"/>
+                    <div style={{padding:"5px 7px",background:C.surface}}>
+                      <div style={{fontSize:9.5,color:C.textMute,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📷 {item.author}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
         </div>
       </Card>
     </div>
@@ -1057,7 +1213,7 @@ function MediaDetail({item,onSave,onClose}){
 }
 
 // ── EDITOR MODAL ───────────────────────────────────────────────────────────
-function Editor({post,items,campaigns,onSave,onClose,onUpload,onUpdate,user}){
+function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,user}){
   // Migrate: merge legacy hashtags field into content
   const initContent = post.hashtags
     ? (post.content+(post.content?"\n\n":"")+post.hashtags).trim()
@@ -1214,7 +1370,7 @@ function Editor({post,items,campaigns,onSave,onClose,onUpload,onUpdate,user}){
           </div>
         </div>
       </div>
-      {picker&&<MediaPicker items={items} onSelect={item=>{setForm(f=>({...f,mediaId:item.id}));setPicker(false);}} onUpload={onUpload} onUpdate={onUpdate} onClose={()=>setPicker(false)}/>}
+      {picker&&<MediaPicker items={items} posts={posts} onSelect={item=>{setForm(f=>({...f,mediaId:item.id}));setPicker(false);}} onUpload={onUpload} onUpdate={onUpdate} onClose={()=>setPicker(false)}/>}
     </div>
   );
 }
@@ -1576,7 +1732,7 @@ function CampaignsPage({campaigns,setCampaigns,posts,onEditPost}){
   );
 }
 // ── MEDIA PAGE ─────────────────────────────────────────────────────────────
-function MediaPage({items,onUpload,onUpdate}){
+function MediaPage({items,posts=[],onUpload,onUpdate}){
   const [q,setQ]=useState(""); const [f,setF]=useState("all");
   const [drag,setDrag]=useState(false); const [det,setDet]=useState(null);
   const ref=useRef();
@@ -1587,19 +1743,16 @@ function MediaPage({items,onUpload,onUpdate}){
       const item={id,name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:true};
       onUpload(item);
       if(item.type==="image"){
-        AI.analyzeImg(url).then(r=>{
-          onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});
-        }).catch(()=>onUpdate({...item,analyzing:false}));
-      } else {
-        onUpdate({...item,analyzing:false});
-      }
+        AI.analyzeImg(url).then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});}).catch(()=>onUpdate({...item,analyzing:false}));
+      } else { onUpdate({...item,analyzing:false}); }
     }
   },[onUpload,onUpdate]);
   const list=items.filter(m=>(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase()))&&(f==="all"||m.type===f));
+  const usedIn=id=>posts.filter(p=>p.mediaId===id);
   return(
     <div style={{flex:1,overflow:"auto",padding:22,display:"flex",flexDirection:"column",gap:14}}>
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-        <div style={{position:"relative",flex:1,minWidth:180,maxWidth:300}}>
+        <div style={{position:"relative",flex:1,minWidth:180,maxWidth:320}}>
           <Search size={13} color={C.textMute} strokeWidth={IW} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
           <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Name, Tags suchen…" style={{width:"100%",padding:"8px 10px 8px 28px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
         </div>
@@ -1621,29 +1774,42 @@ function MediaPage({items,onUpload,onUpdate}){
             <Btn onClick={()=>ref.current?.click()}><Upload size={14} strokeWidth={2}/>Hochladen</Btn>
           </div>
         ):(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(165px,1fr))",gap:12}}>
-            {list.map(item=>(
-              <div key={item.id} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${C.border}`,background:C.surface,transition:"all .15s"}}
-                onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,.1)"}
-                onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
-                <div style={{position:"relative"}}>
-                  {item.type==="video"?<video src={item.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} muted/>:<img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(item),display:"block"}}/>}
-                  {item.analyzing&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
-                    <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
-                    <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
-                  </div>}
-                  {!item.analyzing&&item.focusPoint&&item.type!=="video"&&<div style={{position:"absolute",left:`${item.focusPoint.x}%`,top:`${item.focusPoint.y}%`,transform:"translate(-50%,-50%)",pointerEvents:"none"}}><div style={{width:12,height:12,borderRadius:"50%",border:"2px solid rgba(255,255,255,.9)",background:C.accent+"80"}}/></div>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12}}>
+            {list.map(item=>{
+              const used=usedIn(item.id);
+              return(
+                <div key={item.id} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${C.border}`,background:C.surface,transition:"all .15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,.1)"}
+                  onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
+                  <div style={{position:"relative"}}>
+                    {item.type==="video"
+                      ?<video src={item.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} muted/>
+                      :<img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(item),display:"block"}}/>}
+                    {item.analyzing&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
+                      <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+                      <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
+                    </div>}
+                    {/* Focal point dot */}
+                    {!item.analyzing&&item.focusPoint&&item.type!=="video"&&<div style={{position:"absolute",left:`${item.focusPoint.x}%`,top:`${item.focusPoint.y}%`,transform:"translate(-50%,-50%)",pointerEvents:"none"}}><div style={{width:12,height:12,borderRadius:"50%",border:"2px solid rgba(255,255,255,.9)",background:C.accent+"80"}}/></div>}
+                    {/* Usage badge */}
+                    {used.length>0&&<div title={used.map(p=>p.title).join(" · ")} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.65)",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:20,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3}}>
+                      <Check size={8} strokeWidth={3}/>{used.length} Post{used.length!==1?"s":""}
+                    </div>}
+                    {/* Source badge */}
+                    {item.source&&<div style={{position:"absolute",bottom:6,left:6}}><SrcBadge source={item.source}/></div>}
+                  </div>
+                  <div style={{padding:"8px 10px"}}>
+                    <div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+                    <div style={{fontSize:11,color:C.textMute,marginTop:1}}>{item.type} · {item.date}</div>
+                    {used.length>0&&<div style={{fontSize:10.5,color:C.textMid,marginTop:3,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📌 {used.map(p=>p.title).join(", ")}</div>}
+                    {item.tags&&!used.length&&<div style={{fontSize:10,color:C.purple,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🏷 {item.tags}</div>}
+                    <button onClick={()=>setDet(item)} style={{marginTop:6,background:"none",border:"none",color:C.textSoft,fontSize:11,fontWeight:600,cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:3,fontFamily:FONT}}>
+                      <Edit2 size={11} strokeWidth={2}/>Details & Fokus
+                    </button>
+                  </div>
                 </div>
-                <div style={{padding:"8px 10px"}}>
-                  <div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
-                  <div style={{fontSize:11,color:C.textMute,marginTop:1}}>{item.type} · {item.date}</div>
-                  {item.tags&&<div style={{fontSize:10,color:C.purple,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🏷 {item.tags}</div>}
-                  <button onClick={()=>setDet(item)} style={{marginTop:6,background:"none",border:"none",color:C.textSoft,fontSize:11,fontWeight:600,cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:3,fontFamily:FONT}}>
-                    <Edit2 size={11} strokeWidth={2}/>Details & Fokus
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {list.length===0&&q&&<div style={{gridColumn:"1/-1",textAlign:"center",padding:40,color:C.textMute}}>Keine Treffer für „{q}"</div>}
           </div>
         )}
@@ -2546,12 +2712,12 @@ export default function App(){
         {nav==="dashboard"   &&<Dashboard posts={posts} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
         {nav==="publisher"   &&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={filt} setFilt={setFilt}/>}
         {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts} onEditPost={setEdPost}/>}
-        {nav==="media"       &&<MediaPage items={items} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))}/>}
+        {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))}/>}
         {nav==="calendar"    &&<CalendarPage posts={posts} onEdit={setEdPost}/>}
         {nav==="performance" &&<PerformancePage posts={posts}/>}
         {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user}/>}
       </div>
-      {edPost&&<Editor post={edPost} items={items} campaigns={campaigns} onSave={save} onClose={()=>setEdPost(null)} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} user={user}/>}
+      {edPost&&<Editor post={edPost} items={items} posts={posts} campaigns={campaigns} onSave={save} onClose={()=>setEdPost(null)} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} user={user}/>}
       {schPost&&<SchedModal post={schPost} onSave={saveSch} onClose={()=>setSchPost(null)}/>}
     </div>
   );
