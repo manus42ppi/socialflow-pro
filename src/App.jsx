@@ -866,7 +866,11 @@ function MediaPicker({items,posts=[],onSelect,onUpload,onUpdate,onClose}){
   const saveKey=(id,v)=>{skSet(id,v);setKeys(p=>({...p,[id]:v}));};
   const selectExt=async ext=>{
     if(ext.source==="unsplash"&&ext.dlLoc){const k=skGet("unsplash");if(k)fetch(ext.dlLoc,{headers:{Authorization:`Client-ID ${k}`}}).catch(()=>{});}
-    const item={...ext,id:uid()};onUpload(item);onSelect(item);
+    const item={...ext,id:uid(),analyzing:ext.type==="image"};
+    onUpload(item);onSelect(item);
+    if(item.type==="image"){
+      AI.analyzeImg(item.url).then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):(item.tags||""),description:r.description||item.description||"",altText:r.suggestedAlt||item.altText||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});}).catch(()=>onUpdate({...item,analyzing:false}));
+    }
   };
 
   // Unified search – fires against all configured sources in parallel
@@ -886,7 +890,8 @@ function MediaPicker({items,posts=[],onSelect,onUpload,onUpdate,onClose}){
     return()=>clearTimeout(timer.current);
   },[q,flt,keys]);
 
-  const libList=items.filter(m=>!q.trim()||(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase())));
+  const mediaMatch=(m,q)=>{if(!q.trim())return true;const s=q.toLowerCase();return[m.name,m.tags,m.description,m.altText,m.mood,m.category,m.author].some(f=>(f||"").toLowerCase().includes(s));};
+  const libList=items.filter(m=>mediaMatch(m,q));
   const usedIn=id=>posts.filter(p=>p.mediaId===id);
   const hasKeys=STOCK_SRCS.some(s=>keys[s.id]);
   const activeSrcs=STOCK_SRCS.filter(s=>keys[s.id]);
@@ -1810,9 +1815,13 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
   // Add external image to library
   const addToLib=async ext=>{
     if(ext.source==="unsplash"&&ext.dlLoc){const k=skGet("unsplash");if(k)fetch(ext.dlLoc,{headers:{Authorization:`Client-ID ${k}`}}).catch(()=>{});}
-    const item={...ext,id:uid()};
+    const item={...ext,id:uid(),analyzing:ext.type==="image"};
     onUpload(item);
-    onUpdate({...item,analyzing:false});
+    if(item.type==="image"){
+      AI.analyzeImg(item.url).then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):(item.tags||""),description:r.description||item.description||"",altText:r.suggestedAlt||item.altText||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});}).catch(()=>onUpdate({...item,analyzing:false}));
+    } else {
+      onUpdate({...item,analyzing:false});
+    }
   };
 
   // Unified search – all configured sources in parallel
@@ -1839,10 +1848,8 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
   const searching=q.trim().length>0;
 
   // Local library filtered list
-  const list=items.filter(m=>
-    (!searching||(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase())))
-    &&(f==="all"||m.type===f)
-  );
+  const mediaMatchPage=(m,q)=>{if(!q.trim())return true;const s=q.toLowerCase();return[m.name,m.tags,m.description,m.altText,m.mood,m.category,m.author].some(f=>(f||"").toLowerCase().includes(s));};
+  const list=items.filter(m=>mediaMatchPage(m,q)&&(f==="all"||m.type===f));
 
   // ── Unsplash-style tile for library items ──
   const LibTile=({item})=>{
