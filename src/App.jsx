@@ -2787,6 +2787,7 @@ function AdminPage({me}){
   const [profile,setProfile]=useState({firstName:"",lastName:"",email:me.email||"",phone:"",bio:""});
   const [company,setCompany]=useState({name:"",industry:"",website:"",street:"",city:"",zip:"",country:"Deutschland"});
   const [chCreds,setChCreds]=useState({instagram:{accountId:"",accessToken:""},twitter:{apiKey:"",apiSecret:"",accessToken:"",accessTokenSecret:""},linkedin:{accessToken:""},facebook:{pageId:"",accessToken:""},whatsapp:{phoneNumberId:"",bizAccountId:"",accessToken:""}});
+  const [localCreds,setLocalCreds]=useState({instagram:{},twitter:{},linkedin:{},facebook:{},whatsapp:{}});
   const [apiKeys,setApiKeys]=useState({unsplash:skGet("unsplash"),pexels:skGet("pexels"),pixabay:skGet("pixabay"),anthropic:skGet("anthropic")||""});
   const [workspace,setWorkspace]=useState({name:"SocialFlow Demo",timezone:"Europe/Berlin",language:"de"});
   const [notif,setNotif]=useState({onSched:true,onAppr:true,onPub:true,onErr:true});
@@ -2799,7 +2800,7 @@ function AdminPage({me}){
   useEffect(()=>{
     storeGet("admin:profile").then(d=>{if(d)setProfile(p=>({...p,...d}));});
     storeGet("admin:company").then(d=>{if(d)setCompany(p=>({...p,...d}));});
-    storeGet("admin:channels").then(d=>{if(d)setChCreds(p=>({...p,...d}));});
+    storeGet("admin:channels").then(d=>{if(d){setChCreds(p=>({...p,...d}));setLocalCreds(p=>({...p,...d}));}});
     storeGet("admin:workspace").then(d=>{if(d)setWorkspace(p=>({...p,...d}));});
     storeGet("admin:notif").then(d=>{if(d)setNotif(p=>({...p,...d}));});
     storeGet("admin:apikeys").then(d=>{if(d){setApiKeys(p=>({...p,...d}));Object.entries(d).forEach(([k,v])=>{if(v)skSet(k,v);});}});
@@ -2876,9 +2877,9 @@ function AdminPage({me}){
         {CHANNELS.map(info=>{
           const conn=isConn(info.id);
           const open=expandedCh===info.id;
-          const cred=chCreds[info.id]||{};
           const fields=CH_FIELDS[info.id]||[];
-          const [localCred,setLocalCred]=useState({...cred});
+          const lc=localCreds[info.id]||{};
+          const setLC=(k,v)=>setLocalCreds(p=>({...p,[info.id]:{...p[info.id],[k]:v}}));
           return <Card key={info.id} style={{padding:0,overflow:"hidden"}}>
             {/* Header */}
             <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",cursor:"pointer"}} onClick={()=>setExpandedCh(open?null:info.id)}>
@@ -2893,7 +2894,7 @@ function AdminPage({me}){
               {open?<ChevronUp size={16} color={C.textSoft} strokeWidth={2}/>:<ChevronDown size={16} color={C.textSoft} strokeWidth={2}/>}
             </div>
             {/* Credential form */}
-            {open&&<div style={{padding:"0 18px 16px",borderTop:`1px solid ${C.borderLight}`,paddingTop:14}}>
+            {open&&<div style={{padding:"14px 18px 16px",borderTop:`1px solid ${C.borderLight}`}}>
               <div style={{fontSize:12,color:C.textSoft,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
                 <Shield size={12} strokeWidth={2}/>Zugangsdaten werden verschlüsselt gespeichert.
                 <a href={CH_LINKS[info.id]} target="_blank" rel="noreferrer" style={{color:C.accent,textDecoration:"none",display:"flex",alignItems:"center",gap:3,marginLeft:4}}>
@@ -2904,14 +2905,14 @@ function AdminPage({me}){
                 {fields.map(f=>(
                   <div key={f.k}>
                     <FL>{f.l}</FL>
-                    <input type={f.pw?"password":"text"} value={localCred[f.k]||""} onChange={e=>setLocalCred(p=>({...p,[f.k]:e.target.value}))} placeholder={f.pw?"••••••••••••":f.l} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
+                    <input type={f.pw?"password":"text"} value={lc[f.k]||""} onChange={e=>setLC(f.k,e.target.value)} placeholder={f.pw?"••••••••••••":f.l} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
                     {f.h&&<div style={{fontSize:10.5,color:C.textMute,marginTop:3}}>{f.h}</div>}
                   </div>
                 ))}
               </div>
               <div style={{display:"flex",alignItems:"center",gap:10,marginTop:14}}>
-                <Btn onClick={()=>saveChCred(info.id,localCred)}><Save size={13} strokeWidth={2}/>Speichern</Btn>
-                {conn&&<Btn variant="danger" size="sm" onClick={()=>{const empty=Object.fromEntries(fields.map(f=>[f.k,""]));saveChCred(info.id,empty);setLocalCred(empty);}}><X size={12} strokeWidth={2}/>Trennen</Btn>}
+                <Btn onClick={()=>saveChCred(info.id,lc)}><Save size={13} strokeWidth={2}/>Speichern</Btn>
+                {conn&&<Btn variant="danger" size="sm" onClick={()=>{const empty=Object.fromEntries(fields.map(f=>[f.k,""]));saveChCred(info.id,empty);setLocalCreds(p=>({...p,[info.id]:empty}));}}><X size={12} strokeWidth={2}/>Trennen</Btn>}
                 <SavedBadge id={"ch_"+info.id}/>
               </div>
             </div>}
