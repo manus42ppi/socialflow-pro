@@ -744,28 +744,59 @@ const STOCK_SRCS=[
 ];
 const skGet=id=>localStorage.getItem(`sf_sk_${id}`)||"";
 const skSet=(id,v)=>localStorage.setItem(`sf_sk_${id}`,v);
-async function stockSearch(src,q){
+async function stockSearch(src,q,{orientation="",type="",sort="relevant"}={}){
   if(!q.trim())return[];
   const k=skGet(src);
-  if(!k)return null; // null = key not configured
+  if(!k)return null;
   try{
+    const p=new URLSearchParams();
     if(src==="unsplash"){
-      const r=await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=24`,{headers:{Authorization:`Client-ID ${k}`}});
+      if(type==="video")return[];
+      p.set("query",q);p.set("per_page","20");
+      if(orientation==="landscape")p.set("orientation","landscape");
+      else if(orientation==="portrait")p.set("orientation","portrait");
+      else if(orientation==="square")p.set("orientation","squarish");
+      if(sort==="latest")p.set("order_by","latest");
+      const r=await fetch(`https://api.unsplash.com/search/photos?${p}`,{headers:{Authorization:`Client-ID ${k}`}});
       if(!r.ok)return[];
       const d=await r.json();
-      return(d.results||[]).map(x=>({id:`un_${x.id}`,name:x.alt_description||x.id,url:x.urls.small,type:"image",source:"unsplash",author:x.user.name,dlLoc:x.links.download_location,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:(x.tags||[]).map(t=>t.title).join(", "),description:x.description||x.alt_description||""}));
+      return(d.results||[]).map(x=>({id:`un_${x.id}`,name:x.alt_description||x.id,url:x.urls.small,previewUrl:x.urls.thumb,type:"image",source:"unsplash",author:x.user.name,dlLoc:x.links.download_location,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:(x.tags||[]).map(t=>t.title).join(", "),description:x.description||x.alt_description||""}));
     }
     if(src==="pexels"){
-      const r=await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=24`,{headers:{Authorization:k}});
+      p.set("query",q);p.set("per_page","20");
+      if(orientation==="landscape")p.set("orientation","landscape");
+      else if(orientation==="portrait")p.set("orientation","portrait");
+      else if(orientation==="square")p.set("orientation","square");
+      if(type==="video"){
+        const r=await fetch(`https://api.pexels.com/videos/search?${p}`,{headers:{Authorization:k}});
+        if(!r.ok)return[];
+        const d=await r.json();
+        return(d.videos||[]).map(x=>{const vf=x.video_files?.find(f=>f.quality==="hd")||x.video_files?.[0];return{id:`px_v_${x.id}`,name:`Video ${x.id}`,url:vf?.link||"",previewUrl:x.image,type:"video",source:"pexels",author:x.user?.name||"",focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:"",description:""};});
+      }
+      const r=await fetch(`https://api.pexels.com/v1/search?${p}`,{headers:{Authorization:k}});
       if(!r.ok)return[];
       const d=await r.json();
-      return(d.photos||[]).map(x=>({id:`px_${x.id}`,name:x.alt||`Pexels ${x.id}`,url:x.src.medium,type:"image",source:"pexels",author:x.photographer,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:"",description:x.alt||""}));
+      return(d.photos||[]).map(x=>({id:`px_${x.id}`,name:x.alt||`Pexels ${x.id}`,url:x.src.medium,previewUrl:x.src.tiny,type:"image",source:"pexels",author:x.photographer,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:"",description:x.alt||""}));
     }
     if(src==="pixabay"){
-      const r=await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(k)}&q=${encodeURIComponent(q)}&per_page=24&image_type=photo&safesearch=true`);
+      p.set("key",k);p.set("q",q);p.set("per_page","20");p.set("safesearch","true");
+      if(orientation==="landscape")p.set("orientation","horizontal");
+      else if(orientation==="portrait")p.set("orientation","vertical");
+      if(sort==="latest")p.set("order","latest");
+      else if(sort==="popular")p.set("order","popular");
+      if(type==="video"){
+        const r=await fetch(`https://pixabay.com/api/videos/?${p}`);
+        if(!r.ok)return[];
+        const d=await r.json();
+        return(d.hits||[]).map(x=>({id:`pb_v_${x.id}`,name:x.tags||`Video ${x.id}`,url:x.videos?.medium?.url||x.videos?.small?.url||"",previewUrl:`https://i.vimeocdn.com/video/${x.picture_id}_295x166.jpg`,type:"video",source:"pixabay",author:x.user,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:x.tags||""}));
+      }
+      if(type==="illustration")p.set("image_type","illustration");
+      else if(type==="vector")p.set("image_type","vector");
+      else p.set("image_type","photo");
+      const r=await fetch(`https://pixabay.com/api/?${p}`);
       if(!r.ok)return[];
       const d=await r.json();
-      return(d.hits||[]).map(x=>({id:`pb_${x.id}`,name:x.tags||`Pixabay ${x.id}`,url:x.webformatURL,type:"image",source:"pixabay",author:x.user,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:x.tags||"",description:x.tags||""}));
+      return(d.hits||[]).map(x=>({id:`pb_${x.id}`,name:x.tags||`Pixabay ${x.id}`,url:x.webformatURL,previewUrl:x.previewURL,type:"image",source:"pixabay",author:x.user,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:x.tags||"",description:x.tags||""}));
     }
   }catch{return[];}
   return[];
@@ -783,9 +814,9 @@ function SrcBadge({source}){
 // ── MEDIA PICKER ────────────────────────────────────────────────────────────
 function MediaPicker({items,posts=[],onSelect,onUpload,onUpdate,onClose}){
   const [q,setQ]=useState("");
-  const [src,setSrc]=useState("library");
-  const [extRes,setExtRes]=useState({unsplash:undefined,pexels:undefined,pixabay:undefined});
-  const [extLd,setExtLd]=useState(false);
+  const [flt,setFlt]=useState({type:"",orient:"",sort:"relevant"});
+  const [extRes,setExtRes]=useState({});
+  const [ldg,setLdg]=useState({});
   const [showKeys,setShowKeys]=useState(false);
   const [keys,setKeys]=useState({unsplash:skGet("unsplash"),pexels:skGet("pexels"),pixabay:skGet("pixabay")});
   const ref=useRef(); const timer=useRef();
@@ -796,49 +827,83 @@ function MediaPicker({items,posts=[],onSelect,onUpload,onUpdate,onClose}){
       const id=uid();
       const item={id,name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:true};
       onUpload(item); onSelect(item);
-      if(item.type==="image"){
-        AI.analyzeImg(url).then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});}).catch(()=>onUpdate({...item,analyzing:false}));
-      } else { onUpdate({...item,analyzing:false}); }
+      if(item.type==="image"){AI.analyzeImg(url).then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});}).catch(()=>onUpdate({...item,analyzing:false}));}
+      else{onUpdate({...item,analyzing:false});}
       return;
     }
   },[onUpload,onSelect,onUpdate]);
 
-  // Debounced external search
-  useEffect(()=>{
-    if(src==="library")return;
-    clearTimeout(timer.current);
-    if(!q.trim()){setExtRes(p=>({...p,[src]:undefined}));return;}
-    timer.current=setTimeout(async()=>{
-      setExtLd(true);
-      const res=await stockSearch(src,q);
-      setExtRes(p=>({...p,[src]:res}));
-      setExtLd(false);
-    },600);
-    return()=>clearTimeout(timer.current);
-  },[q,src]);
-
   const saveKey=(id,v)=>{skSet(id,v);setKeys(p=>({...p,[id]:v}));};
-
   const selectExt=async ext=>{
     if(ext.source==="unsplash"&&ext.dlLoc){const k=skGet("unsplash");if(k)fetch(ext.dlLoc,{headers:{Authorization:`Client-ID ${k}`}}).catch(()=>{});}
-    const item={...ext,id:uid()};
-    onUpload(item); onSelect(item);
+    const item={...ext,id:uid()};onUpload(item);onSelect(item);
   };
 
-  const libList=items.filter(m=>(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase())));
+  // Unified search – fires against all configured sources in parallel
+  useEffect(()=>{
+    clearTimeout(timer.current);
+    if(!q.trim()){setExtRes({});setLdg({});return;}
+    const active=STOCK_SRCS.filter(s=>keys[s.id]);
+    if(!active.length)return;
+    timer.current=setTimeout(()=>{
+      const ls={};active.forEach(s=>ls[s.id]=true);setLdg(ls);setExtRes({});
+      active.forEach(async s=>{
+        const res=await stockSearch(s.id,q,{orientation:flt.orient,type:flt.type,sort:flt.sort});
+        setExtRes(p=>({...p,[s.id]:res||[]}));
+        setLdg(p=>({...p,[s.id]:false}));
+      });
+    },500);
+    return()=>clearTimeout(timer.current);
+  },[q,flt,keys]);
+
+  const libList=items.filter(m=>!q.trim()||(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase())));
   const usedIn=id=>posts.filter(p=>p.mediaId===id);
-  const extData=extRes[src];
+  const hasKeys=STOCK_SRCS.some(s=>keys[s.id]);
+  const activeSrcs=STOCK_SRCS.filter(s=>keys[s.id]);
+  const anyLdg=Object.values(ldg).some(Boolean);
+
+  // Compact filter-pill group
+  const FP=({opts,val,onChange})=><div style={{display:"flex",gap:2}}>
+    {opts.map(o=><button key={o.v} onClick={()=>onChange(o.v===val?"":o.v)} style={{padding:"3px 10px",borderRadius:20,border:"none",background:val===o.v?C.text:C.borderLight,color:val===o.v?"#fff":C.textSoft,fontWeight:600,fontSize:11,cursor:"pointer",fontFamily:FONT,transition:"all .1s",whiteSpace:"nowrap"}}>{o.l}</button>)}
+  </div>;
+
+  // Skeleton grid
+  const Skeletons=()=><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(108px,1fr))",gap:8}}>
+    {[...Array(10)].map((_,i)=><div key={i} style={{aspectRatio:"1/1",borderRadius:8,background:`linear-gradient(90deg,${C.borderLight} 0%,${C.border} 50%,${C.borderLight} 100%)`,backgroundSize:"200%",animation:"shimmer 1.4s infinite"}}/>)}
+  </div>;
+
+  // Image/Video tile
+  const Tile=({item,onClick})=>{
+    const used=usedIn(item.id);
+    const s=STOCK_SRCS.find(x=>x.id===item.source);
+    return <div onClick={onClick} style={{borderRadius:8,overflow:"hidden",cursor:"pointer",border:"2px solid transparent",transition:"all .14s"}}
+      onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
+      onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
+      <div style={{position:"relative",aspectRatio:"1/1",background:C.borderLight}}>
+        {item.type==="video"
+          ?<><img src={item.previewUrl||""} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/><div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,.85)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:0,height:0,borderTop:"5px solid transparent",borderBottom:"5px solid transparent",borderLeft:`9px solid ${C.text}`,marginLeft:2}}/></div></div></>
+          :<img src={item.url} alt={item.name} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:fpos(item),display:"block"}} loading="lazy"/>}
+        {used.length>0&&<div title={used.map(p=>p.title).join(" · ")} style={{position:"absolute",top:4,left:4,background:"rgba(0,0,0,.65)",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:20,display:"flex",alignItems:"center",gap:2}}><Check size={7} strokeWidth={3}/>{used.length}×</div>}
+        {s&&<div style={{position:"absolute",bottom:4,right:4,background:"rgba(0,0,0,.55)",borderRadius:20,padding:"2px 5px",display:"flex",alignItems:"center",gap:3}}><div style={{width:5,height:5,borderRadius:"50%",background:s.dot}}/><span style={{color:"#fff",fontSize:8,fontWeight:700}}>{s.label}</span></div>}
+      </div>
+      <div style={{padding:"4px 6px",background:C.surface}}>
+        {item.author
+          ?<div style={{fontSize:9.5,color:C.textMute,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📷 {item.author}</div>
+          :<div style={{fontSize:9.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:used.length?C.textMid:C.textMute}}>{used.length?`📌 ${used.map(p=>p.title).join(", ")}`:item.name}</div>}
+      </div>
+    </div>;
+  };
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <Card style={{width:"100%",maxWidth:840,maxHeight:"84vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 64px rgba(0,0,0,.25)"}}>
+      <Card style={{width:"100%",maxWidth:900,maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 64px rgba(0,0,0,.25)"}}>
 
         {/* Header */}
         <div style={{padding:"13px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
           <div style={{flex:1,fontWeight:800,fontSize:15,color:C.text}}>Medium auswählen</div>
-          <button onClick={()=>setShowKeys(s=>!s)} style={{background:showKeys?C.borderLight:"none",border:`1px solid ${C.border}`,borderRadius:7,color:C.textSoft,cursor:"pointer",padding:"5px 10px",fontSize:11,fontWeight:600,display:"flex",alignItems:"center",gap:5,fontFamily:FONT}}>
+          <button onClick={()=>setShowKeys(s=>!s)} style={{background:showKeys?C.borderLight:"none",border:`1px solid ${C.border}`,borderRadius:7,color:showKeys?C.text:C.textSoft,cursor:"pointer",padding:"5px 10px",fontSize:11,fontWeight:600,display:"flex",alignItems:"center",gap:5,fontFamily:FONT}}>
             <Settings size={11} strokeWidth={2}/>API-Keys
-            {STOCK_SRCS.some(s=>keys[s.id])&&<span style={{width:6,height:6,borderRadius:"50%",background:C.success,display:"inline-block"}}/>}
+            {hasKeys&&<span style={{width:6,height:6,borderRadius:"50%",background:C.success,display:"inline-block"}}/>}
           </button>
           <Btn size="sm" onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Hochladen</Btn>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer"}}><X size={20} strokeWidth={2}/></button>
@@ -859,100 +924,76 @@ function MediaPicker({items,posts=[],onSelect,onUpload,onUpdate,onClose}){
           ))}
         </div>}
 
-        {/* Source tabs + search */}
-        <div style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
-          <div style={{display:"flex",background:C.borderLight,borderRadius:8,padding:3,gap:2,flexShrink:0}}>
-            {[{id:"library",label:"Bibliothek"},...STOCK_SRCS].map(s=>{
-              const on=src===s.id; const hasKey=s.id==="library"||!!keys[s.id];
-              return <button key={s.id} onClick={()=>setSrc(s.id)} style={{padding:"4px 10px",borderRadius:6,border:"none",background:on?C.surface:"transparent",color:on?C.text:C.textSoft,fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:4,boxShadow:on?"0 1px 3px rgba(0,0,0,.07)":"none",transition:"all .12s"}}>
-                {s.id!=="library"&&<div style={{width:6,height:6,borderRadius:"50%",background:hasKey?s.dot:C.border,flexShrink:0}}/>}
-                {s.label}
-              </button>;
-            })}
+        {/* Search bar */}
+        <div style={{padding:"10px 16px 8px",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+          <div style={{position:"relative",marginBottom:8}}>
+            <Search size={14} color={C.textMute} strokeWidth={IW} style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)"}}/>
+            {anyLdg&&<div style={{position:"absolute",right:11,top:"50%",transform:"translateY(-50%)",width:14,height:14,border:`2px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>}
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Suche gleichzeitig in Bibliothek, Unsplash, Pexels & Pixabay…" style={{width:"100%",padding:"9px 36px 9px 34px",borderRadius:8,border:`1.5px solid ${q?C.accent:C.border}`,fontSize:13,outline:"none",fontFamily:FONT,boxSizing:"border-box",transition:"border-color .15s"}}/>
           </div>
-          <div style={{position:"relative",flex:1}}>
-            <Search size={13} color={C.textMute} strokeWidth={IW} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
-            <input value={q} onChange={e=>setQ(e.target.value)} placeholder={src==="library"?"Name oder Tags…":`In ${STOCK_SRCS.find(s=>s.id===src)?.label||""} suchen…`} style={{width:"100%",padding:"7px 10px 7px 28px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
+          {/* Filter row */}
+          <div style={{display:"flex",gap:8,alignItems:"center",overflowX:"auto",paddingBottom:1}}>
+            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>TYP</span>
+            <FP val={flt.type} onChange={v=>setFlt(f=>({...f,type:v}))} opts={[{v:"",l:"Alle"},{v:"photo",l:"📷 Foto"},{v:"video",l:"🎬 Video"},{v:"illustration",l:"🎨 Illustration"},{v:"vector",l:"📐 Vektor"}]}/>
+            <div style={{width:1,height:14,background:C.border,flexShrink:0,marginInline:2}}/>
+            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>FORMAT</span>
+            <FP val={flt.orient} onChange={v=>setFlt(f=>({...f,orient:v}))} opts={[{v:"",l:"Alle"},{v:"landscape",l:"⬜ Quer"},{v:"portrait",l:"▭ Hoch"},{v:"square",l:"◻ Quadrat"}]}/>
+            <div style={{width:1,height:14,background:C.border,flexShrink:0,marginInline:2}}/>
+            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>SORTIERUNG</span>
+            <FP val={flt.sort} onChange={v=>setFlt(f=>({...f,sort:v}))} opts={[{v:"relevant",l:"Relevant"},{v:"popular",l:"🔥 Beliebt"},{v:"latest",l:"🕐 Neu"}]}/>
           </div>
         </div>
 
-        {/* Content */}
-        <div style={{flex:1,overflow:"auto",padding:14}}>
+        {/* Results */}
+        <div style={{flex:1,overflow:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:20}}>
 
-          {/* ── Library tab ── */}
-          {src==="library"&&(libList.length===0?(
-            <div style={{textAlign:"center",padding:"44px 20px",color:C.textMute}}>
-              <Image size={34} strokeWidth={1} style={{margin:"0 auto 10px",display:"block"}}/>
-              <div style={{fontWeight:600,marginBottom:10,color:C.textMid}}>{items.length===0?"Noch keine Medien":"Keine Treffer"}</div>
-              <Btn size="sm" onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Bild hochladen</Btn>
-            </div>
-          ):(
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(128px,1fr))",gap:10}}>
-              {libList.map(item=>{
-                const used=usedIn(item.id);
-                return <div key={item.id} onClick={()=>onSelect(item)} style={{borderRadius:9,overflow:"hidden",cursor:"pointer",border:`2px solid transparent`,transition:"all .15s"}}
-                  onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
-                  onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
-                  <div style={{position:"relative"}}>
-                    <img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(item),display:"block"}}/>
-                    {used.length>0&&<div title={used.map(p=>p.title).join(" · ")} style={{position:"absolute",top:5,left:5,background:"rgba(0,0,0,.6)",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:20,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3}}>
-                      <Check size={8} strokeWidth={3}/>{used.length}×
-                    </div>}
-                  </div>
-                  <div style={{padding:"5px 7px",background:C.surface}}>
-                    <div style={{fontSize:10.5,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
-                    {used.length>0
-                      ?<div style={{fontSize:9.5,color:C.textMute,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📌 {used.map(p=>p.title).join(", ")}</div>
-                      :<div style={{fontSize:9.5,color:C.textMute}}>{item.source?<SrcBadge source={item.source}/>:item.type}</div>}
-                  </div>
-                </div>;
-              })}
-            </div>
-          ))}
-
-          {/* ── External source tabs ── */}
-          {src!=="library"&&(!keys[src]?(
-            <div style={{textAlign:"center",padding:"52px 20px",color:C.textMute}}>
-              <div style={{width:48,height:48,borderRadius:14,background:C.borderLight,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}><Search size={22} color={C.textMute} strokeWidth={1.5}/></div>
-              <div style={{fontWeight:700,fontSize:13,color:C.textMid,marginBottom:6}}>API Key fehlt</div>
-              <div style={{fontSize:12,marginBottom:14,color:C.textSoft}}>Trage oben deinen {STOCK_SRCS.find(s=>s.id===src)?.label} API Key ein.</div>
-              <Btn size="sm" variant="secondary" onClick={()=>setShowKeys(true)}><Settings size={12} strokeWidth={2}/>Keys einrichten</Btn>
-            </div>
-          ):!q.trim()?(
-            <div style={{textAlign:"center",padding:"52px 20px",color:C.textMute}}>
-              <Search size={32} strokeWidth={1} style={{margin:"0 auto 10px",display:"block"}}/>
-              <div style={{fontWeight:600,fontSize:13,color:C.textMid}}>Suchbegriff eingeben</div>
-              <div style={{fontSize:12,marginTop:4}}>Suche kostenlose Bilder in {STOCK_SRCS.find(s=>s.id===src)?.label}</div>
-            </div>
-          ):extLd?(
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:"52px 20px",color:C.textMute}}>
-              <div style={{width:26,height:26,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
-              <div style={{fontSize:12}}>Suche in {STOCK_SRCS.find(s=>s.id===src)?.label}…</div>
-            </div>
-          ):(extData===null||extData?.length===0)?(
-            <div style={{textAlign:"center",padding:"40px 20px",color:C.textMute}}>
-              <div style={{fontWeight:600,fontSize:13,color:C.textMid}}>Keine Treffer für „{q}"</div>
-            </div>
-          ):(
+          {/* Library section */}
+          {(libList.length>0||!q.trim())&&(
             <div>
-              <div style={{fontSize:11,color:C.textMute,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
-                <div style={{width:7,height:7,borderRadius:"50%",background:STOCK_SRCS.find(s=>s.id===src)?.dot}}/>
-                <strong style={{color:C.textMid}}>{extData?.length}</strong> lizenzfreie Bilder von {STOCK_SRCS.find(s=>s.id===src)?.label}
+              <div style={{fontSize:11.5,fontWeight:700,color:C.textMid,marginBottom:10,display:"flex",alignItems:"center",gap:7}}>
+                <Image size={13} strokeWidth={2} color={C.textSoft}/>Bibliothek
+                <span style={{background:C.borderLight,color:C.textMute,fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20}}>{libList.length}</span>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(128px,1fr))",gap:10}}>
-                {(extData||[]).map(item=>(
-                  <div key={item.id} onClick={()=>selectExt(item)} style={{borderRadius:9,overflow:"hidden",cursor:"pointer",border:`2px solid transparent`,transition:"all .15s"}}
-                    onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
-                    onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
-                    <img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} loading="lazy"/>
-                    <div style={{padding:"5px 7px",background:C.surface}}>
-                      <div style={{fontSize:9.5,color:C.textMute,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📷 {item.author}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {libList.length===0
+                ?<div style={{textAlign:"center",padding:"28px 20px",color:C.textMute,background:C.bg,borderRadius:8}}>
+                  <div style={{fontWeight:600,marginBottom:8,color:C.textMid}}>{items.length===0?"Noch keine Medien hochgeladen":"Keine Treffer"}</div>
+                  <Btn size="sm" onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Hochladen</Btn>
+                </div>
+                :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(108px,1fr))",gap:8}}>
+                  {libList.map(item=><Tile key={item.id} item={item} onClick={()=>onSelect(item)}/>)}
+                </div>}
             </div>
-          ))}
+          )}
+
+          {/* No keys hint */}
+          {q.trim()&&!hasKeys&&(
+            <div style={{textAlign:"center",padding:"28px 20px",border:`1.5px dashed ${C.border}`,borderRadius:10,color:C.textMute}}>
+              <div style={{fontWeight:700,fontSize:13,color:C.textMid,marginBottom:6}}>Bilddatenbanken verbinden</div>
+              <div style={{fontSize:12,marginBottom:12}}>Verbinde Unsplash, Pexels oder Pixabay um millionen lizenzfreie Bilder zu suchen.</div>
+              <Btn size="sm" variant="secondary" onClick={()=>setShowKeys(true)}><Settings size={12} strokeWidth={2}/>API-Keys einrichten</Btn>
+            </div>
+          )}
+
+          {/* External source sections */}
+          {q.trim()&&activeSrcs.map(s=>{
+            const res=extRes[s.id]; const isLdg=ldg[s.id];
+            return(
+              <div key={s.id}>
+                <div style={{fontSize:11.5,fontWeight:700,color:C.textMid,marginBottom:10,display:"flex",alignItems:"center",gap:7}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:s.dot,flexShrink:0}}/>
+                  {s.label}
+                  {isLdg
+                    ?<div style={{width:11,height:11,border:`2px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+                    :res!=null&&<span style={{background:C.borderLight,color:C.textMute,fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20}}>{res.length}</span>}
+                </div>
+                {isLdg?<Skeletons/>
+                  :res?.length===0?<div style={{padding:"14px 12px",color:C.textMute,fontSize:12,textAlign:"center",background:C.bg,borderRadius:8}}>Keine Treffer für „{q}"</div>
+                  :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(108px,1fr))",gap:8}}>
+                    {(res||[]).map(item=><Tile key={item.id} item={item} onClick={()=>selectExt(item)}/>)}
+                  </div>}
+              </div>
+            );
+          })}
 
         </div>
       </Card>
