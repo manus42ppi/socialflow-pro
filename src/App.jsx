@@ -760,7 +760,7 @@ async function stockSearch(src,q,{orientation="",type="",sort="relevant"}={}){
       const r=await fetch(`https://api.unsplash.com/search/photos?${p}`,{headers:{Authorization:`Client-ID ${k}`}});
       if(!r.ok)return[];
       const d=await r.json();
-      return(d.results||[]).map(x=>({id:`un_${x.id}`,name:x.alt_description||x.id,url:x.urls.small,previewUrl:x.urls.thumb,type:"image",source:"unsplash",author:x.user.name,dlLoc:x.links.download_location,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:(x.tags||[]).map(t=>t.title).join(", "),description:x.description||x.alt_description||""}));
+      return(d.results||[]).map(x=>({id:`un_${x.id}`,name:x.alt_description||x.id,url:x.urls.small,previewUrl:x.urls.thumb,type:"image",source:"unsplash",author:x.user.name,dlLoc:x.links.download_location,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:(x.tags||[]).map(t=>t.title).join(", "),description:x.description||x.alt_description||"",width:x.width,height:x.height}));
     }
     if(src==="pexels"){
       p.set("query",q);p.set("per_page","20");
@@ -776,7 +776,7 @@ async function stockSearch(src,q,{orientation="",type="",sort="relevant"}={}){
       const r=await fetch(`https://api.pexels.com/v1/search?${p}`,{headers:{Authorization:k}});
       if(!r.ok)return[];
       const d=await r.json();
-      return(d.photos||[]).map(x=>({id:`px_${x.id}`,name:x.alt||`Pexels ${x.id}`,url:x.src.medium,previewUrl:x.src.tiny,type:"image",source:"pexels",author:x.photographer,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:"",description:x.alt||""}));
+      return(d.photos||[]).map(x=>({id:`px_${x.id}`,name:x.alt||`Pexels ${x.id}`,url:x.src.medium,previewUrl:x.src.tiny,type:"image",source:"pexels",author:x.photographer,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:"",description:x.alt||"",width:x.width,height:x.height}));
     }
     if(src==="pixabay"){
       p.set("key",k);p.set("q",q);p.set("per_page","20");p.set("safesearch","true");
@@ -796,7 +796,7 @@ async function stockSearch(src,q,{orientation="",type="",sort="relevant"}={}){
       const r=await fetch(`https://pixabay.com/api/?${p}`);
       if(!r.ok)return[];
       const d=await r.json();
-      return(d.hits||[]).map(x=>({id:`pb_${x.id}`,name:x.tags||`Pixabay ${x.id}`,url:x.webformatURL,previewUrl:x.previewURL,type:"image",source:"pixabay",author:x.user,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:x.tags||"",description:x.tags||""}));
+      return(d.hits||[]).map(x=>({id:`pb_${x.id}`,name:x.tags||`Pixabay ${x.id}`,url:x.webformatURL,previewUrl:x.previewURL,type:"image",source:"pixabay",author:x.user,focusPoint:{x:50,y:50},date:new Date().toLocaleDateString("de"),tags:x.tags||"",description:x.tags||"",width:x.webformatWidth,height:x.webformatHeight}));
     }
   }catch{return[];}
   return[];
@@ -818,10 +818,11 @@ function FP({opts,val,onChange}){
     {opts.map(o=><button key={o.v} onClick={()=>onChange(o.v===val?"":o.v)} style={{padding:"3px 10px",borderRadius:20,border:"none",background:val===o.v?C.text:C.borderLight,color:val===o.v?"#fff":C.textSoft,fontWeight:600,fontSize:11,cursor:"pointer",fontFamily:FONT,transition:"all .1s",whiteSpace:"nowrap"}}>{o.l}</button>)}
   </div>;
 }
-// Skeleton loading grid
+// Skeleton loading grid – masonry style with variable heights
+const SKEL_HEIGHTS=[180,240,160,300,200,260,180,220,300,170];
 function Skeletons(){
-  return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(108px,1fr))",gap:8}}>
-    {[...Array(10)].map((_,i)=><div key={i} style={{aspectRatio:"1/1",borderRadius:8,background:`linear-gradient(90deg,${C.borderLight} 0%,${C.border} 50%,${C.borderLight} 100%)`,backgroundSize:"200%",animation:"shimmer 1.4s infinite"}}/>)}
+  return <div style={{columns:"4 160px",columnGap:10}}>
+    {SKEL_HEIGHTS.map((h,i)=><div key={i} style={{height:h,borderRadius:8,marginBottom:10,breakInside:"avoid",background:`linear-gradient(90deg,${C.borderLight} 0%,${C.border} 50%,${C.borderLight} 100%)`,backgroundSize:"200%",animation:"shimmer 1.4s infinite"}}/>)}
   </div>;
 }
 // API-Key settings panel (shared)
@@ -1843,66 +1844,94 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
     &&(f==="all"||m.type===f)
   );
 
-  // Large tile for library items
+  // ── Unsplash-style tile for library items ──
   const LibTile=({item})=>{
     const used=usedIn(item.id);
+    const [hov,setHov]=useState(false);
     return(
-      <div style={{borderRadius:10,overflow:"hidden",border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",transition:"all .15s"}}
+      <div style={{borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:10,background:C.borderLight}}
         onClick={()=>setDet(item)}
-        onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,.1)"}
-        onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
-        <div style={{position:"relative"}}>
-          {item.type==="video"
-            ?<video src={item.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} muted/>
-            :<img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(item),display:"block"}}/>}
-          {item.analyzing&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
-            <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
-            <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
+        onMouseEnter={()=>setHov(true)}
+        onMouseLeave={()=>setHov(false)}>
+        {item.type==="video"
+          ?<video src={item.url} style={{width:"100%",height:"auto",display:"block"}} muted/>
+          :<img src={item.url} alt={item.name} style={{width:"100%",height:"auto",display:"block"}} loading="lazy"/>}
+        {/* Analyzing overlay */}
+        {item.analyzing&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,borderRadius:10}}>
+          <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+          <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
+        </div>}
+        {/* Hover overlay – Unsplash-style */}
+        <div style={{position:"absolute",inset:0,borderRadius:10,background:hov?"linear-gradient(180deg,rgba(0,0,0,.38) 0%,transparent 40%,transparent 55%,rgba(0,0,0,.52) 100%)":"none",transition:"all .18s",pointerEvents:hov?"auto":"none"}}>
+          {/* Top row */}
+          {hov&&<div style={{position:"absolute",top:10,left:10,right:10,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            {used.length>0
+              ?<div title={used.map(p=>p.title).join(" · ")} style={{background:"rgba(0,0,0,.6)",color:"#fff",fontSize:9,fontWeight:800,padding:"3px 8px",borderRadius:20,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3}}>
+                <Check size={8} strokeWidth={3}/>{used.length} Post{used.length!==1?"s":""}
+              </div>
+              :<div/>}
+            <div style={{background:"rgba(255,255,255,.92)",borderRadius:8,padding:"5px 8px",display:"flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,color:C.text,backdropFilter:"blur(6px)"}}>
+              <Edit2 size={11} strokeWidth={2}/>Details
+            </div>
           </div>}
-          {!item.analyzing&&item.focusPoint&&item.type!=="video"&&<div style={{position:"absolute",left:`${item.focusPoint.x}%`,top:`${item.focusPoint.y}%`,transform:"translate(-50%,-50%)",pointerEvents:"none"}}><div style={{width:12,height:12,borderRadius:"50%",border:"2px solid rgba(255,255,255,.9)",background:C.accent+"80"}}/></div>}
-          {used.length>0&&<div title={used.map(p=>p.title).join(" · ")} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.65)",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:20,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3}}>
-            <Check size={8} strokeWidth={3}/>{used.length} Post{used.length!==1?"s":""}
+          {/* Bottom row */}
+          {hov&&<div style={{position:"absolute",bottom:10,left:10,right:10}}>
+            <div style={{color:"#fff",fontSize:11,fontWeight:600,textShadow:"0 1px 3px rgba(0,0,0,.6)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+            {item.tags&&<div style={{color:"rgba(255,255,255,.7)",fontSize:9.5,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.tags}</div>}
           </div>}
-          {item.source&&<div style={{position:"absolute",bottom:6,left:6}}><SrcBadge source={item.source}/></div>}
         </div>
-        <div style={{padding:"8px 10px"}}>
-          <div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
-          <div style={{fontSize:11,color:C.textMute,marginTop:1}}>{item.type} · {item.date}</div>
-          {used.length>0&&<div style={{fontSize:10.5,color:C.textMid,marginTop:3,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📌 {used.map(p=>p.title).join(", ")}</div>}
-          {item.tags&&!used.length&&<div style={{fontSize:10,color:C.purple,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🏷 {item.tags}</div>}
-          <div style={{marginTop:6,color:C.textSoft,fontSize:11,fontWeight:600,display:"flex",alignItems:"center",gap:3}}>
-            <Edit2 size={11} strokeWidth={2}/>Details & Fokus
-          </div>
-        </div>
+        {/* Source badge (always visible) */}
+        {item.source&&!hov&&<div style={{position:"absolute",bottom:8,left:8}}><SrcBadge source={item.source}/></div>}
       </div>
     );
   };
 
-  // Compact tile for external results (with "Zur Bibliothek" action)
+  // ── Unsplash-style tile for external stock results ──
   const ExtTile=({item})=>{
     const s=STOCK_SRCS.find(x=>x.id===item.source);
     const already=items.some(m=>m.url===item.url||m.name===item.name);
+    const [hov,setHov]=useState(false);
+    // Use provided aspect ratio if available (Unsplash/Pexels provide width+height)
+    const ar=item.width&&item.height?`${item.width}/${item.height}`:undefined;
     return(
-      <div style={{borderRadius:8,overflow:"hidden",cursor:"pointer",border:`2px solid ${already?C.accent:"transparent"}`,transition:"all .14s",position:"relative"}}
-        onMouseEnter={e=>{if(!already)e.currentTarget.style.borderColor=C.accent;e.currentTarget.querySelector(".add-btn").style.opacity="1";}}
-        onMouseLeave={e=>{if(!already)e.currentTarget.style.borderColor="transparent";e.currentTarget.querySelector(".add-btn").style.opacity="0";}}>
-        <div style={{position:"relative",aspectRatio:"1/1",background:C.borderLight}}>
-          {item.type==="video"
-            ?<><img src={item.previewUrl||""} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/><div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,.85)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:0,height:0,borderTop:"5px solid transparent",borderBottom:"5px solid transparent",borderLeft:`9px solid ${C.text}`,marginLeft:2}}/></div></div></>
-            :<img src={item.url} alt={item.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} loading="lazy"/>}
-          {s&&<div style={{position:"absolute",bottom:4,right:4,background:"rgba(0,0,0,.55)",borderRadius:20,padding:"2px 5px",display:"flex",alignItems:"center",gap:3}}><div style={{width:5,height:5,borderRadius:"50%",background:s.dot}}/><span style={{color:"#fff",fontSize:8,fontWeight:700}}>{s.label}</span></div>}
-          {/* Add to library button */}
-          <div className="add-btn" onClick={()=>!already&&addToLib(item)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.45)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:5,opacity:0,transition:"opacity .15s"}}>
+      <div style={{borderRadius:8,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:10,background:C.borderLight,outline:already?`2px solid ${C.accent}`:"none"}}
+        onMouseEnter={()=>setHov(true)}
+        onMouseLeave={()=>setHov(false)}>
+        {item.type==="video"
+          ?<img src={item.previewUrl||""} alt="" style={{width:"100%",aspectRatio:ar||"4/3",objectFit:"cover",display:"block"}}/>
+          :<img src={item.url} alt={item.name} style={{width:"100%",height:"auto",aspectRatio:ar,display:"block"}} loading="lazy"/>}
+        {/* Video play icon */}
+        {item.type==="video"&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,.85)",display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+          <div style={{width:0,height:0,borderTop:"6px solid transparent",borderBottom:"6px solid transparent",borderLeft:`11px solid ${C.text}`,marginLeft:3}}/>
+        </div>}
+        {/* Hover overlay */}
+        <div style={{position:"absolute",inset:0,borderRadius:8,background:hov?"linear-gradient(180deg,rgba(0,0,0,.35) 0%,transparent 40%,transparent 55%,rgba(0,0,0,.55) 100%)":"none",transition:"all .18s",pointerEvents:hov?"auto":"none"}}>
+          {/* Top row */}
+          {hov&&<div style={{position:"absolute",top:8,right:8}}>
             {already
-              ?<><Check size={18} color="#fff" strokeWidth={2.5}/><span style={{color:"#fff",fontSize:10,fontWeight:700}}>In Bibliothek</span></>
-              :<><Upload size={18} color="#fff" strokeWidth={2}/><span style={{color:"#fff",fontSize:10,fontWeight:700}}>Zur Bibliothek</span></>}
-          </div>
+              ?<div style={{background:"rgba(255,255,255,.92)",borderRadius:8,padding:"5px 8px",display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:700,color:C.success}}>
+                <Check size={11} strokeWidth={2.5}/>In Bibliothek
+              </div>
+              :<div onClick={e=>{e.stopPropagation();addToLib(item);}} style={{background:"rgba(255,255,255,.92)",borderRadius:8,padding:"5px 8px",display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:700,color:C.text,cursor:"pointer",backdropFilter:"blur(6px)"}}>
+                <Upload size={11} strokeWidth={2}/>Hinzufügen
+              </div>}
+          </div>}
+          {/* Bottom row: author + source */}
+          {hov&&<div style={{position:"absolute",bottom:8,left:8,right:8,display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:6}}>
+            {item.author&&<div style={{color:"rgba(255,255,255,.85)",fontSize:10,fontWeight:600,textShadow:"0 1px 3px rgba(0,0,0,.6)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📷 {item.author}</div>}
+            {s&&<div style={{flexShrink:0,background:"rgba(0,0,0,.55)",borderRadius:20,padding:"2px 6px",display:"flex",alignItems:"center",gap:3}}>
+              <div style={{width:5,height:5,borderRadius:"50%",background:s.dot}}/><span style={{color:"#fff",fontSize:8,fontWeight:700}}>{s.label}</span>
+            </div>}
+          </div>}
         </div>
-        <div style={{padding:"4px 6px",background:C.surface}}>
-          <div style={{fontSize:9.5,color:C.textMute,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-            {item.author?"📷 "+item.author:item.name}
-          </div>
-        </div>
+        {/* Source badge when not hovered */}
+        {!hov&&s&&<div style={{position:"absolute",bottom:6,right:6,background:"rgba(0,0,0,.5)",borderRadius:20,padding:"2px 5px",display:"flex",alignItems:"center",gap:3}}>
+          <div style={{width:5,height:5,borderRadius:"50%",background:s.dot}}/><span style={{color:"#fff",fontSize:8,fontWeight:700}}>{s.label}</span>
+        </div>}
+        {/* Already-in-library badge */}
+        {already&&!hov&&<div style={{position:"absolute",top:6,left:6,background:C.success,borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <Check size={10} color="#fff" strokeWidth={3}/>
+        </div>}
       </div>
     );
   };
@@ -1968,10 +1997,11 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
                 <Btn onClick={()=>ref.current?.click()}><Upload size={14} strokeWidth={2}/>Hochladen</Btn>
               </div>
             ):(
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12}}>
-                {list.map(item=><LibTile key={item.id} item={item}/>)}
-                {list.length===0&&searching&&<div style={{gridColumn:"1/-1",padding:"20px 0",color:C.textMute,fontSize:12}}>Keine lokalen Treffer für „{q}"</div>}
-              </div>
+              list.length===0&&searching
+                ?<div style={{padding:"20px 0",color:C.textMute,fontSize:12}}>Keine lokalen Treffer für „{q}"</div>
+                :<div style={{columns:"4 180px",columnGap:10}}>
+                  {list.map(item=><LibTile key={item.id} item={item}/>)}
+                </div>
             )}
           </div>
 
@@ -1998,7 +2028,7 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
                 </div>
                 {isLdg?<Skeletons/>
                   :res?.length===0?<div style={{padding:"14px 12px",color:C.textMute,fontSize:12,textAlign:"center",background:C.bg,borderRadius:8}}>Keine Treffer für „{q}"</div>
-                  :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(145px,1fr))",gap:10}}>
+                  :<div style={{columns:"4 160px",columnGap:10}}>
                     {(res||[]).map(item=><ExtTile key={item.id} item={item}/>)}
                   </div>}
               </div>
