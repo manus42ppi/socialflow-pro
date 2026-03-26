@@ -98,6 +98,10 @@ async function aiCall(messages, max_tokens=800) {
   return data.content?.[0]?.text||"";
 }
 const parseJSON = raw => { try{return JSON.parse(raw.replace(/```json|```/g,"").trim());}catch{return null;} };
+
+// ── KV STORAGE HELPERS ──────────────────────────────────────────────────────
+async function storeGet(path){try{const r=await fetch("/store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({method:"get",path})});const d=await r.json();return d.ok?d.data:null;}catch{return null;}}
+async function storeSet(path,value){try{await fetch("/store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({method:"set",path,value})});}catch{}}
 const AI = {
   optimize:(text,ch,tone)=>aiCall([{role:"user",content:`Du bist Social-Media-Experte. Optimiere fuer ${ch} im Ton "${tone}". NUR der optimierte Text:\n\n${text}`}]),
   hashtags:(text,ch)=>aiCall([{role:"user",content:`Generiere 8-12 performante Hashtags fuer ${ch}. Mische populaere, mittelgrosse und Nischen-Hashtags. NUR kommagetrennte Hashtags:\n\n${text}`}],300),
@@ -2388,6 +2392,31 @@ export default function App(){
   const [edPost,setEdPost]=useState(null);
   const [schPost,setSchPost]=useState(null);
   const [filt,setFilt]=useState("all");
+  const mediaLoaded=useRef(false);
+
+  // Medien aus KV laden (beim Start)
+  useEffect(()=>{
+    storeGet("media:index").then(async index=>{
+      if(index?.length){
+        const loaded=await Promise.all(index.map(async meta=>{
+          const img=await storeGet(`media:img:${meta.id}`);
+          return{...meta,url:img?.url||""};
+        }));
+        mediaLoaded.current=true;
+        setItems(loaded);
+      } else {
+        mediaLoaded.current=true;
+      }
+    });
+  },[]);
+
+  // Medien in KV speichern (bei Änderungen)
+  useEffect(()=>{
+    if(!mediaLoaded.current)return;
+    const index=items.map(({url,analyzing,...rest})=>rest);
+    storeSet("media:index",index);
+    items.filter(i=>!i.analyzing&&i.url).forEach(i=>storeSet(`media:img:${i.id}`,{url:i.url}));
+  },[items]);
 
   if(!user) return <Login onLogin={setUser}/>;
 
