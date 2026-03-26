@@ -703,16 +703,25 @@ function AIPanel({content,chId,onApply,onApplyHT}){
 }
 
 // ── MEDIA PICKER MODAL (inline – bleibt über dem Editor) ───────────────────
-function MediaPicker({items,onSelect,onUpload,onClose}){
+function MediaPicker({items,onSelect,onUpload,onUpdate,onClose}){
   const [q,setQ]=useState(""); const [f,setF]=useState("all");
   const ref=useRef();
   const upload=useCallback(async files=>{
     for(const file of Array.from(files)){
       const url=await fileToDataURL(file);
-      const item={id:uid(),name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:""};
-      onUpload(item); onSelect(item); return;
+      const id=uid();
+      const item={id,name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:true};
+      onUpload(item); onSelect(item);
+      if(item.type==="image"){
+        AI.analyzeImg(url).then(r=>{
+          onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});
+        }).catch(()=>onUpdate({...item,analyzing:false}));
+      } else {
+        onUpdate({...item,analyzing:false});
+      }
+      return;
     }
-  },[onUpload,onSelect]);
+  },[onUpload,onSelect,onUpdate]);
   const list=items.filter(m=>(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase()))&&(f==="all"||m.type===f));
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -1015,7 +1024,7 @@ function MediaDetail({item,onSave,onClose}){
 }
 
 // ── EDITOR MODAL ───────────────────────────────────────────────────────────
-function Editor({post,items,campaigns,onSave,onClose,onUpload,user}){
+function Editor({post,items,campaigns,onSave,onClose,onUpload,onUpdate,user}){
   const [form,setForm]=useState({...post});
   const [pch,setPch]=useState(post.channels?.[0]||"instagram");
   const [rightPane,setRightPane]=useState("preview");
@@ -1170,7 +1179,7 @@ function Editor({post,items,campaigns,onSave,onClose,onUpload,user}){
           </div>
         </div>
       </div>
-      {picker&&<MediaPicker items={items} onSelect={item=>{setForm(f=>({...f,mediaId:item.id}));setPicker(false);}} onUpload={onUpload} onClose={()=>setPicker(false)}/>}
+      {picker&&<MediaPicker items={items} onSelect={item=>{setForm(f=>({...f,mediaId:item.id}));setPicker(false);}} onUpload={onUpload} onUpdate={onUpdate} onClose={()=>setPicker(false)}/>}
     </div>
   );
 }
@@ -1540,9 +1549,18 @@ function MediaPage({items,onUpload,onUpdate}){
   const upload=useCallback(async files=>{
     for(const file of Array.from(files)){
       const url=await fileToDataURL(file);
-      onUpload({id:uid(),name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:""});
+      const id=uid();
+      const item={id,name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:true};
+      onUpload(item);
+      if(item.type==="image"){
+        AI.analyzeImg(url).then(r=>{
+          onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});
+        }).catch(()=>onUpdate({...item,analyzing:false}));
+      } else {
+        onUpdate({...item,analyzing:false});
+      }
     }
-  },[onUpload]);
+  },[onUpload,onUpdate]);
   const list=items.filter(m=>(m.name.toLowerCase().includes(q.toLowerCase())||(m.tags||"").toLowerCase().includes(q.toLowerCase()))&&(f==="all"||m.type===f));
   return(
     <div style={{flex:1,overflow:"auto",padding:22,display:"flex",flexDirection:"column",gap:14}}>
@@ -1576,7 +1594,11 @@ function MediaPage({items,onUpload,onUpdate}){
                 onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
                 <div style={{position:"relative"}}>
                   {item.type==="video"?<video src={item.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} muted/>:<img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}}/>}
-                  {item.focusPoint&&item.type!=="video"&&<div style={{position:"absolute",left:`${item.focusPoint.x}%`,top:`${item.focusPoint.y}%`,transform:"translate(-50%,-50%)",pointerEvents:"none"}}><div style={{width:12,height:12,borderRadius:"50%",border:"2px solid rgba(255,255,255,.9)",background:C.accent+"80"}}/></div>}
+                  {item.analyzing&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
+                    <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+                    <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
+                  </div>}
+                  {!item.analyzing&&item.focusPoint&&item.type!=="video"&&<div style={{position:"absolute",left:`${item.focusPoint.x}%`,top:`${item.focusPoint.y}%`,transform:"translate(-50%,-50%)",pointerEvents:"none"}}><div style={{width:12,height:12,borderRadius:"50%",border:"2px solid rgba(255,255,255,.9)",background:C.accent+"80"}}/></div>}
                 </div>
                 <div style={{padding:"8px 10px"}}>
                   <div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
@@ -2395,7 +2417,7 @@ export default function App(){
         {nav==="performance" &&<PerformancePage posts={posts}/>}
         {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user}/>}
       </div>
-      {edPost&&<Editor post={edPost} items={items} campaigns={campaigns} onSave={save} onClose={()=>setEdPost(null)} onUpload={i=>setItems(p=>[...p,i])} user={user}/>}
+      {edPost&&<Editor post={edPost} items={items} campaigns={campaigns} onSave={save} onClose={()=>setEdPost(null)} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} user={user}/>}
       {schPost&&<SchedModal post={schPost} onSave={saveSch} onClose={()=>setSchPost(null)}/>}
     </div>
   );
