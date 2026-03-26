@@ -86,6 +86,7 @@ const uid = () => Math.random().toString(36).slice(2,10);
 const fileToDataURL = f => new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
 const getMediaType = f => f.type.startsWith("video/")?"video": f.name.toLowerCase().includes("logo")?"logo": f.type.startsWith("image/")?"image":"document";
 const fmtDate = d => d ? new Date(d).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"}) : "";
+const fpos = m => m?.focusPoint ? `${m.focusPoint.x}% ${m.focusPoint.y}%` : "center";
 
 // ── AI SERVICE (via Cloudflare Function Proxy) ────────────────────────────
 async function aiCall(messages, max_tokens=800) {
@@ -250,7 +251,7 @@ function IGPrev({post,media}){
       <div><div style={{fontWeight:700}}>dein_account</div><div style={{fontSize:11,color:"#8e8e8e"}}>Gesponsert</div></div>
       <span style={{marginLeft:"auto",fontSize:18}}>···</span>
     </div>
-    {media?.url?<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}}/>:<div style={{aspectRatio:"1/1",background:"linear-gradient(135deg,#fce4ec,#f8bbd0)",display:"flex",alignItems:"center",justifyContent:"center"}}><Instagram size={36} color="#E1306C" strokeWidth={1}/></div>}
+    {media?.url?<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>:<div style={{aspectRatio:"1/1",background:"linear-gradient(135deg,#fce4ec,#f8bbd0)",display:"flex",alignItems:"center",justifyContent:"center"}}><Instagram size={36} color="#E1306C" strokeWidth={1}/></div>}
     <div style={{padding:"10px 12px"}}>
       <div style={{display:"flex",gap:12,fontSize:18,marginBottom:6}}>🤍 💬 ↗ <span style={{marginLeft:"auto"}}>🔖</span></div>
       <div><span style={{fontWeight:700}}>dein_account</span> {post.content||"Text hier…"}</div>
@@ -266,7 +267,7 @@ function TWPrev({post,media}){
         <div style={{fontWeight:700}}>Dein Name <span style={{color:"#536471",fontWeight:400}}>@handle · 2h</span></div>
         <div style={{lineHeight:1.5,marginTop:4}}>{post.content||"Tweet…"}</div>
         {post.hashtags&&<div style={{color:"#1d9bf0",marginTop:3}}>{post.hashtags}</div>}
-        {media?.type==="image"&&<img src={media.url} alt="" style={{width:"100%",borderRadius:10,marginTop:8,aspectRatio:"16/9",objectFit:"cover"}}/>}
+        {media?.type==="image"&&<img src={media.url} alt="" style={{width:"100%",borderRadius:10,marginTop:8,aspectRatio:"16/9",objectFit:"cover",objectPosition:fpos(media)}}/>}
         <div style={{display:"flex",gap:16,marginTop:10,color:"#536471",fontSize:11}}>💬 24 &nbsp;🔁 12 &nbsp;🤍 89</div>
       </div>
     </div>
@@ -279,7 +280,7 @@ function LIPrev({post,media}){
       <div><div style={{fontWeight:700}}>Dein Name</div><div style={{fontSize:11,color:"#666"}}>Position · 1. Grad</div></div>
     </div>
     <div style={{padding:"0 14px 10px",lineHeight:1.6}}>{post.content||"Post…"}{post.hashtags&&<span style={{color:"#0077B5"}}> {post.hashtags}</span>}</div>
-    {media?.url&&<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1.91/1",objectFit:"cover",display:"block"}}/>}
+    {media?.url&&<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1.91/1",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>}
     <div style={{display:"flex",borderTop:"1px solid #e0e0e0"}}>
       {["👍","💬","↗"].map(a=><button key={a} style={{flex:1,background:"none",border:"none",color:"#666",fontSize:12,fontWeight:700,padding:"7px 0",cursor:"pointer"}}>{a}</button>)}
     </div>
@@ -292,7 +293,7 @@ function FBPrev({post,media}){
       <div><div style={{fontWeight:700}}>Deine Seite</div><div style={{fontSize:11,color:"#65676b"}}>Gerade · 🌐</div></div>
     </div>
     <div style={{padding:"0 12px 10px",lineHeight:1.5}}>{post.content||"Post…"}{post.hashtags&&<span style={{color:"#1877F2"}}> {post.hashtags}</span>}</div>
-    {media?.url&&<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1.91/1",objectFit:"cover",display:"block"}}/>}
+    {media?.url&&<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1.91/1",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>}
     <div style={{display:"flex",borderTop:"1px solid #dddfe2"}}>
       {["👍","💬","↗"].map(a=><button key={a} style={{flex:1,background:"none",border:"none",color:"#65676b",fontSize:12,fontWeight:700,padding:"7px 0",cursor:"pointer"}}>{a}</button>)}
     </div>
@@ -301,7 +302,7 @@ function FBPrev({post,media}){
 function TKPrev({post,media}){
   return <div style={{background:"#000",borderRadius:10,maxWidth:200,color:"#fff",overflow:"hidden",margin:"0 auto"}}>
     <div style={{aspectRatio:"9/16",background:"linear-gradient(180deg,#111,#333)",position:"relative"}}>
-      {media?.url&&<img src={media.url} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>}
+      {media?.url&&<img src={media.url} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:fpos(media)}}/>}
       <div style={{position:"absolute",bottom:0,left:0,right:0,padding:8,background:"linear-gradient(transparent,rgba(0,0,0,.8))"}}>
         <div style={{fontWeight:700,fontSize:11}}>@dein_account</div>
         <div style={{fontSize:10,lineHeight:1.4,opacity:.9}}>{post.content?.slice(0,50)||"Video…"}</div>
@@ -317,7 +318,7 @@ function WAPrev({post,media}){
     </div>
     <div style={{padding:"12px 10px",minHeight:80}}>
       <div style={{background:"#fff",borderRadius:"0 10px 10px 10px",padding:"8px 12px",display:"inline-block",maxWidth:"85%",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-        {media?.url&&<img src={media.url} alt="" style={{width:"100%",borderRadius:6,marginBottom:6,maxHeight:100,objectFit:"cover",display:"block"}}/>}
+        {media?.url&&<img src={media.url} alt="" style={{width:"100%",borderRadius:6,marginBottom:6,maxHeight:100,objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>}
         <div style={{fontSize:12,color:"#111",lineHeight:1.5}}>{post.content||"Nachricht…"}</div>
         <div style={{fontSize:10,color:"#999",textAlign:"right",marginTop:3}}>10:32 ✓✓</div>
       </div>
@@ -790,7 +791,7 @@ function MediaPicker({items,onSelect,onUpload,onUpdate,onClose}){
                 <div key={item.id} onClick={()=>onSelect(item)} style={{borderRadius:9,overflow:"hidden",cursor:"pointer",border:`2px solid transparent`,transition:"all .15s"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";}}>
-                  <img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}}/>
+                  <img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(item),display:"block"}}/>
                   <div style={{padding:"6px 8px",background:C.surface}}>
                     <div style={{fontSize:11,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
                     <div style={{fontSize:10,color:C.textMute}}>{item.type}</div>
@@ -1135,7 +1136,7 @@ function Editor({post,items,campaigns,onSave,onClose,onUpload,onUpdate,user}){
             <div><FL>Mediendatei</FL>
               {media?(
                 <div style={{display:"flex",gap:10,alignItems:"center",background:C.bg,borderRadius:8,padding:"8px 12px",border:`1px solid ${C.border}`}}>
-                  <img src={media.url} alt="" style={{width:44,height:44,objectFit:"cover",borderRadius:6,flexShrink:0}}/>
+                  <img src={media.url} alt="" style={{width:44,height:44,objectFit:"cover",objectPosition:fpos(media),borderRadius:6,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{media.name}</div>
                     <div style={{fontSize:11,color:C.textMute}}>{media.type}</div>
@@ -1383,7 +1384,7 @@ function KCard({post,items,onEdit,onDS,isDrag,isDrop}){
       onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.05)";e.currentTarget.style.transform="";}}>
       {/* Thumbnail */}
       {media?.url&&<div style={{height:68,overflow:"hidden",position:"relative"}}>
-        <img src={media.url} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+        <img src={media.url} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 55%,rgba(0,0,0,.4))"}}/>
         <div style={{position:"absolute",bottom:5,right:6,display:"flex",gap:3}}>
           {post.channels?.slice(0,3).map(c=><span key={c} style={{width:18,height:18,borderRadius:"50%",background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center"}}><ChIco id={c} size={11}/></span>)}
@@ -1627,7 +1628,7 @@ function MediaPage({items,onUpload,onUpdate}){
                 onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,.1)"}
                 onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
                 <div style={{position:"relative"}}>
-                  {item.type==="video"?<video src={item.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} muted/>:<img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}}/>}
+                  {item.type==="video"?<video src={item.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} muted/>:<img src={item.url} alt={item.name} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",objectPosition:fpos(item),display:"block"}}/>}
                   {item.analyzing&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
                     <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
                     <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
