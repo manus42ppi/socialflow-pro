@@ -74,11 +74,11 @@ const DEMO_CAMPAIGNS = [
   { id:"c2", name:"Produktlaunch", emoji:"🚀", color:"#6941C6", description:"Launch Q2 2026" },
 ];
 const DEMO_POSTS = [
-  { id:"p1", title:"Produktlaunch Q2",  content:"Unser neues Produkt ist da! 🚀", hashtags:"#launch #neu",     channels:["instagram","linkedin"], scheduledDate:"2026-03-15", scheduledTime:"09:00", status:"scheduled", mediaId:null, campaignId:"c2" },
-  { id:"p2", title:"Tipp der Woche",    content:"Regelmäßiges Posting steigert deine Reichweite um 40%.", hashtags:"#marketing", channels:["twitter","facebook"],  scheduledDate:"",          scheduledTime:"",      status:"draft",     mediaId:null, campaignId:null },
-  { id:"p3", title:"Behind the Scenes", content:"Blick hinter die Kulissen! 💪", hashtags:"#team #bts",       channels:["instagram","whatsapp"],  scheduledDate:"2026-03-20", scheduledTime:"18:00", status:"scheduled", mediaId:null, campaignId:null },
-  { id:"p4", title:"Kundenreview",      content:"Was unsere Kunden sagen. Danke! ❤️", hashtags:"#review",    channels:["instagram","linkedin"],  scheduledDate:"",          scheduledTime:"",      status:"pending",   mediaId:null, campaignId:null },
-  { id:"p5", title:"Sommer Sale",       content:"☀️ Bis zu 40% Rabatt – nur kurze Zeit!", hashtags:"#sale", channels:["instagram","facebook"], scheduledDate:"2026-06-01", scheduledTime:"10:00", status:"draft", mediaId:null, campaignId:"c1" },
+  { id:"p1", title:"Produktlaunch Q2",  content:"Unser neues Produkt ist da! 🚀\n\n#launch #neu",     channels:["instagram","linkedin"], scheduledDate:"2026-03-15", scheduledTime:"09:00", status:"scheduled", mediaId:null, campaignId:"c2" },
+  { id:"p2", title:"Tipp der Woche",    content:"Regelmäßiges Posting steigert deine Reichweite um 40%.\n\n#marketing", channels:["twitter","facebook"],  scheduledDate:"",          scheduledTime:"",      status:"draft",     mediaId:null, campaignId:null },
+  { id:"p3", title:"Behind the Scenes", content:"Blick hinter die Kulissen! 💪\n\n#team #bts",       channels:["instagram","whatsapp"],  scheduledDate:"2026-03-20", scheduledTime:"18:00", status:"scheduled", mediaId:null, campaignId:null },
+  { id:"p4", title:"Kundenreview",      content:"Was unsere Kunden sagen. Danke! ❤️\n\n#review",    channels:["instagram","linkedin"],  scheduledDate:"",          scheduledTime:"",      status:"pending",   mediaId:null, campaignId:null },
+  { id:"p5", title:"Sommer Sale",       content:"☀️ Bis zu 40% Rabatt – nur kurze Zeit!\n\n#sale", channels:["instagram","facebook"], scheduledDate:"2026-06-01", scheduledTime:"10:00", status:"draft", mediaId:null, campaignId:"c1" },
 ];
 
 // ── UTILS ──────────────────────────────────────────────────────────────────
@@ -255,7 +255,6 @@ function IGPrev({post,media}){
     <div style={{padding:"10px 12px"}}>
       <div style={{display:"flex",gap:12,fontSize:18,marginBottom:6}}>🤍 💬 ↗ <span style={{marginLeft:"auto"}}>🔖</span></div>
       <div><span style={{fontWeight:700}}>dein_account</span> {post.content||"Text hier…"}</div>
-      {post.hashtags&&<div style={{color:"#00376b",marginTop:3,fontSize:12}}>{post.hashtags}</div>}
     </div>
   </div>;
 }
@@ -266,7 +265,6 @@ function TWPrev({post,media}){
       <div style={{flex:1}}>
         <div style={{fontWeight:700}}>Dein Name <span style={{color:"#536471",fontWeight:400}}>@handle · 2h</span></div>
         <div style={{lineHeight:1.5,marginTop:4}}>{post.content||"Tweet…"}</div>
-        {post.hashtags&&<div style={{color:"#1d9bf0",marginTop:3}}>{post.hashtags}</div>}
         {media?.type==="image"&&<img src={media.url} alt="" style={{width:"100%",borderRadius:10,marginTop:8,aspectRatio:"16/9",objectFit:"cover",objectPosition:fpos(media)}}/>}
         <div style={{display:"flex",gap:16,marginTop:10,color:"#536471",fontSize:11}}>💬 24 &nbsp;🔁 12 &nbsp;🤍 89</div>
       </div>
@@ -279,7 +277,7 @@ function LIPrev({post,media}){
       <div style={{width:40,height:40,borderRadius:"50%",background:"#0077B5",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:13}}>{post.title?.[0]||"U"}</div>
       <div><div style={{fontWeight:700}}>Dein Name</div><div style={{fontSize:11,color:"#666"}}>Position · 1. Grad</div></div>
     </div>
-    <div style={{padding:"0 14px 10px",lineHeight:1.6}}>{post.content||"Post…"}{post.hashtags&&<span style={{color:"#0077B5"}}> {post.hashtags}</span>}</div>
+    <div style={{padding:"0 14px 10px",lineHeight:1.6}}>{post.content||"Post…"}</div>
     {media?.url&&<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1.91/1",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>}
     <div style={{display:"flex",borderTop:"1px solid #e0e0e0"}}>
       {["👍","💬","↗"].map(a=><button key={a} style={{flex:1,background:"none",border:"none",color:"#666",fontSize:12,fontWeight:700,padding:"7px 0",cursor:"pointer"}}>{a}</button>)}
@@ -292,7 +290,7 @@ function FBPrev({post,media}){
       <div style={{width:36,height:36,borderRadius:"50%",background:"#1877F2",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12}}>{post.title?.[0]||"U"}</div>
       <div><div style={{fontWeight:700}}>Deine Seite</div><div style={{fontSize:11,color:"#65676b"}}>Gerade · 🌐</div></div>
     </div>
-    <div style={{padding:"0 12px 10px",lineHeight:1.5}}>{post.content||"Post…"}{post.hashtags&&<span style={{color:"#1877F2"}}> {post.hashtags}</span>}</div>
+    <div style={{padding:"0 12px 10px",lineHeight:1.5}}>{post.content||"Post…"}</div>
     {media?.url&&<img src={media.url} alt="" style={{width:"100%",aspectRatio:"1.91/1",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>}
     <div style={{display:"flex",borderTop:"1px solid #dddfe2"}}>
       {["👍","💬","↗"].map(a=><button key={a} style={{flex:1,background:"none",border:"none",color:"#65676b",fontSize:12,fontWeight:700,padding:"7px 0",cursor:"pointer"}}>{a}</button>)}
@@ -1060,7 +1058,11 @@ function MediaDetail({item,onSave,onClose}){
 
 // ── EDITOR MODAL ───────────────────────────────────────────────────────────
 function Editor({post,items,campaigns,onSave,onClose,onUpload,onUpdate,user}){
-  const [form,setForm]=useState({...post});
+  // Migrate: merge legacy hashtags field into content
+  const initContent = post.hashtags
+    ? (post.content+(post.content?"\n\n":"")+post.hashtags).trim()
+    : (post.content||"");
+  const [form,setForm]=useState({...post, content:initContent});
   const [pch,setPch]=useState(post.channels?.[0]||"instagram");
   const [rightPane,setRightPane]=useState("preview");
   const [picker,setPicker]=useState(false);
@@ -1131,8 +1133,6 @@ function Editor({post,items,campaigns,onSave,onClose,onUpload,onUpdate,user}){
               )}
             </div>
 
-            <TIn label="Hashtags" icon={Hash} placeholder="#marketing #launch" value={form.hashtags||""} onChange={e=>setForm({...form,hashtags:e.target.value})}/>
-
             <div><FL>Mediendatei</FL>
               {media?(
                 <div style={{display:"flex",gap:10,alignItems:"center",background:C.bg,borderRadius:8,padding:"8px 12px",border:`1px solid ${C.border}`}}>
@@ -1189,7 +1189,7 @@ function Editor({post,items,campaigns,onSave,onClose,onUpload,onUpdate,user}){
               {/* AI PANEL */}
               {rightPane==="ai"&&(
                 form.channels?.length>0
-                  ?<AIPanel content={form.content||""} chId={form.channels[0]} onApply={t=>setForm(f=>({...f,content:t}))} onApplyHT={t=>setForm(f=>({...f,hashtags:t}))}/>
+                  ?<AIPanel content={form.content||""} chId={form.channels[0]} onApply={t=>setForm(f=>({...f,content:t}))} onApplyHT={t=>setForm(f=>({...f,content:(f.content+(f.content?"\n\n":"")+t).trim()}))}/>
                   :<div style={{textAlign:"center",padding:"48px 20px",color:C.textMute}}>
                     <div style={{width:48,height:48,borderRadius:14,background:`linear-gradient(135deg,${C.ai1}20,${C.ai2}10)`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
                       <Sparkles size={22} strokeWidth={1.5} color={C.purple} style={{opacity:.5}}/>
@@ -2222,7 +2222,6 @@ function CalendarPage({posts,onEdit}){
                     <div style={{paddingLeft:8,minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:600,color:K.navy,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
                       {p.content&&<div style={{fontSize:11.5,color:K.navySoft,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",opacity:.8}}>{p.content.slice(0,60)}{p.content.length>60?"…":""}</div>}
-                      {p.hashtags&&<div style={{fontSize:10.5,color:K.indigo,marginTop:2,opacity:.7}}>{p.hashtags.split(" ").slice(0,3).join(" ")}</div>}
                     </div>
                     {/* Channels */}
                     <div style={{paddingLeft:8,display:"flex",flexWrap:"wrap",gap:3}}>
@@ -2533,7 +2532,7 @@ export default function App(){
   const approve=(id,st)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,status:st}:p));
   const chSt=(id,st)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,status:st}:p));
   const chCamp=(id,cid)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,campaignId:cid}:p));
-  const newPost=()=>setEdPost({id:null,title:"",content:"",hashtags:"",channels:[],scheduledDate:"",scheduledTime:"",status:"draft",mediaId:null,campaignId:null});
+  const newPost=()=>setEdPost({id:null,title:"",content:"",channels:[],scheduledDate:"",scheduledTime:"",status:"draft",mediaId:null,campaignId:null});
   const goNav=n=>{setNav(n);setFilt("all");};
   const goFilter=(pg,f)=>{setNav(pg);setFilt(f);};
 
