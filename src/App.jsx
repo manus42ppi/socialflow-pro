@@ -2469,6 +2469,36 @@ export default function App(){
   const [schPost,setSchPost]=useState(null);
   const [filt,setFilt]=useState("all");
   const mediaLoaded=useRef(false);
+  const postsLoaded=useRef(false);
+  const campsLoaded=useRef(false);
+
+  // Posts aus KV laden (beim Start)
+  useEffect(()=>{
+    storeGet("posts").then(data=>{
+      postsLoaded.current=true;
+      if(data?.length) setPosts(data);
+    });
+  },[]);
+
+  // Posts in KV speichern (bei Änderungen)
+  useEffect(()=>{
+    if(!postsLoaded.current)return;
+    storeSet("posts",posts);
+  },[posts]);
+
+  // Kampagnen aus KV laden (beim Start)
+  useEffect(()=>{
+    storeGet("campaigns").then(data=>{
+      campsLoaded.current=true;
+      if(data?.length) setCampaigns(data);
+    });
+  },[]);
+
+  // Kampagnen in KV speichern (bei Änderungen)
+  useEffect(()=>{
+    if(!campsLoaded.current)return;
+    storeSet("campaigns",campaigns);
+  },[campaigns]);
 
   // Medien aus KV laden (beim Start)
   useEffect(()=>{
