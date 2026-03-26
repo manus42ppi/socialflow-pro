@@ -86,15 +86,11 @@ const fileToDataURL = f => new Promise((res,rej) => { const r=new FileReader(); 
 const getMediaType = f => f.type.startsWith("video/")?"video": f.name.toLowerCase().includes("logo")?"logo": f.type.startsWith("image/")?"image":"document";
 const fmtDate = d => d ? new Date(d).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"}) : "";
 
-// ── AI SERVICE ─────────────────────────────────────────────────────────────
+// ── AI SERVICE (via Cloudflare Function Proxy) ────────────────────────────
 async function aiCall(messages, max_tokens=800) {
-  const r = await fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST", headers:{
-      "Content-Type":"application/json",
-      "x-api-key":"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",
-      "anthropic-version":"2023-06-01",
-      "anthropic-dangerous-request-proxy":"true"
-    },
+  const r = await fetch("/ai",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens,messages}),
   });
   const data = await r.json();
