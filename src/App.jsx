@@ -1377,23 +1377,23 @@ function KCard({post,items,onEdit,onDS,isDrag,isDrop}){
   const media=items.find(m=>m.id===post.mediaId);
   return(
     <div draggable onDragStart={e=>{e.dataTransfer.effectAllowed="move";onDS(post.id,post.status);}} onClick={()=>onEdit(post)}
-      style={{background:isDrop?"#ECFDF3":"#fff",borderRadius:10,border:`1px solid ${isDrop?"#6EE7B7":C.border}`,overflow:"hidden",cursor:isDrag?"grabbing":"grab",transition:"all .2s",opacity:isDrag?.4:1,userSelect:"none",boxShadow:isDrag?"none":"0 1px 3px rgba(0,0,0,.05)"}}
-      onMouseEnter={e=>{if(!isDrag){e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,.1)";e.currentTarget.style.transform="translateY(-1px)";}}}
-      onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.05)";e.currentTarget.style.transform="";}}>
-      {/* Thumbnail */}
-      {media?.url&&<div style={{height:68,overflow:"hidden",position:"relative"}}>
+      style={{background:isDrop?C.accentLight:C.surface,borderRadius:10,border:`1px solid ${isDrop?C.accent:C.border}`,overflow:"hidden",cursor:isDrag?"grabbing":"grab",transition:"all .2s",opacity:isDrag?.4:1,userSelect:"none",boxShadow:isDrag?"none":"0 1px 4px rgba(0,0,0,.05)"}}
+      onMouseEnter={e=>{if(!isDrag){e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.1)";e.currentTarget.style.transform="translateY(-1px)";}}}
+      onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,.05)";e.currentTarget.style.transform="";}}>
+      {/* Thumbnail – tall enough to show focal point */}
+      {media?.url&&<div style={{height:120,overflow:"hidden",position:"relative"}}>
         <img src={media.url} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>
-        <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 55%,rgba(0,0,0,.4))"}}/>
-        <div style={{position:"absolute",bottom:5,right:6,display:"flex",gap:3}}>
-          {post.channels?.slice(0,3).map(c=><span key={c} style={{width:18,height:18,borderRadius:"50%",background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center"}}><ChIco id={c} size={11}/></span>)}
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 50%,rgba(0,0,0,.35))"}}/>
+        <div style={{position:"absolute",bottom:6,right:7,display:"flex",gap:3}}>
+          {post.channels?.slice(0,3).map(c=><span key={c} style={{width:18,height:18,borderRadius:"50%",background:"rgba(255,255,255,.2)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,.3)",display:"flex",alignItems:"center",justifyContent:"center"}}><ChIco id={c} size={10} color="#fff"/></span>)}
         </div>
       </div>}
-      <div style={{padding:"9px 11px"}}>
-        <div style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{post.title||"Kein Titel"}</div>
-        <div style={{fontSize:11,color:C.textSoft,lineHeight:1.4,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",marginBottom:7}}>{post.content||"Kein Text…"}</div>
-        <div style={{display:"flex",alignItems:"center",gap:5}}>
-          {!media?.url&&<div style={{display:"flex",gap:3}}>{post.channels?.slice(0,5).map(c=><ChIco key={c} id={c} size={12}/>)}</div>}
-          {post.scheduledDate&&<span style={{marginLeft:"auto",fontSize:10,color:C.textSoft,display:"flex",alignItems:"center",gap:3}}><Calendar size={10} strokeWidth={2}/>{post.scheduledDate}</span>}
+      <div style={{padding:"10px 12px"}}>
+        <div style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{post.title||"Kein Titel"}</div>
+        <div style={{fontSize:11.5,color:C.textSoft,lineHeight:1.45,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",marginBottom:8}}>{post.content||"Kein Text…"}</div>
+        <div style={{display:"flex",alignItems:"center",gap:5,borderTop:`1px solid ${C.borderLight}`,paddingTop:7,marginTop:2}}>
+          {<div style={{display:"flex",gap:4}}>{post.channels?.slice(0,5).map(c=><ChIco key={c} id={c} size={12} color={C.textMute}/>)}</div>}
+          {post.scheduledDate&&<span style={{marginLeft:"auto",fontSize:10,color:C.textMute,display:"flex",alignItems:"center",gap:3}}><Calendar size={10} strokeWidth={2}/>{fmtDate(post.scheduledDate)}</span>}
         </div>
       </div>
     </div>
@@ -1447,18 +1447,19 @@ function Board({posts,items,campaigns,onStatus,onCampaign,onEdit,onNew,canW}){
               onDragOver={e=>{e.preventDefault();if(dId&&!isS)setOver(col.id);}}
               onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOver(null);}}
               onDrop={e=>{e.preventDefault();drop(col.id);}}
-              style={{flex:"0 0 230px",borderRadius:12,border:`2px solid ${isO?col.color:col.bdr}`,background:isO?col.bg:"#F8F9FB",transition:"all .18s",opacity:dId&&isS?.55:1,minHeight:280}}>
-              <div style={{padding:"11px 13px",background:isO?col.color+"22":col.hdr,borderRadius:"10px 10px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${col.bdr}`}}>
+              style={{flex:"0 0 232px",borderRadius:12,border:`1.5px solid ${isO?C.accent:C.border}`,background:isO?C.accentLight:C.bg,transition:"all .18s",opacity:dId&&isS?.5:1,minHeight:280}}>
+              {/* Column header – monochrome, dot keeps semantic color */}
+              <div style={{padding:"10px 13px",background:C.surface,borderRadius:"10px 10px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${C.border}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:7}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:col.color,boxShadow:isO?`0 0 0 3px ${col.color}33`:"none",transition:"box-shadow .18s"}}/>
-                  <span style={{fontWeight:800,fontSize:13,color:col.color}}>{col.label}</span>
+                  <div style={{width:7,height:7,borderRadius:"50%",background:col.color,flexShrink:0}}/>
+                  <span style={{fontWeight:700,fontSize:13,color:C.text}}>{col.label}</span>
                 </div>
-                <span style={{background:"#fff",color:col.color,fontSize:12,fontWeight:800,padding:"2px 9px",borderRadius:20,border:`1px solid ${col.bdr}`}}>{col.posts.length}</span>
+                <span style={{background:C.borderLight,color:C.textMid,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20}}>{col.posts.length}</span>
               </div>
-              {isO&&dId&&!isS&&<div style={{margin:"8px 8px 0",padding:10,borderRadius:8,border:`2px dashed ${col.color}`,background:col.color+"0A",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:col.color,fontWeight:700}}>📌 Hier ablegen</div>}
+              {isO&&dId&&!isS&&<div style={{margin:"8px 8px 0",padding:10,borderRadius:8,border:`2px dashed ${C.accent}`,background:C.accentLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:C.accent,fontWeight:700,gap:5}}><Plus size={13} strokeWidth={2.5}/>Hier ablegen</div>}
               <div style={{padding:8,display:"flex",flexDirection:"column",gap:8}}>
-                {col.posts.length===0&&!isO&&<div style={{padding:"28px 12px",textAlign:"center",color:C.textMute,fontSize:12,border:`1.5px dashed ${col.bdr}`,borderRadius:8}}>
-                  {dId&&!isS?<span style={{color:col.color,fontWeight:600}}>Hier ablegen</span>:"Noch keine Posts"}
+                {col.posts.length===0&&!isO&&<div style={{padding:"28px 12px",textAlign:"center",color:C.textMute,fontSize:12,border:`1.5px dashed ${C.border}`,borderRadius:8}}>
+                  {dId&&!isS?<span style={{color:C.accent,fontWeight:600}}>Hier ablegen</span>:"Noch keine Posts"}
                 </div>}
                 {col.posts.map(p=><KCard key={p.id} post={p} items={items} onEdit={onEdit} onDS={(id,st)=>{setDId(id);setDSt(st);}} isDrag={dId===p.id} isDrop={dropped===p.id}/>)}
               </div>
