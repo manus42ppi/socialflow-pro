@@ -4115,7 +4115,7 @@ function PlannerPage({posts,campaigns,items,onEdit}){
 }
 
 // ── ADMIN PAGE ─────────────────────────────────────────────────────────────
-function AdminPage({me}){
+function AdminPage({me,onUpdateMe}){
   const [tab,setTab]=useState("profile");
   // ── State ──
   const [profile,setProfile]=useState({firstName:"",lastName:"",email:me.email||"",phone:"",bio:""});
@@ -4151,8 +4151,18 @@ function AdminPage({me}){
   const saveTeam=(next)=>{setUsers(next);storeSet("admin:team",next);};
   const startEdit=(u)=>{setEditingId(u.id);setEditForm({name:u.name,email:u.email});};
   const commitEdit=(id)=>{
-    const next=users.map(u=>u.id===id?{...u,name:editForm.name.trim()||u.name,email:editForm.email.trim()||u.email,avatar:editForm.name.trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2)||u.avatar}:u);
-    saveTeam(next);setEditingId(null);showFlash("team_"+id);
+    const next=users.map(u=>{
+      if(u.id!==id)return u;
+      const name=editForm.name.trim()||u.name;
+      const email=editForm.email.trim()||u.email;
+      const avatar=name.split(" ").filter(Boolean).map(w=>w[0]).join("").toUpperCase().slice(0,2)||u.avatar;
+      return{...u,name,email,avatar};
+    });
+    saveTeam(next);
+    // If the edited user is the currently logged-in user → update root user state
+    const updated=next.find(u=>u.id===id);
+    if(updated&&updated.id===me.id)onUpdateMe?.(updated);
+    setEditingId(null);showFlash("team_"+id);
   };
   const isConn=(id)=>{const c=chCreds[id];if(!c)return false;if(id==="instagram")return !!(c.accountId&&c.accessToken);if(id==="twitter")return !!(c.apiKey&&c.apiSecret&&c.accessToken&&c.accessTokenSecret);if(id==="linkedin")return !!c.accessToken;if(id==="facebook")return !!(c.pageId&&c.accessToken);if(id==="whatsapp")return !!(c.phoneNumberId&&c.accessToken);return false;};
 
@@ -4800,7 +4810,13 @@ export default function App(){
     items.filter(i=>!i.analyzing&&i.url).forEach(i=>storeSet(`media:img:${i.id}`,{url:i.url}));
   },[items]);
 
-  if(!user) return <Login onLogin={setUser}/>;
+  if(!user) return <Login onLogin={u=>{
+    // Merge persisted team data so name/email changes survive logout
+    storeGet("admin:team").then(team=>{
+      const saved=Array.isArray(team)&&team.find(t=>t.id===u.id);
+      setUser(saved?{...u,...saved}:u);
+    }).catch(()=>setUser(u));
+  }}/>;
 
   const save=p=>{setPosts(prev=>prev.find(x=>x.id===p.id)?prev.map(x=>x.id===p.id?p:x):[...prev,p]);setEdPost(null);};
   const saveSch=p=>{setPosts(prev=>prev.map(x=>x.id===p.id?p:x));setSchPost(null);};
@@ -4839,7 +4855,7 @@ export default function App(){
             {nav==="planner"     &&<PlannerPage posts={posts} campaigns={campaigns} items={items} onEdit={setEdPost}/>}
             {nav==="performance" &&<PerformancePage posts={posts}/>}
             {nav==="stories"     &&<StoriesPage stories={stories} items={items} onEdit={setEdStory} onNew={newStory} onDelete={delStory}/>}
-            {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user}/>}
+            {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user} onUpdateMe={u=>setUser(u)}/>}
           </div>
           <GlobalRightSidebar posts={posts.filter(p=>!p.deleted)} campaigns={campaigns} onNav={goNav}/>
         </div>
