@@ -2779,7 +2779,7 @@ function GlobalRightSidebar({posts,campaigns,onNav}){
               onDrop={()=>onDropW(id)}
               onDragEnd={onDragEndW}
               style={{
-                borderBottom:idx<widgetOrder.length-1?`2px solid ${C.border}`:"none",
+                borderBottom:`2px solid ${C.border}`,
                 opacity:dragOver===id?.5:1,
                 background:dragOver===id?C.accentLight:"transparent",
                 transition:"opacity .15s, background .15s",
