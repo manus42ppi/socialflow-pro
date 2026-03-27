@@ -7,7 +7,8 @@ import {
   Twitter, Linkedin, Facebook, Hash, Layers, Inbox, Sparkles,
   Tag, MapPin, Zap, FileText, Eye, Key, Building2, User, Phone,
   ExternalLink, ChevronDown, ChevronUp, Save, Wifi, WifiOff,
-  ArrowUpDown, Menu, AlertTriangle, CheckSquare, RotateCcw, BookOpen
+  ArrowUpDown, Menu, AlertTriangle, CheckSquare, RotateCcw, BookOpen,
+  CalendarRange, ChevronLeft, ChevronRight, ListTodo, Target, Layers3
 } from "lucide-react";
 
 // ── FONT & COLORS ──────────────────────────────────────────────────────────
@@ -398,6 +399,7 @@ const NAV_GROUPS=[
     {id:"publisher",  label:"Publisher",         I:Send},
     {id:"media",      label:"Medienbibliothek",  I:Image},
     {id:"calendar",   label:"Kalender",          I:Calendar},
+    {id:"planner",    label:"Planner",           I:CalendarRange},
     {id:"drafts",     label:"Entwürfe",          I:FileText},
     {id:"trash",      label:"Papierkorb",        I:Trash2},
   ]},
@@ -2680,13 +2682,14 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
       </div>
 
       {/* ── QUICK ACTIONS ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
         {[
-          {I:Send,      label:"Post erstellen",   sub:"Neuer Inhalt",     nav:"publisher",   color:"#3B82F6"},
-          {I:Calendar,  label:"Kalender",          sub:"Zeitplan",         nav:"calendar",    color:"#8B5CF6"},
-          {I:Image,     label:"Medien",            sub:"Bilder & Videos",  nav:"media",       color:"#10B981"},
-          {I:BarChart2, label:"Performance",       sub:"Auswertungen",     nav:"performance", color:"#F59E0B"},
-          {I:Flag,      label:"Kampagnen",         sub:"Projekte",         nav:"campaigns",   color:"#EC4899"},
+          {I:Send,          label:"Post erstellen",  sub:"Neuer Inhalt",    nav:"publisher",   color:"#3B82F6"},
+          {I:CalendarRange, label:"Planner",         sub:"Timeline & Plan", nav:"planner",     color:"#5B5BD6"},
+          {I:Calendar,      label:"Kalender",        sub:"Monatsansicht",   nav:"calendar",    color:"#8B5CF6"},
+          {I:Image,         label:"Medien",          sub:"Bilder & Videos", nav:"media",       color:"#10B981"},
+          {I:BarChart2,     label:"Performance",     sub:"Auswertungen",    nav:"performance", color:"#F59E0B"},
+          {I:Flag,          label:"Kampagnen",       sub:"Projekte",        nav:"campaigns",   color:"#EC4899"},
         ].map((qa,i)=>(
           <div key={i} onClick={()=>onNav(qa.nav)}
             style={{...card,padding:"11px 13px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"all .15s"}}
@@ -3406,6 +3409,416 @@ function CalendarPage({posts,onEdit}){
   );
 }
 
+// ── PLANNER PAGE ────────────────────────────────────────────────────────────
+function PlannerPage({posts,campaigns,items,onEdit}){
+  const today=new Date();
+  const todayStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+  const livePosts=posts.filter(p=>!p.deleted);
+  const schedPosts=livePosts.filter(p=>p.scheduledDate);
+
+  // ── Timeline: 6 months starting 1 month ago ──
+  const [timeStart,setTimeStart]=useState(()=>{
+    const d=new Date(today.getFullYear(),today.getMonth()-1,1);
+    return d;
+  });
+  const MONTHS_VISIBLE=6;
+  const timeEnd=new Date(timeStart.getFullYear(),timeStart.getMonth()+MONTHS_VISIBLE,0); // last day
+  const totalDays=Math.round((timeEnd-timeStart)/(1000*60*60*24))+1;
+
+  const dateToX=dateStr=>{
+    if(!dateStr)return null;
+    const d=new Date(dateStr+"T12:00");
+    const diff=Math.round((d-timeStart)/(1000*60*60*24));
+    return Math.max(0,Math.min(100,(diff/totalDays)*100));
+  };
+
+  const prevPeriod=()=>setTimeStart(d=>new Date(d.getFullYear(),d.getMonth()-1,1));
+  const nextPeriod=()=>setTimeStart(d=>new Date(d.getFullYear(),d.getMonth()+1,1));
+  const goToday=()=>setTimeStart(new Date(today.getFullYear(),today.getMonth()-1,1));
+
+  // Month headers for timeline
+  const monthHeaders=[];
+  for(let i=0;i<MONTHS_VISIBLE;i++){
+    const m=new Date(timeStart.getFullYear(),timeStart.getMonth()+i,1);
+    const startX=(i/MONTHS_VISIBLE)*100;
+    monthHeaders.push({label:m.toLocaleDateString("de-DE",{month:"short",year:"2-digit"}),x:startX,w:100/MONTHS_VISIBLE});
+  }
+
+  // Today X position
+  const todayX=dateToX(todayStr);
+
+  // Gantt rows: campaigns first, then ungrouped channel rows
+  const rows=[];
+  campaigns.forEach(camp=>{
+    const cPosts=schedPosts.filter(p=>p.campaignId===camp.id&&p.scheduledDate>=`${timeStart.getFullYear()}-${String(timeStart.getMonth()+1).padStart(2,"0")}-01`&&p.scheduledDate<=`${timeEnd.getFullYear()}-${String(timeEnd.getMonth()+1).padStart(2,"0")}-${String(timeEnd.getDate()).padStart(2,"0")}`);
+    const allCPosts=schedPosts.filter(p=>p.campaignId===camp.id);
+    if(allCPosts.length===0)return;
+    const dates=allCPosts.map(p=>p.scheduledDate).sort();
+    const x1=dateToX(dates[0]);
+    const x2=dateToX(dates[dates.length-1])+0.5;
+    rows.push({type:"campaign",id:camp.id,label:camp.name,emoji:camp.emoji,color:camp.color,x1:Math.max(0,x1),x2:Math.min(100,x2),posts:allCPosts,visible:cPosts});
+  });
+
+  // Channel rows
+  CHANNELS.forEach(ch=>{
+    const chPosts=schedPosts.filter(p=>p.channels?.includes(ch.id));
+    if(chPosts.length===0)return;
+    const dates=chPosts.map(p=>p.scheduledDate).sort();
+    const x1=dateToX(dates[0]);
+    const x2=dateToX(dates[dates.length-1])+0.5;
+    rows.push({type:"channel",id:ch.id,label:ch.label,color:ch.color,x1:Math.max(0,x1),x2:Math.min(100,x2),posts:chPosts});
+  });
+
+  // Individual post dots on timeline
+  const allTimelinePosts=schedPosts.filter(p=>{
+    return p.scheduledDate>= `${timeStart.getFullYear()}-${String(timeStart.getMonth()+1).padStart(2,"0")}-01` &&
+           p.scheduledDate<=  `${timeEnd.getFullYear()}-${String(timeEnd.getMonth()+1).padStart(2,"0")}-${String(timeEnd.getDate()).padStart(2,"0")}`;
+  });
+
+  // ── Right panel: mini calendar ──
+  const [calM,setCalM]=useState(new Date());
+  const calY=calM.getFullYear(),calMon=calM.getMonth();
+  const firstDay=new Date(calY,calMon,1).getDay();
+  const firstDayMon=firstDay===0?6:firstDay-1;
+  const dIM=new Date(calY,calMon+1,0).getDate();
+  const calLabel=calM.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  const postsByDay=schedPosts.reduce((acc,p)=>{
+    if(p.scheduledDate){const d=new Date(p.scheduledDate+"T12:00");
+      if(d.getFullYear()===calY&&d.getMonth()===calMon){
+        const k=d.getDate();acc[k]=[...(acc[k]||[]),p];
+      }}return acc;
+  },{});
+
+  // Today's posts
+  const todayPosts=schedPosts.filter(p=>p.scheduledDate===todayStr).sort((a,b)=>(a.scheduledTime||"").localeCompare(b.scheduledTime||""));
+
+  // Next 7 days (excluding today)
+  const upcomingPosts=schedPosts.filter(p=>p.scheduledDate>todayStr).sort((a,b)=>a.scheduledDate.localeCompare(b.scheduledDate)||(a.scheduledTime||"").localeCompare(b.scheduledTime||"")).slice(0,8);
+
+  // Campaign progress cards
+  const campCards=campaigns.map(c=>{
+    const cp=livePosts.filter(p=>p.campaignId===c.id);
+    const pub=cp.filter(p=>p.status==="published").length;
+    const total=cp.length||1;
+    const pct=Math.round((pub/total)*100);
+    const dates=cp.filter(p=>p.scheduledDate).map(p=>p.scheduledDate).sort();
+    const start=dates[0]||null,end=dates[dates.length-1]||null;
+    return{...c,total:cp.length,pub,pct,start,end};
+  }).filter(c=>c.total>0);
+
+  const card={background:"#fff",border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
+  const SK={scheduled:{c:"#16A34A",l:"Geplant"},draft:{c:"#D97706",l:"Entwurf"},pending:{c:"#2563EB",l:"Review"},published:{c:"#7C3AED",l:"Live"}};
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:14,background:C.bg,fontFamily:FONT}}>
+
+      {/* ── Header row ── */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,letterSpacing:"-.03em"}}>Planner</div>
+          <div style={{fontSize:12,color:C.textSoft,marginTop:2}}>Übersicht über alle geplanten Posts & Kampagnen</div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={prevPeriod} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid}}>
+            <ChevronLeft size={15}/>
+          </button>
+          <button onClick={goToday} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,height:32,padding:"0 12px",cursor:"pointer",fontSize:12,fontWeight:700,color:C.accent,fontFamily:FONT}}>Heute</button>
+          <button onClick={nextPeriod} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid}}>
+            <ChevronRight size={15}/>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Main layout: Gantt + right panel ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 272px",gap:14,alignItems:"start"}}>
+
+        {/* ── LEFT: Gantt + Progress Cards ── */}
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+
+          {/* ── GANTT ── */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:8}}>
+              <CalendarRange size={14} color={C.accent} strokeWidth={2}/>
+              <span style={{fontSize:13,fontWeight:700,color:C.textMid}}>Timeline</span>
+              <span style={{fontSize:11,color:C.textMute,marginLeft:"auto"}}>
+                {timeStart.toLocaleDateString("de-DE",{month:"long",year:"numeric"})} – {timeEnd.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}
+              </span>
+            </div>
+
+            <div style={{padding:"0 16px 14px"}}>
+              {/* Month headers */}
+              <div style={{position:"relative",height:28,marginTop:10,marginLeft:140}}>
+                {monthHeaders.map((mh,i)=>(
+                  <div key={i} style={{position:"absolute",left:`${mh.x}%`,width:`${mh.w}%`,top:0,height:"100%",borderLeft:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",paddingLeft:6}}>
+                    <span style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",whiteSpace:"nowrap"}}>{mh.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Rows */}
+              {rows.length===0?(
+                <div style={{padding:"32px 0",textAlign:"center",color:C.textMute,fontSize:13}}>
+                  <CalendarRange size={32} strokeWidth={1} style={{margin:"0 auto 10px",display:"block",opacity:.3}}/>
+                  Keine geplanten Posts. Plane Posts im Publisher.
+                </div>
+              ):rows.map((row,ri)=>(
+                <div key={row.id} style={{display:"flex",alignItems:"center",gap:0,height:38,borderBottom:ri<rows.length-1?`1px solid ${C.borderLight}`:"none"}}>
+                  {/* Label */}
+                  <div style={{width:140,flexShrink:0,display:"flex",alignItems:"center",gap:7,paddingRight:12}}>
+                    {row.type==="campaign"?(
+                      <span style={{fontSize:13}}>{row.emoji}</span>
+                    ):(
+                      <div style={{width:8,height:8,borderRadius:"50%",background:row.color,flexShrink:0}}/>
+                    )}
+                    <span style={{fontSize:11.5,fontWeight:600,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.label}</span>
+                    <span style={{fontSize:10,color:C.textMute,marginLeft:"auto",flexShrink:0}}>{row.posts.length}</span>
+                  </div>
+                  {/* Bar area */}
+                  <div style={{flex:1,position:"relative",height:20}}>
+                    {/* Month grid lines */}
+                    {monthHeaders.map((mh,i)=>(
+                      <div key={i} style={{position:"absolute",left:`${mh.x}%`,top:0,bottom:0,borderLeft:`1px dashed ${C.borderLight}`,pointerEvents:"none"}}/>
+                    ))}
+                    {/* Today line */}
+                    {todayX!==null&&todayX>=0&&todayX<=100&&(
+                      <div style={{position:"absolute",left:`${todayX}%`,top:-8,bottom:-8,width:1.5,background:C.accent,zIndex:3,pointerEvents:"none"}}>
+                        <div style={{position:"absolute",top:-2,left:-3,width:7,height:7,borderRadius:"50%",background:C.accent}}/>
+                      </div>
+                    )}
+                    {/* Main bar */}
+                    {row.x1!==null&&row.x2!==null&&row.x2>row.x1&&(
+                      <div style={{
+                        position:"absolute",
+                        left:`${row.x1}%`,
+                        width:`${Math.max(0.5,row.x2-row.x1)}%`,
+                        height:10,top:5,
+                        borderRadius:5,
+                        background:`${row.color}30`,
+                        border:`1.5px solid ${row.color}60`,
+                      }}/>
+                    )}
+                    {/* Post dots */}
+                    {allTimelinePosts.filter(p=>row.type==="campaign"?p.campaignId===row.id:p.channels?.includes(row.id)).map((p,pi)=>{
+                      const x=dateToX(p.scheduledDate);
+                      if(x===null||x<0||x>100)return null;
+                      const sc=SK[p.status]||{c:C.textMute};
+                      return <div key={pi} title={`${p.title||"Post"} – ${p.scheduledDate}`}
+                        onClick={()=>onEdit(p)}
+                        style={{position:"absolute",left:`${x}%`,top:4,width:12,height:12,borderRadius:"50%",
+                          background:sc.c,border:"2px solid #fff",cursor:"pointer",zIndex:2,
+                          transform:"translateX(-50%)",boxShadow:"0 1px 3px rgba(0,0,0,.2)",
+                          transition:"transform .1s"}}
+                        onMouseEnter={e=>e.currentTarget.style.transform="translateX(-50%) scale(1.35)"}
+                        onMouseLeave={e=>e.currentTarget.style.transform="translateX(-50%) scale(1)"}/>;
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Legend */}
+              <div style={{display:"flex",gap:12,marginTop:10,paddingTop:8,borderTop:`1px solid ${C.borderLight}`,flexWrap:"wrap"}}>
+                {Object.entries(SK).map(([k,v])=>(
+                  <div key={k} style={{display:"flex",alignItems:"center",gap:4,fontSize:10}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:v.c}}/>
+                    <span style={{color:C.textMute,fontWeight:500}}>{v.l}</span>
+                  </div>
+                ))}
+                {todayX!==null&&todayX>=0&&todayX<=100&&(
+                  <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10}}>
+                    <div style={{width:1.5,height:10,background:C.accent}}/>
+                    <span style={{color:C.textMute,fontWeight:500}}>Heute</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── CAMPAIGN PROGRESS CARDS ── */}
+          {campCards.length>0&&(
+            <div style={{...card,overflow:"hidden"}}>
+              <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:8}}>
+                <Target size={14} color={C.accent} strokeWidth={2}/>
+                <span style={{fontSize:13,fontWeight:700,color:C.textMid}}>Aktive Kampagnen</span>
+                <span style={{marginLeft:"auto",fontSize:11,color:C.textMute}}>{campCards.length} Kampagnen</span>
+              </div>
+              <div style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:10}}>
+                {campCards.map(c=>(
+                  <div key={c.id} style={{borderRadius:10,border:`1px solid ${C.border}`,padding:"12px 14px",background:C.bg,transition:"all .15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=c.color+"60";e.currentTarget.style.background="#fff";}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.bg;}}>
+                    <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
+                      <div style={{width:34,height:34,borderRadius:9,background:c.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{c.emoji}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:700,fontSize:12.5,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                        <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{c.total} Posts{c.start?` · ${new Date(c.start+"T12:00").toLocaleDateString("de-DE",{day:"numeric",month:"short"})}`:""}</div>
+                      </div>
+                      <div style={{fontSize:13,fontWeight:800,color:c.color}}>{c.pct}%</div>
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{height:4,borderRadius:4,background:C.borderLight,overflow:"hidden"}}>
+                      <div style={{height:"100%",borderRadius:4,background:c.color,width:`${c.pct}%`,transition:"width .4s"}}/>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginTop:5}}>
+                      <span style={{fontSize:10,color:C.textMute}}>{c.pub} veröffentlicht</span>
+                      <span style={{fontSize:10,color:C.textMute}}>{c.total-c.pub} ausstehend</span>
+                    </div>
+                    {/* Channel icons */}
+                    <div style={{display:"flex",gap:4,marginTop:8}}>
+                      {[...new Set(livePosts.filter(p=>p.campaignId===c.id).flatMap(p=>p.channels||[]))].map(ch=>(
+                        <ChIco key={ch} id={ch} size={12}/>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── UPCOMING POSTS TABLE ── */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:8}}>
+              <ListTodo size={14} color={C.accent} strokeWidth={2}/>
+              <span style={{fontSize:13,fontWeight:700,color:C.textMid}}>Nächste Posts</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:C.textMute}}>{upcomingPosts.length} kommende</span>
+            </div>
+            {upcomingPosts.length===0?(
+              <div style={{padding:"28px 16px",textAlign:"center",fontSize:12,color:C.textMute}}>Keine geplanten Posts in den nächsten Tagen.</div>
+            ):(
+              <div>
+                {/* Table header */}
+                <div style={{display:"grid",gridTemplateColumns:"80px 70px 1fr 100px 80px",padding:"6px 16px",background:C.bg,borderBottom:`1px solid ${C.borderLight}`}}>
+                  {["Datum","Uhrzeit","Post","Kanäle","Status"].map((h,i)=>(
+                    <div key={i} style={{fontSize:9.5,fontWeight:700,color:C.textMute,letterSpacing:".05em",textTransform:"uppercase"}}>{h}</div>
+                  ))}
+                </div>
+                {upcomingPosts.map((p,i)=>{
+                  const sc=SK[p.status]||{c:C.textMute,l:p.status};
+                  const camp=campaigns.find(c=>c.id===p.campaignId);
+                  return(
+                    <div key={p.id} onClick={()=>onEdit(p)}
+                      style={{display:"grid",gridTemplateColumns:"80px 70px 1fr 100px 80px",padding:"9px 16px",borderBottom:i<upcomingPosts.length-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",transition:"background .1s",alignItems:"center"}}
+                      onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      <div style={{fontSize:11,fontWeight:700,color:C.textMid}}>{new Date(p.scheduledDate+"T12:00").toLocaleDateString("de-DE",{day:"numeric",month:"short"})}</div>
+                      <div style={{fontSize:11,color:C.textSoft}}>{p.scheduledTime||"–"}</div>
+                      <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {camp&&<span style={{fontSize:10,marginRight:5}}>{camp.emoji}</span>}
+                        <span style={{fontSize:11.5,fontWeight:600,color:C.text}}>{p.title||"Kein Titel"}</span>
+                      </div>
+                      <div style={{display:"flex",gap:3}}>{p.channels?.slice(0,4).map(c=><ChIco key={c} id={c} size={11}/>)}</div>
+                      <div style={{padding:"2px 7px",borderRadius:5,background:sc.c+"15",display:"inline-flex",width:"fit-content"}}>
+                        <span style={{fontSize:10,fontWeight:700,color:sc.c}}>{sc.l}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>{/* END LEFT */}
+
+        {/* ── RIGHT PANEL ── */}
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* Mini calendar */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <button onClick={()=>setCalM(d=>new Date(d.getFullYear(),d.getMonth()-1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,padding:"1px 3px",fontFamily:FONT,display:"flex"}}><ChevronLeft size={14}/></button>
+              <span style={{fontSize:12,fontWeight:700,color:C.textMid}}>{calLabel}</span>
+              <button onClick={()=>setCalM(d=>new Date(d.getFullYear(),d.getMonth()+1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,padding:"1px 3px",fontFamily:FONT,display:"flex"}}><ChevronRight size={14}/></button>
+            </div>
+            <div style={{padding:"6px 10px 2px",display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
+              {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>(
+                <div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,color:C.textMute,padding:"2px 0"}}>{d}</div>
+              ))}
+            </div>
+            <div style={{padding:"0 10px 10px",display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
+              {Array(firstDayMon).fill(null).map((_,i)=><div key={`e${i}`}/>)}
+              {Array(dIM).fill(null).map((_,i)=>{
+                const day=i+1;
+                const dStr=`${calY}-${String(calMon+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+                const isToday=dStr===todayStr;
+                const dayPosts=postsByDay[day];
+                return(
+                  <div key={day} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"2px 0"}}>
+                    <div style={{width:22,height:22,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
+                      background:isToday?C.accent:"transparent",
+                      color:isToday?"#fff":C.textMid,fontSize:10.5,fontWeight:isToday?700:400}}>{day}</div>
+                    {dayPosts&&<div style={{width:4,height:4,borderRadius:"50%",background:C.accent,marginTop:1}}/>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Today's Posts */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:7}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:C.accent}}/>
+              <span style={{fontSize:12.5,fontWeight:700,color:C.textMid}}>Heute</span>
+              <span style={{fontSize:11,color:C.textMute,marginLeft:"auto"}}>{today.toLocaleDateString("de-DE",{day:"numeric",month:"short"})}</span>
+            </div>
+            {todayPosts.length===0?(
+              <div style={{padding:"16px 14px",fontSize:11,color:C.textMute,textAlign:"center"}}>Keine Posts heute geplant</div>
+            ):todayPosts.map((p,i)=>{
+              const sc=SK[p.status]||{c:C.textMute};
+              return(
+                <div key={p.id} onClick={()=>onEdit(p)}
+                  style={{padding:"8px 14px",borderBottom:i<todayPosts.length-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",transition:"background .1s"}}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{width:3,height:3,borderRadius:"50%",background:sc.c,flexShrink:0}}/>
+                    <span style={{fontSize:12,fontWeight:700,color:C.text,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,paddingLeft:9}}>
+                    <span style={{fontSize:10,color:C.textMute}}>{p.scheduledTime||"–"}</span>
+                    {p.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={9}/>)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Kommende Posts */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:7}}>
+              <Clock size={13} color={C.textMute} strokeWidth={2}/>
+              <span style={{fontSize:12.5,fontWeight:700,color:C.textMid}}>Kommende Posts</span>
+            </div>
+            {upcomingPosts.slice(0,5).length===0?(
+              <div style={{padding:"16px 14px",fontSize:11,color:C.textMute,textAlign:"center"}}>Keine weiteren Posts</div>
+            ):upcomingPosts.slice(0,5).map((p,i)=>{
+              const sc=SK[p.status]||{c:C.textMute};
+              return(
+                <div key={p.id} onClick={()=>onEdit(p)}
+                  style={{padding:"8px 14px",borderBottom:i<Math.min(upcomingPosts.length,5)-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",display:"flex",gap:9,alignItems:"center",transition:"background .1s"}}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <div style={{width:28,textAlign:"center",flexShrink:0}}>
+                    <div style={{fontSize:13,fontWeight:800,color:C.text,lineHeight:1}}>{new Date(p.scheduledDate+"T12:00").getDate()}</div>
+                    <div style={{fontSize:8.5,color:C.textMute,fontWeight:600,textTransform:"uppercase"}}>{new Date(p.scheduledDate+"T12:00").toLocaleDateString("de-DE",{month:"short"})}</div>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:11.5,fontWeight:700,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:4,marginTop:2}}>
+                      {p.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={9}/>)}
+                      <span style={{fontSize:9.5,color:C.textMute}}>{p.scheduledTime||""}</span>
+                    </div>
+                  </div>
+                  <div style={{fontSize:9.5,fontWeight:700,color:sc.c,flexShrink:0}}>{sc.l}</div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>{/* END RIGHT */}
+      </div>{/* END GRID */}
+    </div>
+  );
+}
+
 // ── ADMIN PAGE ─────────────────────────────────────────────────────────────
 function AdminPage({me}){
   const [tab,setTab]=useState("profile");
@@ -4054,7 +4467,7 @@ export default function App(){
   const goFilter=(pg,f)=>{setNav(pg);setFilt(f);setChFilt("all");};
   const goChNav=(chId)=>{setNav("publisher");setFilt("all");setChFilt(chId);};
 
-  const TITLE={dashboard:"Dashboard",publisher:"Publisher",drafts:"Entwürfe",trash:"Papierkorb",stories:"Storys",campaigns:"Kampagnen",media:"Medienbibliothek",calendar:"Kalender",performance:"Performance",admin:"Admin"};
+  const TITLE={dashboard:"Dashboard",publisher:"Publisher",drafts:"Entwürfe",trash:"Papierkorb",stories:"Storys",campaigns:"Kampagnen",media:"Medienbibliothek",calendar:"Kalender",planner:"Planner",performance:"Performance",admin:"Admin"};
 
   return(
     <div style={{display:"flex",height:"100vh",fontFamily:FONT,background:C.bg,overflow:"hidden"}}>
@@ -4068,6 +4481,7 @@ export default function App(){
         {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts.filter(p=>!p.deleted)} onEditPost={setEdPost}/>}
         {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} onDelete={ids=>setItems(p=>p.filter(x=>!ids.includes(x.id)))}/>}
         {nav==="calendar"    &&<CalendarPage posts={posts} onEdit={setEdPost}/>}
+        {nav==="planner"     &&<PlannerPage posts={posts} campaigns={campaigns} items={items} onEdit={setEdPost}/>}
         {nav==="performance" &&<PerformancePage posts={posts}/>}
         {nav==="stories"     &&<StoriesPage stories={stories} items={items} onEdit={setEdStory} onNew={newStory} onDelete={delStory}/>}
         {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user}/>}
