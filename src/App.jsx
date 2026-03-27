@@ -2643,7 +2643,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         </div>
         <div style={{padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
           <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:20,fontWeight:800,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]} 👋</div>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:20,fontWeight:800,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]}</div>
           <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
             {pend.length>0&&<span onClick={()=>onFilterNav("publisher","pending")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.warningBg,color:C.warning,cursor:"pointer"}}>{pend.length} zur Freigabe</span>}
             {sched.length>0&&<span onClick={()=>onFilterNav("publisher","scheduled")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.accentLight,color:C.accent,cursor:"pointer"}}>{sched.length} geplant</span>}
