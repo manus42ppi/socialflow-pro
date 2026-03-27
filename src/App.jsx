@@ -162,7 +162,7 @@ function Btn({children,variant="primary",size="md",onClick,disabled=false,style=
 }
 
 function Card({children,style={},onClick}){return <div onClick={onClick} style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,boxShadow:"0 1px 6px rgba(13,21,38,.05)",...style}}>{children}</div>;}
-function FL({children}){return <label style={{fontSize:11.5,fontWeight:700,color:C.textMid,display:"block",marginBottom:5,letterSpacing:".02em",textTransform:"uppercase"}}>{children}</label>;}
+function FL({children}){return <label style={{fontSize:11.5,fontWeight:500,color:C.textMid,display:"block",marginBottom:5,letterSpacing:".02em",textTransform:"uppercase"}}>{children}</label>;}
 
 function TIn({label,icon:Icon,textarea=false,minH,...props}){
   const base={width:"100%",padding:Icon?"9px 12px 9px 34px":"9px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,outline:"none",color:C.text,background:C.surface,boxSizing:"border-box",fontFamily:FONT,...props.style};
@@ -202,8 +202,8 @@ function SCrd({icon:Icon,label,value,delta,color,onClick}){
           {delta>=0?<ArrowUp size={11} strokeWidth={2.5}/>:<ArrowDown size={11} strokeWidth={2.5}/>}{Math.abs(delta)}%
         </div>}
       </div>
-      <div style={{marginTop:14,fontFamily:FONT_DISPLAY,fontSize:26,fontWeight:700,color:C.text,letterSpacing:"-.03em"}}>{value}</div>
-      <div style={{fontSize:12,color:C.textSoft,marginTop:3,display:"flex",alignItems:"center"}}>
+      <div style={{marginTop:14,fontFamily:FONT_DISPLAY,fontSize:26,fontWeight:800,color:C.text,letterSpacing:"-.03em"}}>{value}</div>
+      <div style={{fontSize:10,fontWeight:400,textTransform:"uppercase",letterSpacing:".05em",color:C.textMute,marginTop:3,display:"flex",alignItems:"center"}}>
         {label}{onClick&&<span style={{marginLeft:"auto",fontSize:11,color:C.textMute,opacity:.6}}>→</span>}
       </div>
     </Card>
@@ -739,7 +739,7 @@ function AIPanel({content,chId,onApply,onApplyHT}){
                 </div>
               </div>
               <div>
-                <div style={{fontWeight:700,fontSize:13,color:C.text}}>Content Score</div>
+                <div style={{fontWeight:500,fontSize:12,color:C.text}}>Content Score</div>
                 <div style={{fontSize:11.5,color:C.textSoft}}>{scoreData.total>=70?"Sehr gut – bereit zum Posten":scoreData.total>=45?"Solide – kleine Optimierungen möglich":"Verbesserungspotential vorhanden"}</div>
               </div>
             </div>
@@ -1108,7 +1108,7 @@ function MediaPicker({items,posts=[],onSelect,onUpload,onUpdate,onClose}){
           {/* No keys hint */}
           {q.trim()&&!hasKeys&&(
             <div style={{textAlign:"center",padding:"28px 20px",border:`1.5px dashed ${C.border}`,borderRadius:10,color:C.textMute}}>
-              <div style={{fontWeight:700,fontSize:13,color:C.textMid,marginBottom:6}}>Bilddatenbanken verbinden</div>
+              <div style={{fontWeight:500,fontSize:12,color:C.textMid,marginBottom:6}}>Bilddatenbanken verbinden</div>
               <div style={{fontSize:12,marginBottom:12}}>Verbinde Unsplash, Pexels oder Pixabay um millionen lizenzfreie Bilder zu suchen.</div>
               <Btn size="sm" variant="secondary" onClick={()=>setShowKeys(true)}><Settings size={12} strokeWidth={2}/>API-Keys einrichten</Btn>
             </div>
@@ -1998,7 +1998,7 @@ function CampaignsPage({campaigns,setCampaigns,posts,onEditPost}){
         </div>
 
         {showNew&&<Card style={{padding:"14px 16px"}}>
-          <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Neue Kampagne</div>
+          <div style={{fontWeight:500,fontSize:12,marginBottom:10}}>Neue Kampagne</div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <div><FL>Emoji</FL>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
@@ -2360,7 +2360,7 @@ function MediaPage({items,posts=[],onUpload,onUpdate,onDelete}){
           {/* ── No-keys hint (only when searching and no keys configured) ── */}
           {searching&&!hasKeys&&(
             <div style={{textAlign:"center",padding:"28px 20px",border:`1.5px dashed ${C.border}`,borderRadius:10,color:C.textMute}}>
-              <div style={{fontWeight:700,fontSize:13,color:C.textMid,marginBottom:6}}>Bilddatenbanken verbinden</div>
+              <div style={{fontWeight:500,fontSize:12,color:C.textMid,marginBottom:6}}>Bilddatenbanken verbinden</div>
               <div style={{fontSize:12,marginBottom:12}}>Verbinde Unsplash, Pexels oder Pixabay um Millionen lizenzfreier Bilder zu finden.</div>
               <Btn size="sm" variant="secondary" onClick={()=>setShowKeys(true)}><Settings size={12} strokeWidth={2}/>API-Keys einrichten</Btn>
             </div>
@@ -2626,7 +2626,7 @@ function GlobalRightSidebar({posts,campaigns,onNav}){
       <div style={{display:"flex",flexDirection:"column",gap:2.5,marginRight:9,opacity:.3,flexShrink:0}}>
         {[0,1].map(i=><div key={i} style={{display:"flex",gap:2.5}}>{[0,1,2].map(j=><div key={j} style={{width:2,height:2,borderRadius:"50%",background:C.textMid}}/>)}</div>)}
       </div>
-      <span style={{fontSize:11,fontWeight:800,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",fontFamily:FONT,flex:1}}>{title}</span>
+      <span style={{fontSize:11,fontWeight:400,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",fontFamily:FONT,flex:1}}>{title}</span>
       {right}
     </div>
   );
@@ -3058,12 +3058,12 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         </div>
         <div style={{display:"flex"}}>
           <div style={{padding:"18px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
+            <div style={{fontSize:10,fontWeight:400,textTransform:"uppercase",letterSpacing:".06em",color:C.textMute,marginBottom:3}}>Posts gesamt</div>
             <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>{posts.length}</div>
-            <div style={{fontSize:11,color:C.textSoft,marginTop:2}}>Posts gesamt</div>
           </div>
           <div style={{padding:"18px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            <div style={{fontSize:10,fontWeight:400,textTransform:"uppercase",letterSpacing:".06em",color:C.textMute,marginBottom:3}}>Kampagnen</div>
             <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>{campaigns.length}</div>
-            <div style={{fontSize:11,color:C.textSoft,marginTop:2}}>Kampagnen</div>
           </div>
         </div>
       </div>
@@ -3080,9 +3080,9 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
           <div key={i} onClick={st.nav}
             style={{...card,padding:"12px 14px",cursor:"pointer",transition:"all .15s",borderTop:`3px solid ${st.color}`}}
             onMouseEnter={lift} onMouseLeave={drop}>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:24,fontWeight:800,color:C.text,lineHeight:1}}>{st.value}</div>
-            <div style={{fontSize:11.5,fontWeight:600,color:C.textMid,marginTop:4}}>{st.label}</div>
-            <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{st.sub}</div>
+            <div style={{fontSize:10,fontWeight:400,textTransform:"uppercase",letterSpacing:".07em",color:C.textMute,marginBottom:4}}>{st.label}</div>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:28,fontWeight:800,color:C.text,lineHeight:1}}>{st.value}</div>
+            <div style={{fontSize:10.5,fontWeight:300,color:C.textSoft,marginTop:3}}>{st.sub}</div>
           </div>
         ))}
       </div>
@@ -3105,7 +3105,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
               <qa.I size={15} color={qa.color} strokeWidth={1.8}/>
             </div>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:700,color:C.textMid,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qa.label}</div>
+              <div style={{fontSize:12,fontWeight:500,color:C.textMid,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qa.label}</div>
               <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{qa.sub}</div>
             </div>
           </div>
@@ -3119,7 +3119,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
       {/* ── POST GRID ── */}
       <div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <span style={{fontWeight:700,fontSize:13,color:C.textMid}}>Letzte Posts</span>
+          <span style={{fontWeight:500,fontSize:12,color:C.textMid}}>Letzte Posts</span>
           <button onClick={()=>onNav("publisher")} style={{fontSize:12,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle anzeigen →</button>
         </div>
         {recent.length===0?(
@@ -3365,7 +3365,7 @@ function PerformancePage({posts}){
         })}
       </div>
       {top.length>0&&<Card>
-        <div style={{padding:"13px 18px",borderBottom:`1px solid ${C.borderLight}`,fontWeight:800,fontSize:14}}>Top Posts</div>
+        <div style={{padding:"13px 18px",borderBottom:`1px solid ${C.borderLight}`,fontWeight:500,fontSize:12}}>Top Posts</div>
         {top.map((p,i)=><div key={p.id} style={{display:"flex",alignItems:"center",gap:14,padding:"10px 18px",borderBottom:i<top.length-1?`1px solid ${C.borderLight}`:"none"}}>
           <div style={{width:26,height:26,borderRadius:7,background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,color:i===0?C.accent:C.textMute}}>{i+1}</div>
           <div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div><div style={{display:"flex",gap:3,marginTop:2}}>{p.channels?.map(c=><ChIco key={c} id={c} size={11}/>)}</div></div>
@@ -4286,7 +4286,7 @@ function AdminPage({me,onUpdateMe}){
             const hasKey=!!apiKeys[s.id];
             return <div key={s.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.borderLight}`}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:s.dot,flexShrink:0}}/>
-              <div style={{width:72,fontWeight:700,fontSize:13,color:C.text}}>{s.label}</div>
+              <div style={{width:72,fontWeight:500,fontSize:13,color:C.text}}>{s.label}</div>
               <div style={{position:"relative",flex:1}}>
                 <input type="password" value={apiKeys[s.id]} onChange={e=>saveApiKey(s.id,e.target.value)} placeholder={`${s.desc}…`}
                   style={{width:"100%",padding:"7px 34px 7px 10px",borderRadius:7,border:`1.5px solid ${hasKey?C.success:C.border}`,fontSize:12,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
@@ -4303,7 +4303,7 @@ function AdminPage({me,onUpdateMe}){
           <SH label="KI-Dienste"/>
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0"}}>
             <Sparkles size={14} color={C.accent} strokeWidth={2} style={{flexShrink:0}}/>
-            <div style={{width:72,fontWeight:700,fontSize:13,color:C.text}}>Anthropic</div>
+            <div style={{width:72,fontWeight:500,fontSize:13,color:C.text}}>Anthropic</div>
             <div style={{position:"relative",flex:1}}>
               <input type="password" value={apiKeys.anthropic} onChange={e=>saveApiKey("anthropic",e.target.value)} placeholder="sk-ant-…"
                 style={{width:"100%",padding:"7px 34px 7px 10px",borderRadius:7,border:`1.5px solid ${apiKeys.anthropic?C.success:C.border}`,fontSize:12,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
@@ -4324,7 +4324,7 @@ function AdminPage({me,onUpdateMe}){
       {/* ── TEAM ── */}
       {tab==="team"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
         <Card style={{padding:"16px 20px"}}>
-          <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Mitglied einladen</div>
+          <div style={{fontWeight:500,fontSize:12,marginBottom:10}}>Mitglied einladen</div>
           <div style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
             <div style={{flex:1,minWidth:200}}><TIn label="E-Mail" icon={Mail} placeholder="kollege@firma.com" value={invE} onChange={e=>setInvE(e.target.value)}/></div>
             <div><FL>Rolle</FL><select value={invR} onChange={e=>setInvR(e.target.value)} style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,outline:"none"}}>
@@ -4406,7 +4406,7 @@ function AdminPage({me,onUpdateMe}){
           </select></div>
         </Card>
         <Card style={{padding:"14px 18px"}}>
-          <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>E-Mail Benachrichtigungen</div>
+          <div style={{fontWeight:500,fontSize:12,marginBottom:12}}>E-Mail Benachrichtigungen</div>
           {[["onSched","Post geplant"],["onAppr","Freigabe angefordert"],["onPub","Post veröffentlicht"],["onErr","Fehler beim Posten"]].map(([key,label])=>(
             <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.borderLight}`}}>
               <span style={{fontSize:13,color:C.textMid}}>{label}</span>
