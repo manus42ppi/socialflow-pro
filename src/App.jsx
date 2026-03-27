@@ -2512,7 +2512,7 @@ function MiniGantt({posts,campaigns,onNav}){
               {row.type==="campaign"
                 ?<span style={{fontSize:12}}>{row.emoji}</span>
                 :<div style={{width:7,height:7,borderRadius:"50%",background:row.color,flexShrink:0}}/>}
-              <span style={{fontSize:11,fontWeight:600,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:FONT,flex:1}}>{row.label}</span>
+              <span style={{fontSize:11,fontWeight:400,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:FONT,flex:1}}>{row.label}</span>
               <span style={{fontSize:9.5,color:C.textMute,fontFamily:FONT,flexShrink:0}}>{row.posts.length}</span>
             </div>
             {/* Bar area */}
@@ -2683,8 +2683,8 @@ function GlobalRightSidebar({posts,campaigns,onNav}){
                 onMouseLeave={e=>e.currentTarget.style.background=C.surface}>
                 <div style={{width:24,height:24,borderRadius:6,background:a.color+"16",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11}}>{a.icon}</div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:600,fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
-                  <div style={{fontSize:10,color:a.color,fontWeight:600,marginTop:1}}>{a.verb}</div>
+                  <div style={{fontWeight:400,fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
+                  <div style={{fontSize:10,color:a.color,fontWeight:400,marginTop:1}}>{a.verb}</div>
                 </div>
                 {p.scheduledDate&&<span style={{fontSize:9,color:C.textMute,flexShrink:0,paddingTop:2}}>{p.scheduledDate.slice(5)}</span>}
               </div>
@@ -2705,7 +2705,7 @@ function GlobalRightSidebar({posts,campaigns,onNav}){
             <div style={{width:52,height:3,background:C.borderLight,borderRadius:99,overflow:"hidden"}}>
               <div style={{height:"100%",width:`${(n/total)*100}%`,background:C.accent,borderRadius:99}}/>
             </div>
-            <span style={{fontSize:11,fontWeight:700,color:C.textSoft,width:14,textAlign:"right"}}>{n}</span>
+            <span style={{fontSize:11,fontWeight:400,color:C.textSoft,width:14,textAlign:"right"}}>{n}</span>
           </div>;
         })}
       </div>
@@ -2713,7 +2713,7 @@ function GlobalRightSidebar({posts,campaigns,onNav}){
     campaigns:(
       <div key="campaigns">
         <WHeader title="Kampagnen" right={
-          <button onClick={()=>onNav("campaigns")} style={{fontSize:10,color:C.accent,fontWeight:700,background:"none",border:"none",cursor:"pointer",fontFamily:FONT,padding:0}}>Alle →</button>
+          <button onClick={()=>onNav("campaigns")} style={{fontSize:10,color:C.accent,fontWeight:400,background:"none",border:"none",cursor:"pointer",fontFamily:FONT,padding:0}}>Alle →</button>
         }/>
         {campaigns.length===0
           ?<div style={{padding:"16px 14px",textAlign:"center",color:C.textMute,fontSize:11,background:C.surface}}>Keine Kampagnen</div>
@@ -2725,7 +2725,7 @@ function GlobalRightSidebar({posts,campaigns,onNav}){
               onMouseLeave={e=>e.currentTarget.style.background=C.surface}>
               <span style={{fontSize:14,flexShrink:0}}>{c.emoji}</span>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:700,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                <div style={{fontSize:11,fontWeight:400,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
                 <div style={{fontSize:9.5,color:C.textMute,marginTop:1}}>{n} Post{n!==1?"s":""}</div>
               </div>
               <div style={{width:6,height:6,borderRadius:"50%",background:c.color,flexShrink:0}}/>
