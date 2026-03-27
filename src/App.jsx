@@ -401,10 +401,22 @@ const NAV_GROUPS=[
     {id:"drafts",     label:"Entwürfe",          I:FileText},
     {id:"trash",      label:"Papierkorb",        I:Trash2},
   ]},
+  {label:"STORYS",items:[
+    {id:"stories",    label:"Alle Storys",       I:BookOpen},
+  ]},
   {label:"ANALYSE",items:[
     {id:"performance",label:"Performance",       I:BarChart2},
     {id:"campaigns",  label:"Kampagnen",         I:Flag},
   ]},
+];
+
+// Demo story
+const DEMO_STORIES=[
+  {id:"story-1",title:"Wie Social Media die Kommunikation verändert",subtitle:"Eine Analyse der digitalen Transformation",coverMediaId:null,category:"Tech",status:"draft",sections:[
+    {id:"sec-1",heading:"Die neue Kommunikationslandschaft",content:"Social Media hat in den letzten zehn Jahren die Kommunikation grundlegend verändert. Plattformen wie Instagram, Twitter und LinkedIn sind längst keine Spielwiesen mehr, sondern ernsthafte Kommunikationskanäle für Unternehmen und Privatpersonen gleichermaßen."},
+    {id:"sec-2",heading:"Chancen und Risiken",content:"Mit der wachsenden Bedeutung sozialer Netzwerke entstehen sowohl neue Möglichkeiten als auch Herausforderungen. Content Creator und Marken müssen authentisch, konsistent und strategisch vorgehen, um ihre Zielgruppen zu erreichen und echte Bindungen aufzubauen."},
+    {id:"sec-3",heading:"Ausblick",content:"Die Zukunft gehört denjenigen, die Inhalte plattformspezifisch anpassen und gleichzeitig ihre authentische Stimme bewahren. Tools wie SocialFlow Pro helfen dabei, diesen Spagat erfolgreich zu meistern."},
+  ],createdAt:"2024-03-15",tags:"social media, kommunikation, digital"},
 ];
 // flat list kept for any legacy references
 const NAV=NAV_GROUPS.flatMap(g=>g.items).concat([{id:"admin",label:"Admin",I:Settings,adm:true}]);
@@ -479,7 +491,7 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
             }
             {grp.items.map(({id,label,I})=>(
               <div key={id}>
-                <BtnSB id={id} label={label} I={I} badge={id==="publisher"?pend:id==="drafts"?draftsCount:id==="trash"?trashCount:0}/>
+                <BtnSB id={id} label={label} I={I} badge={id==="publisher"?pend:id==="drafts"?draftsCount:id==="trash"?trashCount:0} />
                 {/* Channel quick-links under Publisher */}
                 {id==="publisher"&&open&&chCounts.length>0&&(
                   <div style={{marginLeft:22,marginBottom:2,marginTop:1}}>
@@ -3631,6 +3643,313 @@ function AdminPage({me}){
     </div>
   );
 }
+// ── STORY EDITOR MODAL ─────────────────────────────────────────────────────
+function StoryEditorModal({story,items,onSave,onClose,onUpload,onConvertSection}){
+  const CATS=["","Politik","Wirtschaft","Tech","Sport","Lifestyle","Kultur","Gesundheit","Reise","Bildung","Andere"];
+  const catColors={"Politik":"#3B82F6","Wirtschaft":"#10B981","Tech":"#8B5CF6","Sport":"#F59E0B","Lifestyle":"#EC4899","Kultur":"#6366F1","Gesundheit":"#EF4444","Reise":"#14B8A6","Bildung":"#F97316","Andere":"#6B7280"};
+  const [form,setForm]=useState({...story,sections:story.sections?.map(s=>({...s}))||[]});
+  const [picker,setPicker]=useState(false);
+  const [autoSaved,setAutoSaved]=useState(null);
+  const asRef=useRef();
+  const cover=items.find(m=>m.id===form.coverMediaId);
+
+  // Stats
+  const allText=(form.sections||[]).map(s=>`${s.heading} ${s.content}`).join(" ");
+  const wordCount=(allText).trim().split(/\s+/).filter(Boolean).length;
+  const charCount=allText.length;
+
+  // Auto-save
+  useEffect(()=>{
+    clearTimeout(asRef.current);
+    if(!form.title)return;
+    asRef.current=setTimeout(()=>{
+      onSave({...form,id:form.id||uid()});
+      setAutoSaved(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}));
+    },30000);
+    return()=>clearTimeout(asRef.current);
+  },[form.title,form.sections]);
+
+  const addSection=()=>setForm(f=>({...f,sections:[...f.sections,{id:uid(),heading:"",content:""}]}));
+  const updSec=(id,key,val)=>setForm(f=>({...f,sections:f.sections.map(s=>s.id===id?{...s,[key]:val}:s)}));
+  const delSec=id=>setForm(f=>({...f,sections:f.sections.filter(s=>s.id!==id)}));
+  const moveSec=(id,dir)=>setForm(f=>{
+    const arr=[...f.sections];
+    const i=arr.findIndex(s=>s.id===id);
+    const j=i+dir;
+    if(j<0||j>=arr.length)return f;
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+    return{...f,sections:arr};
+  });
+
+  const handleSave=(status)=>onSave({...form,id:form.id||uid(),status});
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"stretch",justifyContent:"center",padding:0}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{background:C.surface,width:"100%",maxWidth:1100,margin:"16px auto",borderRadius:16,display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,.22)",border:`1px solid ${C.border}`}}>
+
+        {/* ── Top bar ── */}
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 20px",borderBottom:`1px solid ${C.borderLight}`,flexShrink:0,background:C.bg}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+            <BookOpen size={14} color={C.textMute} strokeWidth={2}/>
+            <span style={{fontSize:10,color:C.textMute,fontWeight:600,textTransform:"uppercase",letterSpacing:".05em"}}>
+              {form.id?"Story bearbeiten":"Story erstellen"}
+            </span>
+            {form.category&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:(catColors[form.category]||"#6B7280")+"18",color:catColors[form.category]||"#6B7280",textTransform:"uppercase",letterSpacing:".04em"}}>{form.category}</span>}
+            {autoSaved&&<span style={{fontSize:10,color:C.textMute}}>· AUTO-SAVE {autoSaved}</span>}
+          </div>
+          <div style={{display:"flex",gap:5,alignItems:"center",background:C.borderLight,border:`1px solid ${C.border}`,borderRadius:7,padding:"4px 10px",fontSize:10,color:C.textMute}}>
+            <span style={{fontWeight:700}}>{(form.sections||[]).length}</span> Abschnitte
+            <span style={{color:C.border}}>·</span>
+            <span style={{fontWeight:700}}>{wordCount}</span> Wörter
+            <span style={{color:C.border}}>·</span>
+            <span style={{fontWeight:700}}>{charCount}</span> Zeichen
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <Btn variant="secondary" onClick={()=>handleSave("draft")} style={{fontSize:12}}><FileText size={12} strokeWidth={2}/>Entwurf</Btn>
+            <Btn onClick={()=>handleSave("published")} style={{fontSize:12}}><Check size={12} strokeWidth={2.5}/>Veröffentlichen</Btn>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:4,marginLeft:4}}><X size={19} strokeWidth={2}/></button>
+        </div>
+
+        {/* ── Category row ── */}
+        <div style={{padding:"6px 20px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",gap:4,alignItems:"center",overflowX:"auto",flexShrink:0}}>
+          <span style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".05em",flexShrink:0,marginRight:2}}>KATEGORIE</span>
+          {CATS.filter(c=>c).map(cat=>(
+            <button key={cat} onClick={()=>setForm(f=>({...f,category:f.category===cat?"":cat}))}
+              style={{padding:"3px 10px",borderRadius:20,border:`1.5px solid ${form.category===cat?(catColors[cat]||"#6B7280"):C.border}`,background:form.category===cat?(catColors[cat]||"#6B7280")+"14":"transparent",color:form.category===cat?(catColors[cat]||"#6B7280"):C.textSoft,fontSize:10.5,fontWeight:700,cursor:"pointer",fontFamily:FONT,flexShrink:0,transition:"all .12s"}}>
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Main area ── */}
+        <div style={{flex:1,overflow:"hidden",display:"flex"}}>
+
+          {/* Left: content editor */}
+          <div style={{flex:1,overflow:"auto",padding:"24px 32px",display:"flex",flexDirection:"column",gap:0}}>
+            {/* Title */}
+            <input value={form.title||""} onChange={e=>setForm(f=>({...f,title:e.target.value}))}
+              placeholder="Story-Titel…"
+              style={{width:"100%",border:"none",outline:"none",fontSize:28,fontWeight:800,fontFamily:FONT_DISPLAY,color:C.text,background:"transparent",letterSpacing:"-.02em",lineHeight:1.2,marginBottom:8,padding:0}}/>
+            {/* Subtitle */}
+            <input value={form.subtitle||""} onChange={e=>setForm(f=>({...f,subtitle:e.target.value}))}
+              placeholder="Untertitel / Zusammenfassung…"
+              style={{width:"100%",border:"none",outline:"none",fontSize:15,fontFamily:FONT,color:C.textSoft,background:"transparent",lineHeight:1.4,marginBottom:24,padding:0,fontWeight:400}}/>
+
+            {/* Sections */}
+            {(form.sections||[]).length===0&&(
+              <div style={{textAlign:"center",padding:"40px 20px",border:`2px dashed ${C.border}`,borderRadius:12,color:C.textMute}}>
+                <FileText size={32} strokeWidth={1} style={{margin:"0 auto 10px",display:"block",opacity:.35}}/>
+                <div style={{fontSize:13,fontWeight:600,color:C.textMid,marginBottom:4}}>Noch keine Abschnitte</div>
+                <div style={{fontSize:12,marginBottom:12}}>Füge Abschnitte hinzu um deine Story zu strukturieren</div>
+                <Btn onClick={addSection}><Plus size={13} strokeWidth={2.5}/>Abschnitt hinzufügen</Btn>
+              </div>
+            )}
+            {(form.sections||[]).map((sec,i)=>(
+              <div key={sec.id} style={{marginBottom:20,borderLeft:`3px solid ${C.border}`,paddingLeft:16,transition:"border-color .15s"}}
+                onFocus={e=>e.currentTarget.style.borderColor=C.accent}
+                onBlur={e=>e.currentTarget.style.borderColor=C.border}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                  <span style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",flexShrink:0}}>Abschnitt {i+1}</span>
+                  <div style={{flex:1}}/>
+                  {/* Move up/down */}
+                  <button onClick={()=>moveSec(sec.id,-1)} disabled={i===0} style={{background:"none",border:"none",color:i===0?C.borderLight:C.textSoft,cursor:i===0?"default":"pointer",padding:"2px 4px",fontSize:12}}>↑</button>
+                  <button onClick={()=>moveSec(sec.id,1)} disabled={i===(form.sections.length-1)} style={{background:"none",border:"none",color:i===(form.sections.length-1)?C.borderLight:C.textSoft,cursor:i===(form.sections.length-1)?"default":"pointer",padding:"2px 4px",fontSize:12}}>↓</button>
+                  {/* Convert to post */}
+                  <button onClick={()=>onConvertSection(sec,form)} title="Zu Post konvertieren"
+                    style={{background:C.accentLight,border:"none",borderRadius:6,color:C.accent,fontSize:10,fontWeight:700,padding:"3px 8px",cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:3}}>
+                    <Send size={9} strokeWidth={2.5}/>Post
+                  </button>
+                  {/* Delete */}
+                  <button onClick={()=>delSec(sec.id)} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:"2px 4px"}}><X size={13} strokeWidth={2}/></button>
+                </div>
+                {/* Heading */}
+                <input value={sec.heading||""} onChange={e=>updSec(sec.id,"heading",e.target.value)}
+                  placeholder="Überschrift (optional)…"
+                  style={{width:"100%",border:"none",outline:"none",fontSize:16,fontWeight:700,fontFamily:FONT,color:C.text,background:"transparent",padding:0,marginBottom:6,letterSpacing:"-.01em"}}/>
+                {/* Content */}
+                <textarea value={sec.content||""} onChange={e=>updSec(sec.id,"content",e.target.value)}
+                  placeholder="Text…"
+                  style={{width:"100%",minHeight:80,border:"none",outline:"none",fontSize:13.5,fontFamily:FONT,color:C.textMid,background:"transparent",padding:0,resize:"none",lineHeight:1.7,boxSizing:"border-box"}}
+                  onInput={e=>{e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px";}}/>
+              </div>
+            ))}
+            {(form.sections||[]).length>0&&(
+              <button onClick={addSection} style={{display:"flex",alignItems:"center",gap:7,border:`1.5px dashed ${C.border}`,borderRadius:10,padding:"10px 16px",background:"transparent",color:C.textSoft,cursor:"pointer",fontFamily:FONT,fontSize:13,fontWeight:600,marginTop:4,transition:"all .15s",width:"100%",justifyContent:"center"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.color=C.accent;}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textSoft;}}>
+                <Plus size={14} strokeWidth={2.5}/>Abschnitt hinzufügen
+              </button>
+            )}
+          </div>
+
+          {/* Right: cover + meta */}
+          <div style={{width:260,flexShrink:0,borderLeft:`1px solid ${C.borderLight}`,padding:"20px 16px",overflow:"auto",display:"flex",flexDirection:"column",gap:14,background:C.bg}}>
+            {/* Cover image */}
+            <div>
+              <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",marginBottom:6}}>Cover-Bild</div>
+              {cover?(
+                <div style={{position:"relative",borderRadius:10,overflow:"hidden"}}>
+                  <img src={cover.url} alt="" style={{width:"100%",height:130,objectFit:"cover",display:"block"}}/>
+                  <div style={{position:"absolute",top:6,right:6,display:"flex",gap:4}}>
+                    <button onClick={()=>setPicker(true)} style={{background:"rgba(255,255,255,.9)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",gap:3}}><Edit2 size={9} strokeWidth={2}/>Ändern</button>
+                    <button onClick={()=>setForm(f=>({...f,coverMediaId:null}))} style={{background:"rgba(255,255,255,.9)",border:"none",borderRadius:6,padding:"4px",cursor:"pointer"}}><X size={11} strokeWidth={2}/></button>
+                  </div>
+                </div>
+              ):(
+                <button onClick={()=>setPicker(true)} style={{width:"100%",height:110,border:`1.5px dashed ${C.border}`,borderRadius:10,background:"transparent",color:C.textSoft,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,fontFamily:FONT,transition:"all .15s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.color=C.accent;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textSoft;}}>
+                  <Image size={20} strokeWidth={1.5}/>
+                  <span style={{fontSize:11,fontWeight:600}}>Cover auswählen</span>
+                </button>
+              )}
+            </div>
+            {/* Tags */}
+            <div>
+              <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",marginBottom:5}}>Tags</div>
+              <input value={form.tags||""} onChange={e=>setForm(f=>({...f,tags:e.target.value}))}
+                placeholder="tag1, tag2…"
+                style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
+            </div>
+            {/* Status */}
+            <div>
+              <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",marginBottom:5}}>Status</div>
+              <div style={{display:"flex",gap:5}}>
+                {[["draft","Entwurf",C.warning],["published","Veröffentlicht",C.success]].map(([v,l,c])=>(
+                  <button key={v} onClick={()=>setForm(f=>({...f,status:v}))}
+                    style={{flex:1,padding:"6px 0",borderRadius:7,border:`1.5px solid ${form.status===v?c:C.border}`,background:form.status===v?c+"14":"transparent",color:form.status===v?c:C.textSoft,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:FONT}}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Created */}
+            <div style={{fontSize:11,color:C.textMute}}>Erstellt: {form.createdAt||new Date().toLocaleDateString("de-DE")}</div>
+            {/* Alle Sektionen zu Posts */}
+            {(form.sections||[]).length>0&&(
+              <div style={{marginTop:"auto",paddingTop:10,borderTop:`1px solid ${C.borderLight}`}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>Quick-Aktionen</div>
+                <button onClick={()=>(form.sections||[]).forEach(sec=>onConvertSection(sec,form))}
+                  style={{width:"100%",padding:"9px 12px",borderRadius:9,border:`1.5px solid ${C.accent}`,background:C.accentLight,color:C.accent,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                  <Send size={12} strokeWidth={2}/>Alle Abschnitte → Posts
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {picker&&<MediaPicker items={items} posts={[]} onSelect={item=>{setForm(f=>({...f,coverMediaId:item.id}));setPicker(false);}} onUpload={onUpload} onUpdate={()=>{}} onClose={()=>setPicker(false)}/>}
+    </div>
+  );
+}
+
+// ── STORIES PAGE ────────────────────────────────────────────────────────────
+function StoriesPage({stories,items,onEdit,onNew,onDelete}){
+  const [filt,setFilt]=useState("all");
+  const [q,setQ]=useState("");
+  const filtered=stories.filter(s=>{
+    const fOk=filt==="all"||s.status===filt;
+    const qOk=!q.trim()||(s.title||"").toLowerCase().includes(q.toLowerCase())||(s.subtitle||"").toLowerCase().includes(q.toLowerCase());
+    return fOk&&qOk;
+  });
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
+  const catColors={"Politik":"#3B82F6","Wirtschaft":"#10B981","Tech":"#8B5CF6","Sport":"#F59E0B","Lifestyle":"#EC4899","Kultur":"#6366F1","Gesundheit":"#EF4444","Reise":"#14B8A6","Bildung":"#F97316","Andere":"#6B7280"};
+
+  const StoryCard=({story})=>{
+    const cover=items.find(m=>m.id===story.coverMediaId);
+    const wc=(story.sections||[]).map(s=>`${s.heading} ${s.content}`).join(" ").trim().split(/\s+/).filter(Boolean).length;
+    const sc={draft:{c:C.warning,l:"Entwurf"},published:{c:C.success,l:"Veröffentlicht"}}[story.status]||{c:C.textSoft,l:"–"};
+    return(
+      <div style={{...card,overflow:"hidden",cursor:"pointer",transition:"all .18s",breakInside:"avoid",marginBottom:10}}
+        onClick={()=>onEdit(story)}
+        onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.1)";}}
+        onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.04)";}}>
+        {cover?(
+          <>
+            <div style={{position:"relative"}}>
+              <img src={cover.url} alt={story.title||""} style={{width:"100%",height:160,objectFit:"cover",display:"block"}} loading="lazy"/>
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,transparent 40%,rgba(0,0,0,.65) 100%)"}}/>
+              {story.category&&<div style={{position:"absolute",top:8,left:8,fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:20,background:(catColors[story.category]||"#6B7280"),color:"#fff"}}>{story.category}</div>}
+              <div style={{position:"absolute",top:8,right:8,fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:5,background:"rgba(0,0,0,.55)",color:sc.c}}>{sc.l}</div>
+              <div style={{position:"absolute",bottom:8,left:10,right:10}}>
+                <div style={{fontWeight:800,fontSize:13,color:"#fff",lineHeight:1.3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{story.title||"Kein Titel"}</div>
+              </div>
+            </div>
+            <div style={{padding:"10px 12px"}}>
+              {story.subtitle&&<div style={{fontSize:11.5,color:C.textSoft,marginBottom:6,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{story.subtitle}</div>}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",gap:8,fontSize:10,color:C.textMute}}>
+                  <span>{(story.sections||[]).length} Abschnitte</span>
+                  <span>·</span>
+                  <span>{wc} Wörter</span>
+                </div>
+                <div style={{display:"flex",gap:5}}>
+                  <button onClick={e=>{e.stopPropagation();if(window.confirm("Story löschen?"))onDelete(story.id);}} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:"2px 4px"}}><Trash2 size={12} strokeWidth={2}/></button>
+                </div>
+              </div>
+            </div>
+          </>
+        ):(
+          <div style={{padding:"16px 16px 12px",background:`linear-gradient(135deg,${C.surface},${story.category?catColors[story.category]+"08":C.bg})`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <div style={{display:"flex",gap:5}}>
+                {story.category&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,background:(catColors[story.category]||"#6B7280")+"15",color:catColors[story.category]||"#6B7280"}}>{story.category}</span>}
+                <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:5,background:sc.c+"14",color:sc.c}}>{sc.l}</span>
+              </div>
+              <button onClick={e=>{e.stopPropagation();if(window.confirm("Story löschen?"))onDelete(story.id);}} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:"1px 3px"}}><Trash2 size={12} strokeWidth={2}/></button>
+            </div>
+            <div style={{fontWeight:800,fontSize:14,color:C.text,lineHeight:1.3,marginBottom:5,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical"}}>{story.title||"Kein Titel"}</div>
+            {story.subtitle&&<div style={{fontSize:11.5,color:C.textSoft,lineHeight:1.4,marginBottom:8,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{story.subtitle}</div>}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,borderTop:`1px solid ${C.borderLight}`}}>
+              <div style={{display:"flex",gap:8,fontSize:10,color:C.textMute}}>
+                <span>{(story.sections||[]).length} Abschnitte</span>
+                <span>·</span><span>{wc} Wörter</span>
+              </div>
+              <span style={{fontSize:10,color:C.textMute}}>{story.createdAt||""}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
+      {/* Toolbar */}
+      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{position:"relative",flex:1,minWidth:200}}>
+          <Search size={12} color={C.textMute} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Storys suchen…"
+            style={{width:"100%",padding:"7px 12px 7px 28px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
+        </div>
+        <div style={{display:"flex",gap:2,background:C.borderLight,borderRadius:8,padding:3}}>
+          {[["all","Alle"],["draft","Entwürfe"],["published","Veröffentlicht"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setFilt(v)} style={{padding:"5px 12px",borderRadius:6,border:"none",background:filt===v?C.surface:"transparent",color:filt===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>{l}</button>
+          ))}
+        </div>
+        <Btn onClick={onNew}><Plus size={13} strokeWidth={2.5}/>Neue Story</Btn>
+      </div>
+
+      {/* Grid */}
+      {filtered.length===0?(
+        <div style={{textAlign:"center",padding:"72px 20px",background:C.surface,borderRadius:12,border:`1px solid ${C.border}`,color:C.textMute}}>
+          <BookOpen size={48} strokeWidth={1} style={{margin:"0 auto 14px",display:"block",opacity:.3}}/>
+          <div style={{fontWeight:700,fontSize:15,color:C.textMid,marginBottom:4}}>
+            {q?"Keine Treffer":"Noch keine Storys"}
+          </div>
+          <div style={{fontSize:13,marginBottom:16}}>{q?`Keine Storys für „${q}"`:"Erstelle Artikel und wandle sie in Social-Media-Posts um"}</div>
+          {!q&&<Btn onClick={onNew}><Plus size={13} strokeWidth={2.5}/>Erste Story erstellen</Btn>}
+        </div>
+      ):(
+        <div style={{columns:"3 240px",columnGap:10}}>
+          {filtered.map(s=><StoryCard key={s.id} story={s}/>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── APP ROOT ───────────────────────────────────────────────────────────────
 export default function App(){
   const [user,setUser]=useState(null);
@@ -3641,10 +3960,13 @@ export default function App(){
   const [edPost,setEdPost]=useState(null);
   const [schPost,setSchPost]=useState(null);
   const [filt,setFilt]=useState("all");
-  const [chFilt,setChFilt]=useState("all"); // channel filter lifted to top level for sidebar nav
+  const [chFilt,setChFilt]=useState("all");
+  const [stories,setStories]=useState(DEMO_STORIES);
+  const [edStory,setEdStory]=useState(null);
   const mediaLoaded=useRef(false);
   const postsLoaded=useRef(false);
   const campsLoaded=useRef(false);
+  const storiesLoaded=useRef(false);
 
   // Posts aus KV laden (beim Start)
   useEffect(()=>{
@@ -3673,6 +3995,20 @@ export default function App(){
     if(!campsLoaded.current)return;
     storeSet("campaigns",campaigns);
   },[campaigns]);
+
+  // Storys aus KV laden
+  useEffect(()=>{
+    storeGet("stories").then(data=>{
+      storiesLoaded.current=true;
+      if(data?.length)setStories(data);
+    });
+  },[]);
+
+  // Storys in KV speichern
+  useEffect(()=>{
+    if(!storiesLoaded.current)return;
+    storeSet("stories",stories);
+  },[stories]);
 
   // Medien aus KV laden (beim Start)
   useEffect(()=>{
@@ -3710,11 +4046,15 @@ export default function App(){
   const chSt=(id,st)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,status:st}:p));
   const chCamp=(id,cid)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,campaignId:cid}:p));
   const newPost=()=>setEdPost({id:null,title:"",content:"",channels:[],scheduledDate:"",scheduledTime:"",status:"draft",mediaId:null,campaignId:null});
+  const saveStory=s=>{setStories(prev=>prev.find(x=>x.id===s.id)?prev.map(x=>x.id===s.id?s:x):[...prev,s]);setEdStory(null);};
+  const delStory=id=>setStories(prev=>prev.filter(s=>s.id!==id));
+  const newStory=()=>setEdStory({id:null,title:"",subtitle:"",coverMediaId:null,category:"",sections:[],status:"draft",createdAt:new Date().toLocaleDateString("de-DE"),tags:""});
+  const convertSection=(sec,story)=>{setEdPost({id:null,title:`${story.title}${sec.heading?` – ${sec.heading}`:""}`,content:sec.content||"",channels:[],scheduledDate:"",scheduledTime:"",status:"draft",mediaId:story.coverMediaId||null,campaignId:null});};
   const goNav=n=>{setNav(n);setFilt("all");setChFilt("all");};
   const goFilter=(pg,f)=>{setNav(pg);setFilt(f);setChFilt("all");};
   const goChNav=(chId)=>{setNav("publisher");setFilt("all");setChFilt(chId);};
 
-  const TITLE={dashboard:"Dashboard",publisher:"Publisher",drafts:"Entwürfe",trash:"Papierkorb",campaigns:"Kampagnen",media:"Medienbibliothek",calendar:"Kalender",performance:"Performance",admin:"Admin"};
+  const TITLE={dashboard:"Dashboard",publisher:"Publisher",drafts:"Entwürfe",trash:"Papierkorb",stories:"Storys",campaigns:"Kampagnen",media:"Medienbibliothek",calendar:"Kalender",performance:"Performance",admin:"Admin"};
 
   return(
     <div style={{display:"flex",height:"100vh",fontFamily:FONT,background:C.bg,overflow:"hidden"}}>
@@ -3729,9 +4069,11 @@ export default function App(){
         {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} onDelete={ids=>setItems(p=>p.filter(x=>!ids.includes(x.id)))}/>}
         {nav==="calendar"    &&<CalendarPage posts={posts} onEdit={setEdPost}/>}
         {nav==="performance" &&<PerformancePage posts={posts}/>}
+        {nav==="stories"     &&<StoriesPage stories={stories} items={items} onEdit={setEdStory} onNew={newStory} onDelete={delStory}/>}
         {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user}/>}
       </div>
       {edPost&&<Editor post={edPost} items={items} posts={posts} campaigns={campaigns} onSave={save} onClose={()=>setEdPost(null)} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} user={user}/>}
+      {edStory&&<StoryEditorModal story={edStory} items={items} onSave={saveStory} onClose={()=>setEdStory(null)} onUpload={i=>setItems(p=>[...p,i])} onConvertSection={convertSection}/>}
       {schPost&&<SchedModal post={schPost} onSave={saveSch} onClose={()=>setSchPost(null)}/>}
     </div>
   );
