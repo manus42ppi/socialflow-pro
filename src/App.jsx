@@ -2944,20 +2944,48 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
     </div>{/* END LEFT */}
 
     {/* ══ RIGHT SIDEBAR: collapsible, full height ══ */}
-    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${C.borderLight}`,overflow:"hidden",background:C.bg,transition:"all .2s"}}>
+    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${C.borderLight}`,overflow:"hidden",background:C.bg,transition:"grid-template-columns .2s",minHeight:0,height:"100%"}}>
 
-      {/* Toggle button */}
-      <div style={{padding:"12px 0",display:"flex",justifyContent:"center",borderBottom:`1px solid ${C.borderLight}`,flexShrink:0}}>
-        <button onClick={toggleRight} title={sbRight?"Sidebar einklappen":"Sidebar ausklappen"}
-          style={{width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid,transition:"all .15s",fontFamily:FONT}}
-          onMouseEnter={e=>{e.currentTarget.style.background=C.accentLight;e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.color=C.accent;}}
-          onMouseLeave={e=>{e.currentTarget.style.background=C.surface;e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMid;}}>
-          {sbRight?<ChevronRight size={13} strokeWidth={2.5}/>:<ChevronLeft size={13} strokeWidth={2.5}/>}
-        </button>
-      </div>
+      {/* ── Designed toggle handle ── */}
+      {sbRight?(
+        /* OPEN: header bar with label + collapse tab */
+        <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 12px 0 14px",height:44,borderBottom:`1px solid ${C.borderLight}`,background:C.surface}}>
+          <div style={{display:"flex",alignItems:"center",gap:7}}>
+            {/* grip dots */}
+            <div style={{display:"flex",flexDirection:"column",gap:3.5,opacity:.45}}>
+              {[0,1,2].map(i=><div key={i} style={{display:"flex",gap:3.5}}>{[0,1].map(j=><div key={j} style={{width:2.5,height:2.5,borderRadius:"50%",background:C.textMid}}/>)}</div>)}
+            </div>
+            <span style={{fontSize:10,fontWeight:800,color:C.textMute,textTransform:"uppercase",letterSpacing:".1em",fontFamily:FONT}}>Widgets</span>
+          </div>
+          {/* collapse button */}
+          <button onClick={toggleRight} title="Sidebar einklappen"
+            style={{width:26,height:26,borderRadius:8,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMute,transition:"all .15s",fontFamily:FONT}}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.borderLight;e.currentTarget.style.color=C.textMid;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMute;}}>
+            <ChevronRight size={14} strokeWidth={2.5}/>
+          </button>
+        </div>
+      ):(
+        /* CLOSED: full-height expand strip */
+        <div onClick={toggleRight} title="Sidebar ausklappen"
+          style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:8,userSelect:"none",transition:"background .15s"}}
+          onMouseEnter={e=>e.currentTarget.style.background=C.borderLight}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+          {/* grip dots vertical */}
+          <div style={{display:"flex",flexDirection:"column",gap:3,opacity:.4}}>
+            {[0,1,2,3,4].map(i=><div key={i} style={{width:3,height:3,borderRadius:"50%",background:C.textMid}}/>)}
+          </div>
+          <div style={{width:24,height:24,borderRadius:7,background:C.surface,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 3px rgba(0,0,0,.07)"}}>
+            <ChevronLeft size={12} strokeWidth={2.5} color={C.textMid}/>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:3,opacity:.4}}>
+            {[0,1,2,3,4].map(i=><div key={i} style={{width:3,height:3,borderRadius:"50%",background:C.textMid}}/>)}
+          </div>
+        </div>
+      )}
 
-      {/* Sidebar content — hidden when collapsed */}
-      {sbRight&&<div style={{flex:1,overflow:"auto",padding:"14px 12px 20px 12px",display:"flex",flexDirection:"column",gap:10}}>
+      {/* Sidebar content — only when open, minHeight:0 fixes flex-scroll */}
+      {sbRight&&<div style={{flex:1,minHeight:0,overflow:"auto",padding:"12px 12px 20px 12px",display:"flex",flexDirection:"column",gap:10}}>
 
           {/* Mini calendar */}
           <div style={{...card,overflow:"hidden"}}>
