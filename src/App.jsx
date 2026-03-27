@@ -2869,6 +2869,55 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   const recent=[...posts].slice(-12).reverse();
   const [hovCard,setHovCard]=useState(null);
 
+  // Widget order + drag state
+  const DASH_DEFAULT=['hero','stats','actions','gantt','week','posts'];
+  const storKey=`dash_order_${user.id||user.email}`;
+  const [wOrder,setWOrder]=useState(()=>{
+    try{const s=localStorage.getItem(storKey);return s?JSON.parse(s):[...DASH_DEFAULT];}
+    catch{return [...DASH_DEFAULT];}
+  });
+  const [dragId,setDragId]=useState(null);
+  const [overId,setOverId]=useState(null);
+  const saveOrder=(o)=>{setWOrder(o);try{localStorage.setItem(storKey,JSON.stringify(o));}catch{}};
+  const dropOn=(id)=>{
+    if(!dragId||dragId===id)return;
+    const o=[...wOrder];
+    const fi=o.indexOf(dragId),ti=o.indexOf(id);
+    o.splice(fi,1);o.splice(ti,0,dragId);
+    saveOrder(o);setDragId(null);setOverId(null);
+  };
+
+  // Section wrapper with drag & drop
+  const Sec=({id,title,right,children})=>(
+    <div
+      draggable
+      onDragStart={e=>{e.dataTransfer.effectAllowed='move';setDragId(id);}}
+      onDragOver={e=>{e.preventDefault();setOverId(id);}}
+      onDragLeave={()=>setOverId(v=>v===id?null:v)}
+      onDrop={()=>dropOn(id)}
+      onDragEnd={()=>{setDragId(null);setOverId(null);}}
+      style={{
+        borderBottom:`1px solid ${C.border}`,
+        opacity:dragId===id?.45:1,
+        background:overId===id&&dragId!==id?`${C.accent}08`:'transparent',
+        transition:'background .15s',
+      }}
+    >
+      <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 0 6px',cursor:'grab',userSelect:'none'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:3,opacity:.35,flexShrink:0}}>
+          {[0,1,2].map(r=>(
+            <div key={r} style={{display:'flex',gap:3}}>
+              {[0,1].map(c=><div key={c} style={{width:3,height:3,borderRadius:'50%',background:C.textMid}}/>)}
+            </div>
+          ))}
+        </div>
+        <span style={{fontSize:10,fontWeight:400,textTransform:'uppercase',letterSpacing:'.1em',color:C.textMute,fontFamily:FONT}}>{title}</span>
+        {right&&<div style={{marginLeft:'auto'}}>{right}</div>}
+      </div>
+      <div style={{paddingBottom:14}}>{children}</div>
+    </div>
+  );
+
   // Live clock
   const [now,setNow]=useState(new Date());
   useEffect(()=>{const t=setInterval(()=>setNow(new Date()),10000);return()=>clearInterval(t);},[]);
@@ -3037,105 +3086,114 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
     );
   };
 
+  // Widget content map
+  const heroContent=(
+    <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
+      <div style={{background:C.text,padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:148}}>
+        <div style={{fontFamily:FONT_DISPLAY,fontSize:36,fontWeight:800,color:"#fff",lineHeight:1,letterSpacing:"-1px"}}>{timeStr}</div>
+        <div style={{fontSize:9.5,fontWeight:600,color:"rgba(255,255,255,.28)",textTransform:"uppercase",letterSpacing:".7px",marginTop:4}}>KW {kw}</div>
+        <div style={{fontSize:11,color:"rgba(255,255,255,.38)",marginTop:7,lineHeight:1.4}}>{dateStr}</div>
+      </div>
+      <div style={{padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
+        <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
+        <div style={{fontFamily:FONT,fontSize:20,fontWeight:600,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]}</div>
+        <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
+          {pend.length>0&&<span onClick={()=>onFilterNav("publisher","pending")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.warningBg,color:C.warning,cursor:"pointer"}}>{pend.length} zur Freigabe</span>}
+          {sched.length>0&&<span onClick={()=>onFilterNav("publisher","scheduled")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.accentLight,color:C.accent,cursor:"pointer"}}>{sched.length} geplant</span>}
+          {posts.length===0&&<span style={{fontSize:12,color:C.textSoft,fontStyle:"italic"}}>Erstelle deinen ersten Post ✨</span>}
+        </div>
+      </div>
+      <div style={{display:"flex"}}>
+        <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
+          <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".11em",color:C.textMute,marginBottom:6}}>Posts gesamt</div>
+          <div style={{fontFamily:FONT,fontSize:34,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{posts.length}</div>
+        </div>
+        <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".11em",color:C.textMute,marginBottom:6}}>Kampagnen</div>
+          <div style={{fontFamily:FONT,fontSize:34,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{campaigns.length}</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const statsContent=(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+      {[
+        {label:"Aktive Posts",  value:sched.length,  sub:"Geplant",         color:"#3B82F6", nav:()=>onFilterNav("publisher","scheduled")},
+        {label:"Zur Freigabe",  value:pend.length,   sub:"Ausstehend",       color:C.warning, nav:()=>onFilterNav("publisher","pending")},
+        {label:"Entwürfe",      value:drafts.length, sub:"Nicht geplant",    color:"#8B5CF6", nav:()=>onFilterNav("publisher","draft")},
+        {label:"Veröffentlicht",value:pub.length,    sub:"Alle Zeiten",      color:C.success, nav:()=>onFilterNav("publisher","published")},
+        {label:"Kampagnen",     value:campaigns.length,sub:"Aktiv",          color:"#EC4899", nav:()=>onNav("campaigns")},
+      ].map((st,i)=>(
+        <div key={i} onClick={st.nav}
+          style={{...card,padding:"16px 18px 14px",cursor:"pointer",transition:"all .15s",borderTop:`2px solid ${st.color}`}}
+          onMouseEnter={lift} onMouseLeave={drop}>
+          <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".1em",color:C.textMute,marginBottom:8}}>{st.label}</div>
+          <div style={{fontFamily:FONT,fontSize:40,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{st.value}</div>
+          <div style={{fontSize:10,fontWeight:300,color:C.textSoft,marginTop:6,letterSpacing:".02em"}}>{st.sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const actionsContent=(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
+      {[
+        {I:Send,          label:"Post erstellen",  sub:"Neuer Inhalt",    nav:"publisher",   color:"#3B82F6"},
+        {I:CalendarRange, label:"Planner",         sub:"Timeline & Plan", nav:"planner",     color:"#5B5BD6"},
+        {I:Calendar,      label:"Kalender",        sub:"Monatsansicht",   nav:"calendar",    color:"#8B5CF6"},
+        {I:Image,         label:"Medien",          sub:"Bilder & Videos", nav:"media",       color:"#10B981"},
+        {I:BarChart2,     label:"Performance",     sub:"Auswertungen",    nav:"performance", color:"#F59E0B"},
+        {I:Flag,          label:"Kampagnen",       sub:"Projekte",        nav:"campaigns",   color:"#EC4899"},
+      ].map((qa,i)=>(
+        <div key={i} onClick={()=>onNav(qa.nav)}
+          style={{...card,padding:"11px 13px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"all .15s"}}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor=qa.color+"55";lift(e);}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;drop(e);}}>
+          <div style={{width:32,height:32,borderRadius:8,background:qa.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <qa.I size={15} color={qa.color} strokeWidth={1.8}/>
+          </div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:12,fontWeight:400,color:C.textMid,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qa.label}</div>
+            <div style={{fontSize:10,fontWeight:300,color:C.textMute,marginTop:1}}>{qa.sub}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const postsRight=<button onClick={()=>onNav("publisher")} style={{fontSize:11,color:C.accent,fontWeight:400,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle anzeigen →</button>;
+  const postsContent=(
+    recent.length===0?(
+      <div style={{...card,padding:"48px 20px",textAlign:"center",color:C.textMute}}>
+        <Send size={40} strokeWidth={1} style={{margin:"0 auto 12px",display:"block",opacity:.35}}/>
+        <div style={{fontWeight:700,fontSize:14,color:C.textMid,marginBottom:4}}>Noch keine Posts</div>
+        <div style={{fontSize:12,marginBottom:16}}>Erstelle deinen ersten Social-Media-Post</div>
+        <Btn onClick={()=>onNav("publisher")}><Plus size={13}/>Post erstellen</Btn>
+      </div>
+    ):(
+      <div style={{columns:"3 180px",columnGap:10}}>
+        {recent.map(p=><PostCard key={p.id} post={p}/>)}
+      </div>
+    )
+  );
+
+  const widgetMap={
+    hero: {title:'',content:heroContent},
+    stats: {title:'Übersicht',content:statsContent},
+    actions: {title:'Schnellzugriff',content:actionsContent},
+    gantt: {title:'Timeline',content:<MiniGantt posts={posts} campaigns={campaigns} onNav={onNav}/>},
+    week: {title:'Nächste 7 Tage',content:<WeekStrip posts={posts} campaigns={campaigns} now={now} onNav={onNav}/>},
+    posts: {title:'Letzte Posts',right:postsRight,content:postsContent},
+  };
+
   return(
-    <div style={{flex:1,overflow:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:10,background:C.bg}}>
-
-      {/* ── HERO: clock | greeting | totals ── */}
-      <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
-        <div style={{background:C.text,padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:148}}>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:36,fontWeight:800,color:"#fff",lineHeight:1,letterSpacing:"-1px"}}>{timeStr}</div>
-          <div style={{fontSize:9.5,fontWeight:600,color:"rgba(255,255,255,.28)",textTransform:"uppercase",letterSpacing:".7px",marginTop:4}}>KW {kw}</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.38)",marginTop:7,lineHeight:1.4}}>{dateStr}</div>
-        </div>
-        <div style={{padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
-          <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
-          <div style={{fontFamily:FONT,fontSize:20,fontWeight:600,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]}</div>
-          <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
-            {pend.length>0&&<span onClick={()=>onFilterNav("publisher","pending")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.warningBg,color:C.warning,cursor:"pointer"}}>{pend.length} zur Freigabe</span>}
-            {sched.length>0&&<span onClick={()=>onFilterNav("publisher","scheduled")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.accentLight,color:C.accent,cursor:"pointer"}}>{sched.length} geplant</span>}
-            {posts.length===0&&<span style={{fontSize:12,color:C.textSoft,fontStyle:"italic"}}>Erstelle deinen ersten Post ✨</span>}
-          </div>
-        </div>
-        <div style={{display:"flex"}}>
-          <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
-            <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".11em",color:C.textMute,marginBottom:6}}>Posts gesamt</div>
-            <div style={{fontFamily:FONT,fontSize:34,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{posts.length}</div>
-          </div>
-          <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-            <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".11em",color:C.textMute,marginBottom:6}}>Kampagnen</div>
-            <div style={{fontFamily:FONT,fontSize:34,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{campaigns.length}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── STAT CHIPS – 5 cols like design ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
-        {[
-          {label:"Aktive Posts",  value:sched.length,  sub:"Geplant",         color:"#3B82F6", nav:()=>onFilterNav("publisher","scheduled")},
-          {label:"Zur Freigabe",  value:pend.length,   sub:"Ausstehend",       color:C.warning, nav:()=>onFilterNav("publisher","pending")},
-          {label:"Entwürfe",      value:drafts.length, sub:"Nicht geplant",    color:"#8B5CF6", nav:()=>onFilterNav("publisher","draft")},
-          {label:"Veröffentlicht",value:pub.length,    sub:"Alle Zeiten",      color:C.success, nav:()=>onFilterNav("publisher","published")},
-          {label:"Kampagnen",     value:campaigns.length,sub:"Aktiv",          color:"#EC4899", nav:()=>onNav("campaigns")},
-        ].map((st,i)=>(
-          <div key={i} onClick={st.nav}
-            style={{...card,padding:"16px 18px 14px",cursor:"pointer",transition:"all .15s",borderTop:`2px solid ${st.color}`}}
-            onMouseEnter={lift} onMouseLeave={drop}>
-            <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".1em",color:C.textMute,marginBottom:8}}>{st.label}</div>
-            <div style={{fontFamily:FONT,fontSize:40,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{st.value}</div>
-            <div style={{fontSize:10,fontWeight:300,color:C.textSoft,marginTop:6,letterSpacing:".02em"}}>{st.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── QUICK ACTIONS ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
-        {[
-          {I:Send,          label:"Post erstellen",  sub:"Neuer Inhalt",    nav:"publisher",   color:"#3B82F6"},
-          {I:CalendarRange, label:"Planner",         sub:"Timeline & Plan", nav:"planner",     color:"#5B5BD6"},
-          {I:Calendar,      label:"Kalender",        sub:"Monatsansicht",   nav:"calendar",    color:"#8B5CF6"},
-          {I:Image,         label:"Medien",          sub:"Bilder & Videos", nav:"media",       color:"#10B981"},
-          {I:BarChart2,     label:"Performance",     sub:"Auswertungen",    nav:"performance", color:"#F59E0B"},
-          {I:Flag,          label:"Kampagnen",       sub:"Projekte",        nav:"campaigns",   color:"#EC4899"},
-        ].map((qa,i)=>(
-          <div key={i} onClick={()=>onNav(qa.nav)}
-            style={{...card,padding:"11px 13px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"all .15s"}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor=qa.color+"55";lift(e);}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;drop(e);}}>
-            <div style={{width:32,height:32,borderRadius:8,background:qa.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <qa.I size={15} color={qa.color} strokeWidth={1.8}/>
-            </div>
-            <div style={{minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:400,color:C.textMid,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qa.label}</div>
-              <div style={{fontSize:10,fontWeight:300,color:C.textMute,marginTop:1}}>{qa.sub}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── WOCHENVORSCHAU / MINI-PLANNER ── */}
-      <MiniGantt posts={posts} campaigns={campaigns} onNav={onNav}/>
-      <WeekStrip posts={posts} campaigns={campaigns} now={now} onNav={onNav}/>
-
-      {/* ── POST GRID ── */}
-      <div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <span style={{fontWeight:500,fontSize:12,color:C.textMid}}>Letzte Posts</span>
-          <button onClick={()=>onNav("publisher")} style={{fontSize:12,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle anzeigen →</button>
-        </div>
-        {recent.length===0?(
-          <div style={{...card,padding:"48px 20px",textAlign:"center",color:C.textMute}}>
-            <Send size={40} strokeWidth={1} style={{margin:"0 auto 12px",display:"block",opacity:.35}}/>
-            <div style={{fontWeight:700,fontSize:14,color:C.textMid,marginBottom:4}}>Noch keine Posts</div>
-            <div style={{fontSize:12,marginBottom:16}}>Erstelle deinen ersten Social-Media-Post</div>
-            <Btn onClick={()=>onNav("publisher")}><Plus size={13}/>Post erstellen</Btn>
-          </div>
-        ):(
-          <div style={{columns:"3 180px",columnGap:10}}>
-            {recent.map(p=><PostCard key={p.id} post={p}/>)}
-          </div>
-        )}
-      </div>
-
+    <div style={{flex:1,overflow:"auto",padding:"20px 22px",background:C.bg}}>
+      {wOrder.map(id=>{
+        const w=widgetMap[id];
+        if(!w)return null;
+        return <Sec key={id} id={id} title={w.title} right={w.right}>{w.content}</Sec>;
+      })}
     </div>
   );
 }
