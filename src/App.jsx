@@ -447,7 +447,7 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
         onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#9CA3AF";}}}>
         {on&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:20,background:C.accent,borderRadius:"0 3px 3px 0",boxShadow:`2px 0 8px ${C.accentGlow}`}}/>}
         <I size={16} strokeWidth={IW} style={{flexShrink:0}}/>
-        {open&&<span style={{fontSize:13,fontWeight:on?700:500,flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>}
+        {open&&<span style={{fontSize:13,fontWeight:on?600:300,flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>}
         {/* Badge: inline when expanded, absolute (top-right over icon) when collapsed */}
         {badge>0&&open&&<div style={{minWidth:18,height:18,borderRadius:9,background:C.accent,color:"#fff",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",flexShrink:0}}>{badge}</div>}
         {badge>0&&!open&&<div style={{position:"absolute",top:5,right:7,minWidth:15,height:15,borderRadius:8,background:C.accent,color:"#fff",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>{badge}</div>}
@@ -488,7 +488,7 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
         {NAV_GROUPS.map((grp,gi)=>(
           <div key={grp.label} style={{marginBottom:8}}>
             {open
-              ?<div style={{fontSize:10,fontWeight:700,color:"#6B7280",letterSpacing:".08em",padding:"2px 12px 6px",textTransform:"uppercase"}}>{grp.label}</div>
+              ?<div style={{fontSize:9.5,fontWeight:400,color:"#5B6473",letterSpacing:".12em",padding:"2px 12px 6px",textTransform:"uppercase"}}>{grp.label}</div>
               :gi>0&&<div style={{height:1,background:"rgba(255,255,255,.06)",margin:"6px 4px 10px"}}/>
             }
             {grp.items.map(({id,label,I})=>(
@@ -3057,13 +3057,13 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
           </div>
         </div>
         <div style={{display:"flex"}}>
-          <div style={{padding:"18px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
-            <div style={{fontSize:10,fontWeight:400,textTransform:"uppercase",letterSpacing:".06em",color:C.textMute,marginBottom:3}}>Posts gesamt</div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>{posts.length}</div>
+          <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
+            <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".11em",color:C.textMute,marginBottom:6}}>Posts gesamt</div>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:34,fontWeight:800,color:C.text,lineHeight:1,letterSpacing:"-1px"}}>{posts.length}</div>
           </div>
-          <div style={{padding:"18px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-            <div style={{fontSize:10,fontWeight:400,textTransform:"uppercase",letterSpacing:".06em",color:C.textMute,marginBottom:3}}>Kampagnen</div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>{campaigns.length}</div>
+          <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".11em",color:C.textMute,marginBottom:6}}>Kampagnen</div>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:34,fontWeight:800,color:C.text,lineHeight:1,letterSpacing:"-1px"}}>{campaigns.length}</div>
           </div>
         </div>
       </div>
@@ -3078,11 +3078,11 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
           {label:"Kampagnen",     value:campaigns.length,sub:"Aktiv",          color:"#EC4899", nav:()=>onNav("campaigns")},
         ].map((st,i)=>(
           <div key={i} onClick={st.nav}
-            style={{...card,padding:"12px 14px",cursor:"pointer",transition:"all .15s",borderTop:`3px solid ${st.color}`}}
+            style={{...card,padding:"16px 18px 14px",cursor:"pointer",transition:"all .15s",borderTop:`2px solid ${st.color}`}}
             onMouseEnter={lift} onMouseLeave={drop}>
-            <div style={{fontSize:10,fontWeight:400,textTransform:"uppercase",letterSpacing:".07em",color:C.textMute,marginBottom:4}}>{st.label}</div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:28,fontWeight:800,color:C.text,lineHeight:1}}>{st.value}</div>
-            <div style={{fontSize:10.5,fontWeight:300,color:C.textSoft,marginTop:3}}>{st.sub}</div>
+            <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".1em",color:C.textMute,marginBottom:8}}>{st.label}</div>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:40,fontWeight:800,color:C.text,lineHeight:1,letterSpacing:"-1px"}}>{st.value}</div>
+            <div style={{fontSize:10,fontWeight:300,color:C.textSoft,marginTop:6,letterSpacing:".02em"}}>{st.sub}</div>
           </div>
         ))}
       </div>
@@ -3105,8 +3105,8 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
               <qa.I size={15} color={qa.color} strokeWidth={1.8}/>
             </div>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:500,color:C.textMid,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qa.label}</div>
-              <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{qa.sub}</div>
+              <div style={{fontSize:12,fontWeight:400,color:C.textMid,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qa.label}</div>
+              <div style={{fontSize:10,fontWeight:300,color:C.textMute,marginTop:1}}>{qa.sub}</div>
             </div>
           </div>
         ))}
