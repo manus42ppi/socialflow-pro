@@ -4126,6 +4126,8 @@ function AdminPage({me}){
   const [workspace,setWorkspace]=useState({name:"SocialFlow Demo",timezone:"Europe/Berlin",language:"de"});
   const [notif,setNotif]=useState({onSched:true,onAppr:true,onPub:true,onErr:true});
   const [users,setUsers]=useState(DEMO_USERS.map(u=>({...u})));
+  const [editingId,setEditingId]=useState(null);
+  const [editForm,setEditForm]=useState({name:"",email:""});
   const [invE,setInvE]=useState("");const [invR,setInvR]=useState("editor");const [invOk,setInvOk]=useState(false);
   const [expandedCh,setExpandedCh]=useState(null);
   const [flash,setFlash]=useState("");
@@ -4138,6 +4140,7 @@ function AdminPage({me}){
     storeGet("admin:workspace").then(d=>{if(d)setWorkspace(p=>({...p,...d}));});
     storeGet("admin:notif").then(d=>{if(d)setNotif(p=>({...p,...d}));});
     storeGet("admin:apikeys").then(d=>{if(d){setApiKeys(p=>({...p,...d}));Object.entries(d).forEach(([k,v])=>{if(v)skSet(k,v);});}});
+    storeGet("admin:team").then(d=>{if(d&&Array.isArray(d))setUsers(d);});
   },[]);
 
   const showFlash=(s)=>{setFlash(s);setTimeout(()=>setFlash(""),2200);};
@@ -4145,6 +4148,12 @@ function AdminPage({me}){
   const saveWorkspace=()=>{storeSet("admin:workspace",workspace);storeSet("admin:notif",notif);showFlash("workspace");};
   const saveChCred=(id,val)=>{const n={...chCreds,[id]:val};setChCreds(n);storeSet("admin:channels",n);showFlash("ch_"+id);};
   const saveApiKey=(id,v)=>{const n={...apiKeys,[id]:v};setApiKeys(n);skSet(id,v);storeSet("admin:apikeys",n);};
+  const saveTeam=(next)=>{setUsers(next);storeSet("admin:team",next);};
+  const startEdit=(u)=>{setEditingId(u.id);setEditForm({name:u.name,email:u.email});};
+  const commitEdit=(id)=>{
+    const next=users.map(u=>u.id===id?{...u,name:editForm.name.trim()||u.name,email:editForm.email.trim()||u.email,avatar:editForm.name.trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2)||u.avatar}:u);
+    saveTeam(next);setEditingId(null);showFlash("team_"+id);
+  };
   const isConn=(id)=>{const c=chCreds[id];if(!c)return false;if(id==="instagram")return !!(c.accountId&&c.accessToken);if(id==="twitter")return !!(c.apiKey&&c.apiSecret&&c.accessToken&&c.accessTokenSecret);if(id==="linkedin")return !!c.accessToken;if(id==="facebook")return !!(c.pageId&&c.accessToken);if(id==="whatsapp")return !!(c.phoneNumberId&&c.accessToken);return false;};
 
   // Channel credential field definitions
@@ -4316,14 +4325,63 @@ function AdminPage({me}){
           {invOk&&<div style={{marginTop:8,display:"flex",alignItems:"center",gap:6,color:C.success,fontSize:13,fontWeight:600}}><CheckCircle size={14} strokeWidth={2}/>Einladung gesendet!</div>}
         </Card>
         <Card>
-          {users.map((u,i)=><div key={u.id} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 18px",borderBottom:i<users.length-1?`1px solid ${C.borderLight}`:"none"}}>
-            <Avatar initials={u.avatar} size={36} color={ROLES[u.role].color}/>
-            <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{u.name}{u.id===me.id&&<span style={{fontSize:11,color:C.textMute,marginLeft:6}}>(Du)</span>}</div><div style={{fontSize:12,color:C.textSoft}}>{u.email}</div></div>
-            <select value={u.role} disabled={u.id===me.id} onChange={e=>setUsers(p=>p.map(x=>x.id===u.id?{...x,role:e.target.value}:x))} style={{padding:"5px 9px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,fontWeight:700,color:ROLES[u.role].color,fontFamily:FONT,background:ROLES[u.role].color+"10",outline:"none"}}>
-              <option value="admin">Admin</option><option value="editor">Editor</option><option value="viewer">Betrachter</option>
-            </select>
-            {u.id!==me.id&&<button onClick={()=>setUsers(p=>p.filter(x=>x.id!==u.id))} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer"}}><Trash2 size={15} strokeWidth={IW}/></button>}
-          </div>)}
+          {users.map((u,i)=>{
+            const isEditing=editingId===u.id;
+            const isSelf=u.id===me.id;
+            return(
+              <div key={u.id} style={{borderBottom:i<users.length-1?`1px solid ${C.borderLight}`:"none"}}>
+                {/* Main row */}
+                <div style={{display:"flex",alignItems:"center",gap:12,padding:"11px 18px"}}>
+                  <Avatar initials={u.avatar} size={34} color={ROLES[u.role].color}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,color:C.text}}>
+                      {u.name}{isSelf&&<span style={{fontSize:11,color:C.textMute,marginLeft:6}}>(Du)</span>}
+                    </div>
+                    <div style={{fontSize:11.5,color:C.textSoft,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.email}</div>
+                  </div>
+                  <select value={u.role} disabled={isSelf}
+                    onChange={e=>{const next=users.map(x=>x.id===u.id?{...x,role:e.target.value}:x);saveTeam(next);}}
+                    style={{padding:"4px 8px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11.5,fontWeight:700,color:ROLES[u.role].color,fontFamily:FONT,background:ROLES[u.role].color+"12",outline:"none",cursor:"pointer"}}>
+                    <option value="admin">Admin</option><option value="editor">Editor</option><option value="viewer">Betrachter</option>
+                  </select>
+                  {/* Edit button */}
+                  <button title="Bearbeiten" onClick={()=>isEditing?setEditingId(null):startEdit(u)}
+                    style={{width:28,height:28,borderRadius:7,border:`1px solid ${isEditing?C.accent:C.border}`,background:isEditing?C.accentLight:"none",color:isEditing?C.accent:C.textMute,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .13s",flexShrink:0}}>
+                    <Edit2 size={13} strokeWidth={2}/>
+                  </button>
+                  {!isSelf&&<button onClick={()=>saveTeam(users.filter(x=>x.id!==u.id))} title="Entfernen"
+                    style={{width:28,height:28,borderRadius:7,border:"none",background:"none",color:C.textMute,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}
+                    onMouseEnter={e=>e.currentTarget.style.color="#e53e3e"} onMouseLeave={e=>e.currentTarget.style.color=C.textMute}>
+                    <Trash2 size={13} strokeWidth={IW}/>
+                  </button>}
+                </div>
+                {/* Inline edit form */}
+                {isEditing&&(
+                  <div style={{padding:"0 18px 14px 18px",display:"flex",flexDirection:"column",gap:8,borderTop:`1px solid ${C.borderLight}`,paddingTop:12,background:C.bg}}>
+                    <div style={{display:"flex",gap:10}}>
+                      <div style={{flex:1}}>
+                        <FL>Name</FL>
+                        <input value={editForm.name} onChange={e=>setEditForm(f=>({...f,name:e.target.value}))}
+                          onKeyDown={e=>e.key==="Enter"&&commitEdit(u.id)}
+                          style={{width:"100%",padding:"7px 10px",borderRadius:7,border:`1.5px solid ${C.accent}`,fontSize:12.5,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
+                      </div>
+                      <div style={{flex:1}}>
+                        <FL>E-Mail</FL>
+                        <input value={editForm.email} onChange={e=>setEditForm(f=>({...f,email:e.target.value}))}
+                          onKeyDown={e=>e.key==="Enter"&&commitEdit(u.id)}
+                          style={{width:"100%",padding:"7px 10px",borderRadius:7,border:`1.5px solid ${C.border}`,fontSize:12.5,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <Btn size="sm" onClick={()=>commitEdit(u.id)}><Check size={12} strokeWidth={2.5}/>Speichern</Btn>
+                      <button onClick={()=>setEditingId(null)} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:7,fontSize:12,color:C.textSoft,padding:"5px 11px",cursor:"pointer",fontFamily:FONT}}>Abbrechen</button>
+                      {flash===`team_${u.id}`&&<span style={{fontSize:11,color:C.success,fontWeight:700,display:"flex",alignItems:"center",gap:4}}><Check size={11} strokeWidth={2.5}/>Gespeichert</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </Card>
       </div>}
 
