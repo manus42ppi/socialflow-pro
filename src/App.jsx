@@ -6,7 +6,8 @@ import {
   Lock, Mail, Shield, AlertCircle, CheckCircle, Instagram,
   Twitter, Linkedin, Facebook, Hash, Layers, Inbox, Sparkles,
   Tag, MapPin, Zap, FileText, Eye, Key, Building2, User, Phone,
-  ExternalLink, ChevronDown, ChevronUp, Save, Wifi, WifiOff
+  ExternalLink, ChevronDown, ChevronUp, Save, Wifi, WifiOff,
+  ArrowUpDown
 } from "lucide-react";
 
 // ── FONT & COLORS ──────────────────────────────────────────────────────────
@@ -1477,108 +1478,82 @@ function PostCard({post,items,campaigns,onEdit,onSched,onDel,onApprove,role}){
   const camp=campaigns?.find(c=>c.id===post.campaignId);
   const PC=PREV[tab]||PREV.instagram;
   const can=p=>ROLES[role]?.can.includes(p);
+  const chs=post.channels?.length>0?post.channels:["instagram"];
 
   return(
-    <Card style={{overflow:"hidden",transition:"all .18s",display:"flex",flexDirection:"column"}}
+    <Card style={{overflow:"hidden",transition:"box-shadow .18s",display:"flex",flexDirection:"column",height:388}}
       onMouseEnter={e=>e.currentTarget.style.boxShadow="0 8px 28px rgba(13,21,38,.12)"}
       onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 6px rgba(13,21,38,.05)"}>
 
-      {/* ── Header: title + badge + delete ── */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 12px",height:44,flexShrink:0}}>
+      {/* ── Header: title + badge + delete ── 44px */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"10px 12px 8px",flexShrink:0,minHeight:44}}>
         <div style={{minWidth:0,flex:1}}>
           <div style={{fontWeight:700,fontSize:13,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{post.title||"Kein Titel"}</div>
-          {camp&&<div style={{fontSize:10.5,color:C.textSoft,marginTop:1,display:"flex",alignItems:"center",gap:3}}><span>{camp.emoji}</span>{camp.name}</div>}
+          {camp?<div style={{fontSize:10.5,color:C.textSoft,marginTop:2,display:"flex",alignItems:"center",gap:3}}><span>{camp.emoji}</span>{camp.name}</div>:<div style={{height:14}}/>}
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,marginLeft:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,marginLeft:8,paddingTop:1}}>
           <SBadge status={post.status}/>
           {can("delete")&&<button onClick={()=>onDel(post.id)} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:2,display:"flex",lineHeight:0}} onMouseEnter={e=>e.currentTarget.style.color=C.accent} onMouseLeave={e=>e.currentTarget.style.color=C.textMute}><X size={13} strokeWidth={2}/></button>}
         </div>
       </div>
 
-      {/* ── Channel tabs (fixed height) ── */}
-      {post.channels?.length>0&&(
-        <div style={{display:"flex",height:32,borderTop:`1px solid ${C.borderLight}`,borderBottom:`1px solid ${C.border}`,overflowX:"auto",background:C.bg,flexShrink:0}}>
-          {post.channels.map(cid=>{
-            const ch=CHANNELS.find(x=>x.id===cid);
-            const on=tab===cid;
-            return(
-              <button key={cid} onClick={()=>setTab(cid)} style={{
-                flexShrink:0,height:"100%",display:"flex",alignItems:"center",gap:4,
-                padding:"0 10px",border:"none",
-                borderBottom:`2px solid ${on?C.text:"transparent"}`,
-                background:"transparent",
-                color:on?C.text:C.textMute,
-                fontWeight:on?700:500,fontSize:11,cursor:"pointer",fontFamily:FONT,
-                transition:"all .12s",
-              }}>
-                <ChIco id={cid} size={11} color={on?C.text:C.textMute}/>{ch?.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {/* ── Channel tabs — always rendered, 30px ── */}
+      <div style={{display:"flex",height:30,borderTop:`1px solid ${C.borderLight}`,borderBottom:`1px solid ${C.border}`,overflowX:"auto",background:C.bg,flexShrink:0}}>
+        {chs.map(cid=>{
+          const ch=CHANNELS.find(x=>x.id===cid);
+          const on=tab===cid;
+          return(
+            <button key={cid} onClick={()=>setTab(cid)} style={{
+              flexShrink:0,height:"100%",display:"flex",alignItems:"center",gap:4,
+              padding:"0 10px",border:"none",
+              borderBottom:`2px solid ${on?C.text:"transparent"}`,
+              background:"transparent",color:on?C.text:C.textMute,
+              fontWeight:on?700:500,fontSize:11,cursor:"pointer",fontFamily:FONT,transition:"all .12s",
+            }}>
+              <ChIco id={cid} size={11} color={on?C.text:C.textMute}/>{ch?.label}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* ── Preview – clipped tight around the social post ── */}
-      <div style={{background:C.bg, padding:"8px 8px 0"}}>
-        <div style={{
-          width:"100%",
-          overflow:"hidden",
-          borderRadius:8,
-          boxShadow:"0 1px 8px rgba(0,0,0,.09)",
-          /* clip the scaled content so no whitespace leaks below */
-          maxHeight: tab==="instagram" ? 310 : 240,
-        }}>
-          <div style={{
-            width:`${100/0.82}%`,
-            transform:"scale(0.82)",
-            transformOrigin:"top left",
-          }}>
+      {/* ── Preview – fixed height, always same ── flex:1 = fills remaining */}
+      <div style={{flex:1,background:C.bg,padding:"8px",overflow:"hidden",minHeight:0}}>
+        <div style={{width:"100%",height:"100%",overflow:"hidden",borderRadius:8,boxShadow:"0 1px 8px rgba(0,0,0,.09)"}}>
+          <div style={{width:`${100/0.82}%`,transform:"scale(0.82)",transformOrigin:"top left"}}>
             <PC post={post} media={media}/>
           </div>
         </div>
-        <div style={{height:8}}/>
       </div>
 
-      {/* ── Schedule bar ── */}
-      {post.status==="scheduled"&&post.scheduledDate&&(
-        <div style={{height:34,padding:"0 12px",background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:6,fontSize:11.5,color:C.textMid,fontWeight:600,flexShrink:0}}>
-          <Calendar size={12} strokeWidth={2} color={C.textMute}/>{fmtDate(post.scheduledDate)}{post.scheduledTime&&` · ${post.scheduledTime}`}
-        </div>
-      )}
+      {/* ── Info bar — always 34px: date OR approval OR placeholder ── */}
+      <div style={{height:34,padding:"0 10px",background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+        {post.status==="pending"&&can("approve")?(
+          <>
+            <span style={{flex:1,fontSize:11,color:C.textSoft,fontWeight:600}}>Wartet auf Freigabe</span>
+            <Btn size="sm" variant="success" onClick={()=>onApprove(post.id,"scheduled")}><Check size={11} strokeWidth={2.5}/>OK</Btn>
+            <Btn size="sm" variant="danger"  onClick={()=>onApprove(post.id,"draft")}><X size={11} strokeWidth={2.5}/>Ablehnen</Btn>
+          </>
+        ):post.status==="pending"?(
+          <span style={{fontSize:11,color:C.warning,fontWeight:600,display:"flex",alignItems:"center",gap:5}}><Clock size={11} strokeWidth={2}/>Wartet auf Freigabe</span>
+        ):post.scheduledDate?(
+          <span style={{fontSize:11.5,color:C.textMid,fontWeight:600,display:"flex",alignItems:"center",gap:5}}><Calendar size={12} strokeWidth={2} color={C.textMute}/>{fmtDate(post.scheduledDate)}{post.scheduledTime&&` · ${post.scheduledTime}`}</span>
+        ):(
+          <span style={{fontSize:11,color:C.textMute,display:"flex",alignItems:"center",gap:5}}><Clock size={11} strokeWidth={2}/>Noch nicht geplant</span>
+        )}
+      </div>
 
-      {/* ── Approval bar ── */}
-      {post.status==="pending"&&can("approve")&&(
-        <div style={{height:34,padding:"0 10px",background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-          <span style={{flex:1,fontSize:11,color:C.textSoft,fontWeight:600}}>Wartet auf Freigabe</span>
-          <Btn size="sm" variant="success" onClick={()=>onApprove(post.id,"scheduled")}><Check size={11} strokeWidth={2.5}/>OK</Btn>
-          <Btn size="sm" variant="danger"  onClick={()=>onApprove(post.id,"draft")}><X size={11} strokeWidth={2.5}/>Ablehnen</Btn>
-        </div>
-      )}
-
-      {/* ── Action buttons ── */}
+      {/* ── Action buttons — always 36px ── */}
       <div style={{display:"flex",borderTop:`1px solid ${C.borderLight}`,height:36,flexShrink:0}}>
         {can("write")&&(
-          <button onClick={()=>onEdit(post)} style={{
-            flex:1,height:"100%",background:"none",border:"none",
-            color:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",
-            display:"flex",alignItems:"center",justifyContent:"center",gap:4,
-            borderRight:`1px solid ${C.borderLight}`,fontFamily:FONT,
-            transition:"all .12s",
-          }}
-          onMouseEnter={e=>{e.currentTarget.style.background=C.bg;e.currentTarget.style.color=C.textMid;}}
-          onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=C.textSoft;}}>
+          <button onClick={()=>onEdit(post)} style={{flex:1,height:"100%",background:"none",border:"none",color:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRight:`1px solid ${C.borderLight}`,fontFamily:FONT,transition:"all .12s"}}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.bg;e.currentTarget.style.color=C.textMid;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=C.textSoft;}}>
             <Edit2 size={12} strokeWidth={IW}/>Bearbeiten
           </button>
         )}
-        <button onClick={()=>onSched(post)} style={{
-          flex:1,height:"100%",background:"none",border:"none",
-          color:post.status==="scheduled"?C.success:C.accent,
-          fontWeight:700,fontSize:12,cursor:"pointer",
-          display:"flex",alignItems:"center",justifyContent:"center",gap:4,
-          fontFamily:FONT,transition:"all .12s",
-        }}
-        onMouseEnter={e=>e.currentTarget.style.background=post.status==="scheduled"?C.successBg:C.accentLight}
-        onMouseLeave={e=>e.currentTarget.style.background="none"}>
+        <button onClick={()=>onSched(post)} style={{flex:1,height:"100%",background:"none",border:"none",color:post.status==="scheduled"?C.success:C.accent,fontWeight:700,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontFamily:FONT,transition:"all .12s"}}
+          onMouseEnter={e=>e.currentTarget.style.background=post.status==="scheduled"?C.successBg:C.accentLight}
+          onMouseLeave={e=>e.currentTarget.style.background="none"}>
           <Calendar size={12} strokeWidth={IW}/>{post.status==="scheduled"?"Ändern":"Planen"}
         </button>
       </div>
@@ -2363,34 +2338,115 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
 // ── PUBLISHER PAGE ─────────────────────────────────────────────────────────
 function PublisherPage({posts,items,campaigns,onEdit,onSched,onDel,onApprove,onStatus,onCampaign,onNew,role,filt,setFilt}){
   const [view,setView]=useState("grid");
+  const [sort,setSort]=useState("date_asc");
+  const [chFilt,setChFilt]=useState("all");
   const can=p=>ROLES[role]?.can.includes(p);
-  const shown=posts.filter(p=>filt==="all"?true:p.status===filt);
+
+  // All channels used across posts (for filter pills)
+  const usedChs=[...new Set(posts.flatMap(p=>p.channels||[]))];
+
+  // Filter: status + channel
+  const filtered=posts.filter(p=>{
+    const stOk=filt==="all"||p.status===filt;
+    const chOk=chFilt==="all"||p.channels?.includes(chFilt);
+    return stOk&&chOk;
+  });
+
+  // Sort
+  const ST_ORDER={scheduled:0,pending:1,draft:2,published:3};
+  const shown=[...filtered].sort((a,b)=>{
+    if(sort==="date_asc"){const da=a.scheduledDate||"9999-99-99",db=b.scheduledDate||"9999-99-99";return da<db?-1:da>db?1:0;}
+    if(sort==="date_desc"){const da=a.scheduledDate||"0000-00-00",db=b.scheduledDate||"0000-00-00";return da>db?-1:da<db?1:0;}
+    if(sort==="status")return(ST_ORDER[a.status]??9)-(ST_ORDER[b.status]??9);
+    if(sort==="title")return(a.title||"").localeCompare(b.title||"","de");
+    return 0;
+  });
+
+  // Per-status counts
+  const cnt=v=>posts.filter(p=>p.status===v).length;
+
   return(
     <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-      <div style={{padding:"10px 22px",borderBottom:`1px solid ${C.border}`,background:C.surface,display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
+
+      {/* ── Toolbar ── */}
+      <div style={{padding:"10px 20px",borderBottom:`1px solid ${C.border}`,background:C.surface,display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap",rowGap:8}}>
+
+        {/* View toggle */}
         <div style={{display:"flex",gap:2,background:C.borderLight,borderRadius:8,padding:3}}>
           {[["grid","⊞ Grid"],["board","⊟ Board"]].map(([v,l])=>(
             <button key={v} onClick={()=>setView(v)} style={{padding:"5px 12px",borderRadius:6,border:"none",background:view===v?C.surface:"transparent",color:view===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,boxShadow:view===v?"0 1px 3px rgba(0,0,0,.07)":"none"}}>{l}</button>
           ))}
         </div>
-        {view==="grid"&&<div style={{display:"flex",gap:3,background:C.borderLight,borderRadius:8,padding:3}}>
-          {[["all","Alle",posts.length],["scheduled","Geplant",posts.filter(p=>p.status==="scheduled").length],["draft","Entwürfe",posts.filter(p=>p.status==="draft").length],["pending","Freigabe",posts.filter(p=>p.status==="pending").length]].map(([v,l,c])=>(
-            <button key={v} onClick={()=>setFilt(v)} style={{padding:"5px 11px",borderRadius:6,border:"none",background:filt===v?C.surface:"transparent",color:filt===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>
-              {l} <span style={{opacity:.6}}>{c}</span>
-            </button>
-          ))}
-        </div>}
+
+        {view==="grid"&&<>
+          {/* Divider */}
+          <div style={{width:1,height:20,background:C.border,flexShrink:0}}/>
+
+          {/* Status filter */}
+          <div style={{display:"flex",gap:2,background:C.borderLight,borderRadius:8,padding:3}}>
+            {[["all","Alle",posts.length],["scheduled","Geplant",cnt("scheduled")],["draft","Entwürfe",cnt("draft")],["pending","Freigabe",cnt("pending")]].map(([v,l,c])=>(
+              <button key={v} onClick={()=>setFilt(v)} style={{padding:"5px 10px",borderRadius:6,border:"none",background:filt===v?C.surface:"transparent",color:filt===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .1s"}}>
+                {l}{" "}<span style={{opacity:.55,fontWeight:500}}>{c}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div style={{width:1,height:20,background:C.border,flexShrink:0}}/>
+
+          {/* Channel filter pills */}
+          <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap"}}>
+            {["all",...usedChs].map(cid=>{
+              const ch=CHANNELS.find(x=>x.id===cid);
+              const active=chFilt===cid;
+              return(
+                <button key={cid} onClick={()=>setChFilt(cid)} style={{
+                  display:"flex",alignItems:"center",gap:4,
+                  padding:"4px 11px",borderRadius:20,border:"none",
+                  background:active?C.text:C.borderLight,
+                  color:active?C.surface:C.textSoft,
+                  fontWeight:600,fontSize:11.5,cursor:"pointer",fontFamily:FONT,
+                  transition:"all .12s",lineHeight:1,
+                }}>
+                  {cid==="all"?<>Alle Kanäle</>:<><ChIco id={cid} size={11} color={active?"#fff":C.textMute}/>{ch?.label}</>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Divider */}
+          <div style={{width:1,height:20,background:C.border,flexShrink:0}}/>
+
+          {/* Sort */}
+          <div style={{display:"flex",alignItems:"center",gap:5}}>
+            <ArrowUpDown size={13} strokeWidth={2} color={C.textMute}/>
+            <select value={sort} onChange={e=>setSort(e.target.value)} style={{border:"none",background:"transparent",fontSize:12,color:C.textSoft,fontWeight:600,cursor:"pointer",fontFamily:FONT,outline:"none"}}>
+              <option value="date_asc">Datum ↑</option>
+              <option value="date_desc">Datum ↓</option>
+              <option value="status">Status</option>
+              <option value="title">Titel A–Z</option>
+            </select>
+          </div>
+        </>}
+
         <div style={{flex:1}}/>
         {can("write")&&<Btn onClick={onNew}><Plus size={14} strokeWidth={2.5}/>Neuer Post</Btn>}
       </div>
+
+      {/* ── Content ── */}
       {view==="grid"?(
         <div style={{flex:1,overflow:"auto",padding:22}}>
-          {shown.length===0?<div style={{textAlign:"center",padding:"80px 20px"}}>
-            <Send size={44} color={C.textMute} strokeWidth={1} style={{margin:"0 auto 14px",display:"block"}}/>
-            <div style={{fontSize:15,fontWeight:700,color:C.textMid}}>Keine Posts</div>
-            {can("write")&&<Btn style={{marginTop:14}} onClick={onNew}><Plus size={14} strokeWidth={2}/>Erstellen</Btn>}
-          </div>:(
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:18}}>
+          {shown.length===0?(
+            <div style={{textAlign:"center",padding:"80px 20px"}}>
+              <Send size={44} color={C.textMute} strokeWidth={1} style={{margin:"0 auto 14px",display:"block"}}/>
+              <div style={{fontSize:15,fontWeight:700,color:C.textMid}}>Keine Posts</div>
+              <div style={{fontSize:13,color:C.textMute,marginTop:6}}>
+                {chFilt!=="all"||filt!=="all"?"Filter anpassen oder ":""}
+              </div>
+              {can("write")&&<Btn style={{marginTop:14}} onClick={onNew}><Plus size={14} strokeWidth={2}/>Erstellen</Btn>}
+            </div>
+          ):(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(295px,1fr))",gap:18,alignItems:"start"}}>
               {shown.map(p=><PostCard key={p.id} post={p} items={items} campaigns={campaigns} onEdit={onEdit} onSched={onSched} onDel={onDel} onApprove={onApprove} role={role}/>)}
             </div>
           )}
