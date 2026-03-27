@@ -1981,6 +1981,7 @@ function CampaignsPage({campaigns,setCampaigns,posts,onEditPost}){
   const [showNew,setShowNew]=useState(false);
   const [form,setForm]=useState({name:"",emoji:"🎯",color:C.accent,description:""});
   const [sel,setSel]=useState(null);
+  const {order,dragId,setDragId,overId,setOverId,drop}=useSections("campaigns","default",['active','list']);
 
   const create=()=>{if(!form.name.trim())return;setCampaigns(p=>[...p,{id:uid(),...form}]);setShowNew(false);setForm({name:"",emoji:"🎯",color:C.accent,description:""}); };
   const del=id=>{if(window.confirm("Kampagne löschen?")){setCampaigns(p=>p.filter(c=>c.id!==id));if(sel===id)setSel(null);}};
@@ -1988,43 +1989,38 @@ function CampaignsPage({campaigns,setCampaigns,posts,onEditPost}){
   const selC=campaigns.find(c=>c.id===sel);
   const cPosts=posts.filter(p=>p.campaignId===sel);
 
-  return(
-    <div style={{flex:1,overflow:"auto",padding:22,display:"flex",gap:20}}>
-      {/* List */}
-      <div style={{width:280,flexShrink:0,display:"flex",flexDirection:"column",gap:12}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontWeight:800,fontSize:15,color:C.text}}>Kampagnen</div>
-          <Btn size="sm" onClick={()=>setShowNew(s=>!s)}><Plus size={13} strokeWidth={2}/>{showNew?"Schließen":"Neu"}</Btn>
-        </div>
-
-        {showNew&&<Card style={{padding:"14px 16px"}}>
-          <div style={{fontWeight:500,fontSize:12,marginBottom:10}}>Neue Kampagne</div>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div><FL>Emoji</FL>
-              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {CAMP_EMOJIS.map(e=><button key={e} onClick={()=>setForm(f=>({...f,emoji:e}))} style={{width:32,height:32,borderRadius:7,border:`2px solid ${form.emoji===e?C.accent:C.border}`,background:form.emoji===e?C.accentLight:"#fff",fontSize:16,cursor:"pointer"}}>{e}</button>)}
-              </div>
-            </div>
-            <TIn label="Name" placeholder="z.B. Sommer, Olympia, Ostern…" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
-            <TIn label="Beschreibung (optional)" placeholder="Kurze Info…" value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}/>
-            <div><FL>Farbe</FL>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {CAMP_COLORS.map(clr=><button key={clr} onClick={()=>setForm(f=>({...f,color:clr}))} style={{width:28,height:28,borderRadius:"50%",background:clr,border:"3px solid transparent",outline:form.color===clr?`2.5px solid ${clr}`:"none",outlineOffset:2,cursor:"pointer"}}/>)}
-              </div>
-            </div>
-            <div style={{display:"flex",gap:8}}>
-              <Btn variant="secondary" size="sm" onClick={()=>setShowNew(false)} style={{flex:1,justifyContent:"center"}}>Abbrechen</Btn>
-              <Btn size="sm" onClick={create} style={{flex:2,justifyContent:"center"}}><Check size={12} strokeWidth={2.5}/>Erstellen</Btn>
+  const activeContent=(
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+        <Btn size="sm" onClick={()=>setShowNew(s=>!s)}><Plus size={13} strokeWidth={2}/>{showNew?"Schließen":"Neue Kampagne"}</Btn>
+      </div>
+      {showNew&&<Card style={{padding:"14px 16px",marginBottom:4}}>
+        <div style={{fontWeight:500,fontSize:12,marginBottom:10}}>Neue Kampagne</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div><FL>Emoji</FL>
+            <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+              {CAMP_EMOJIS.map(e=><button key={e} onClick={()=>setForm(f=>({...f,emoji:e}))} style={{width:32,height:32,borderRadius:7,border:`2px solid ${form.emoji===e?C.accent:C.border}`,background:form.emoji===e?C.accentLight:"#fff",fontSize:16,cursor:"pointer"}}>{e}</button>)}
             </div>
           </div>
-        </Card>}
-
-        {campaigns.length===0&&!showNew&&<div style={{textAlign:"center",padding:"40px 16px",color:C.textMute}}>
-          <Flag size={36} strokeWidth={1} style={{margin:"0 auto 10px",display:"block"}}/>
-          <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>Noch keine Kampagnen</div>
-          <div style={{fontSize:12}}>Erstelle z.B. „Sommer", „Olympia" oder „Ostern"</div>
-        </div>}
-
+          <TIn label="Name" placeholder="z.B. Sommer, Olympia, Ostern…" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
+          <TIn label="Beschreibung (optional)" placeholder="Kurze Info…" value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}/>
+          <div><FL>Farbe</FL>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {CAMP_COLORS.map(clr=><button key={clr} onClick={()=>setForm(f=>({...f,color:clr}))} style={{width:28,height:28,borderRadius:"50%",background:clr,border:"3px solid transparent",outline:form.color===clr?`2.5px solid ${clr}`:"none",outlineOffset:2,cursor:"pointer"}}/>)}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <Btn variant="secondary" size="sm" onClick={()=>setShowNew(false)} style={{flex:1,justifyContent:"center"}}>Abbrechen</Btn>
+            <Btn size="sm" onClick={create} style={{flex:2,justifyContent:"center"}}><Check size={12} strokeWidth={2.5}/>Erstellen</Btn>
+          </div>
+        </div>
+      </Card>}
+      {campaigns.length===0&&!showNew&&<div style={{textAlign:"center",padding:"40px 16px",color:C.textMute}}>
+        <Flag size={36} strokeWidth={1} style={{margin:"0 auto 10px",display:"block"}}/>
+        <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>Noch keine Kampagnen</div>
+        <div style={{fontSize:12}}>Erstelle z.B. „Sommer", „Olympia" oder „Ostern"</div>
+      </div>}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:8}}>
         {campaigns.map(c=>{const n=posts.filter(p=>p.campaignId===c.id).length;const isS=sel===c.id;
           return <div key={c.id} onClick={()=>setSel(isS?null:c.id)} style={{background:isS?c.color+"12":C.surface,borderRadius:10,border:`1.5px solid ${isS?c.color:C.border}`,padding:"11px 14px",cursor:"pointer",transition:"all .15s"}}
             onMouseEnter={e=>{if(!isS)e.currentTarget.style.borderColor=c.color+"60";}}
@@ -2041,42 +2037,59 @@ function CampaignsPage({campaigns,setCampaigns,posts,onEditPost}){
           </div>;
         })}
       </div>
+    </div>
+  );
 
-      {/* Posts */}
-      <div style={{flex:1,minWidth:0}}>
-        {selC?(
-          <>
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
-              <div style={{width:44,height:44,borderRadius:11,background:selC.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{selC.emoji}</div>
-              <div><div style={{fontWeight:900,fontSize:18,color:C.text}}>{selC.name}</div><div style={{fontSize:13,color:C.textSoft}}>{cPosts.length} Posts</div></div>
-            </div>
-            {cPosts.length===0?<div style={{textAlign:"center",padding:"60px 20px",color:C.textMute}}>
-              <Send size={36} strokeWidth={1} style={{margin:"0 auto 12px",display:"block"}}/>
-              <div style={{fontWeight:700,fontSize:14,color:C.textMid}}>Noch keine Posts in dieser Kampagne</div>
-              <div style={{fontSize:12,marginTop:4}}>Bearbeite einen Post und weise ihn dieser Kampagne zu.</div>
-            </div>:(
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
-                {cPosts.map(p=><div key={p.id} onClick={()=>onEditPost(p)} style={{background:C.surface,borderRadius:10,border:`1px solid ${C.border}`,padding:"11px 14px",cursor:"pointer",transition:"all .15s"}}
-                  onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,.08)"}
-                  onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
-                  <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>{p.title||"Kein Titel"}</div>
-                  <div style={{fontSize:12,color:C.textSoft,marginBottom:8,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.content}</div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div style={{display:"flex",gap:3}}>{p.channels?.map(c=><ChIco key={c} id={c} size={12}/>)}</div>
-                    <SBadge status={p.status}/>
-                  </div>
-                </div>)}
+  const listContent=(
+    selC?(
+      <>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+          <div style={{width:44,height:44,borderRadius:11,background:selC.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{selC.emoji}</div>
+          <div><div style={{fontWeight:900,fontSize:18,color:C.text}}>{selC.name}</div><div style={{fontSize:13,color:C.textSoft}}>{cPosts.length} Posts</div></div>
+        </div>
+        {cPosts.length===0?<div style={{textAlign:"center",padding:"60px 20px",color:C.textMute}}>
+          <Send size={36} strokeWidth={1} style={{margin:"0 auto 12px",display:"block"}}/>
+          <div style={{fontWeight:700,fontSize:14,color:C.textMid}}>Noch keine Posts in dieser Kampagne</div>
+          <div style={{fontSize:12,marginTop:4}}>Bearbeite einen Post und weise ihn dieser Kampagne zu.</div>
+        </div>:(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+            {cPosts.map(p=><div key={p.id} onClick={()=>onEditPost(p)} style={{background:C.surface,borderRadius:10,border:`1px solid ${C.border}`,padding:"11px 14px",cursor:"pointer",transition:"all .15s"}}
+              onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,.08)"}
+              onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>{p.title||"Kein Titel"}</div>
+              <div style={{fontSize:12,color:C.textSoft,marginBottom:8,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.content}</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",gap:3}}>{p.channels?.map(c=><ChIco key={c} id={c} size={12}/>)}</div>
+                <SBadge status={p.status}/>
               </div>
-            )}
-          </>
-        ):(
-          <div style={{textAlign:"center",padding:"80px 20px",color:C.textMute}}>
-            <Flag size={48} strokeWidth={1} style={{margin:"0 auto 14px",display:"block"}}/>
-            <div style={{fontSize:16,fontWeight:700,color:C.textMid}}>Kampagne auswählen</div>
-            <div style={{fontSize:13,marginTop:4}}>Klicke links auf eine Kampagne.</div>
+            </div>)}
           </div>
         )}
+      </>
+    ):(
+      <div style={{textAlign:"center",padding:"48px 20px",color:C.textMute}}>
+        <Flag size={48} strokeWidth={1} style={{margin:"0 auto 14px",display:"block"}}/>
+        <div style={{fontSize:16,fontWeight:700,color:C.textMid}}>Kampagne auswählen</div>
+        <div style={{fontSize:13,marginTop:4}}>Klicke oben auf eine Kampagne.</div>
       </div>
+    )
+  );
+
+  const widgetMap={
+    active:{title:'Aktive Kampagnen',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{campaigns.length} Kampagnen</span>,content:activeContent},
+    list:{title:'Alle Kampagnen',right:selC?<span style={{fontSize:11,color:'#9CA3AF'}}>{selC.name}</span>:null,content:listContent},
+  };
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:"#F9FAFB"}}>
+      <div style={{marginBottom:12}}>
+        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:600,color:"#111827",letterSpacing:"-.3px"}}>Kampagnen</div>
+        <div style={{fontSize:12,color:"#9CA3AF",marginTop:2}}>Projekte & Kampagnen verwalten</div>
+      </div>
+      {order.map(id=>{
+        const w=widgetMap[id];if(!w)return null;
+        return <SecCard key={id} id={id} title={w.title} right={w.right} dragId={dragId} overId={overId} setDragId={setDragId} setOverId={setOverId} drop={drop}>{w.content}</SecCard>;
+      })}
     </div>
   );
 }
@@ -2860,6 +2873,62 @@ function WeekStrip({posts,campaigns,now,onNav}){
   );
 }
 
+// ── SHARED DRAGGABLE SECTION SYSTEM ──────────────────────────────────────
+function useSections(pageId,userId,defaults){
+  const key=`sec_${pageId}_${userId||"guest"}`;
+  const [order,setOrder]=useState(()=>{
+    try{
+      const s=localStorage.getItem(key);
+      if(!s)return[...defaults];
+      const saved=JSON.parse(s);
+      // Merge: keep saved order, append any new defaults not yet in saved
+      const merged=[...saved.filter(id=>defaults.includes(id)),...defaults.filter(id=>!saved.includes(id))];
+      return merged.length?merged:[...defaults];
+    }catch{return[...defaults];}
+  });
+  const [dragId,setDragId]=useState(null);
+  const [overId,setOverId]=useState(null);
+  const save=(o)=>{setOrder(o);try{localStorage.setItem(key,JSON.stringify(o));}catch{}};
+  const drop=(targetId)=>{
+    if(!dragId||dragId===targetId)return;
+    const o=[...order];const fi=o.indexOf(dragId),ti=o.indexOf(targetId);
+    o.splice(fi,1);o.splice(ti,0,dragId);save(o);setDragId(null);setOverId(null);
+  };
+  return{order,dragId,setDragId,overId,setOverId,drop};
+}
+
+function SecCard({id,title,right,dragId,overId,setDragId,setOverId,drop,children}){
+  return(
+    <div
+      onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect='move';setOverId(id);}}
+      onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOverId(null);}}
+      onDrop={e=>{e.preventDefault();drop(id);}}
+      style={{
+        background:"#fff",borderRadius:14,
+        border:`1px solid ${overId===id&&dragId!==id?"#5B5BD650":"#E5E7EB"}`,
+        boxShadow:'0 1px 4px rgba(0,0,0,.04)',
+        marginBottom:8,overflow:'hidden',
+        opacity:dragId===id?.4:1,
+        transition:'opacity .15s,border-color .15s',
+      }}
+    >
+      <div
+        draggable
+        onDragStart={e=>{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);setTimeout(()=>setDragId(id),0);}}
+        onDragEnd={()=>{setDragId(null);setOverId(null);}}
+        style={{display:'flex',alignItems:'center',gap:8,padding:'11px 16px 8px',cursor:'grab',userSelect:'none',WebkitUserSelect:'none',borderBottom:'1px solid #F3F4F6'}}
+      >
+        <div style={{display:'flex',flexDirection:'column',gap:3.5,opacity:.35,flexShrink:0}}>
+          {[0,1,2].map(r=><div key={r} style={{display:'flex',gap:3.5}}>{[0,1].map(c=><div key={c} style={{width:3,height:3,borderRadius:'50%',background:'#6B7280'}}/>)}</div>)}
+        </div>
+        <span style={{fontSize:10,fontWeight:400,textTransform:'uppercase',letterSpacing:'.1em',color:'#9CA3AF',fontFamily:"'Inter','DM Sans',system-ui,sans-serif"}}>{title}</span>
+        {right&&<div style={{marginLeft:'auto'}}>{right}</div>}
+      </div>
+      <div draggable={false} style={{padding:'14px 16px 16px'}}>{children}</div>
+    </div>
+  );
+}
+
 // ── DASHBOARD ──────────────────────────────────────────────────────────────
 function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   const sched=posts.filter(p=>p.status==="scheduled");
@@ -2869,71 +2938,8 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   const recent=[...posts].slice(-12).reverse();
   const [hovCard,setHovCard]=useState(null);
 
-  // Widget order + drag state
-  const DASH_DEFAULT=['hero','stats','actions','gantt','week','posts'];
-  const storKey=`dash_order_${user.id||user.email}`;
-  const [wOrder,setWOrder]=useState(()=>{
-    try{const s=localStorage.getItem(storKey);return s?JSON.parse(s):[...DASH_DEFAULT];}
-    catch{return [...DASH_DEFAULT];}
-  });
-  const [dragId,setDragId]=useState(null);
-  const [overId,setOverId]=useState(null);
-  const saveOrder=(o)=>{setWOrder(o);try{localStorage.setItem(storKey,JSON.stringify(o));}catch{}};
-  const dropOn=(id)=>{
-    if(!dragId||dragId===id)return;
-    const o=[...wOrder];
-    const fi=o.indexOf(dragId),ti=o.indexOf(id);
-    o.splice(fi,1);o.splice(ti,0,dragId);
-    saveOrder(o);setDragId(null);setOverId(null);
-  };
-
-  // Section wrapper with drag & drop
-  const Sec=({id,title,right,children})=>(
-    <div
-      onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect='move';setOverId(id);}}
-      onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOverId(null);}}
-      onDrop={e=>{e.preventDefault();dropOn(id);}}
-      style={{
-        background:C.surface,
-        borderRadius:14,
-        border:`1px solid ${overId===id&&dragId!==id?C.accent+"50":C.border}`,
-        boxShadow:'0 1px 4px rgba(0,0,0,.04)',
-        marginBottom:8,
-        overflow:'hidden',
-        opacity:dragId===id?.4:1,
-        transition:'opacity .15s,border-color .15s',
-      }}
-    >
-      {/* ── Drag handle ── */}
-      <div
-        draggable
-        onDragStart={e=>{
-          e.dataTransfer.effectAllowed='move';
-          e.dataTransfer.setData('text/plain',id);
-          setTimeout(()=>setDragId(id),0);
-        }}
-        onDragEnd={()=>{setDragId(null);setOverId(null);}}
-        style={{
-          display:'flex',alignItems:'center',gap:8,
-          padding:'11px 16px 8px',
-          cursor:'grab',userSelect:'none',WebkitUserSelect:'none',
-          borderBottom:`1px solid ${C.borderLight}`,
-        }}
-      >
-        <div style={{display:'flex',flexDirection:'column',gap:3.5,opacity:.35,flexShrink:0}}>
-          {[0,1,2].map(r=>(
-            <div key={r} style={{display:'flex',gap:3.5}}>
-              {[0,1].map(c=><div key={c} style={{width:3,height:3,borderRadius:'50%',background:C.textMid}}/>)}
-            </div>
-          ))}
-        </div>
-        <span style={{fontSize:10,fontWeight:400,textTransform:'uppercase',letterSpacing:'.1em',color:C.textMute,fontFamily:FONT}}>{title}</span>
-        {right&&<div style={{marginLeft:'auto'}}>{right}</div>}
-      </div>
-      {/* ── Content ── */}
-      <div draggable={false} style={{padding:'14px 16px 16px'}}>{children}</div>
-    </div>
-  );
+  // Widget order + drag state (uses shared useSections hook)
+  const {order:wOrder,dragId,setDragId,overId,setOverId,drop:dropOn}=useSections("dashboard",user.id,['hero','stats','actions','gantt','week','posts']);
 
   // Live clock
   const [now,setNow]=useState(new Date());
@@ -3210,7 +3216,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
       {wOrder.map(id=>{
         const w=widgetMap[id];
         if(!w)return null;
-        return <Sec key={id} id={id} title={w.title} right={w.right}>{w.content}</Sec>;
+        return <SecCard key={id} id={id} title={w.title} right={w.right} dragId={dragId} overId={overId} setDragId={setDragId} setOverId={setOverId} drop={dropOn}>{w.content}</SecCard>;
       })}
     </div>
   );
@@ -3413,36 +3419,43 @@ const MOCK={
 function PerformancePage({posts}){
   const [per,setPer]=useState("30d");
   const top=[...posts].slice(0,5).map(p=>({...p,reach:Math.floor(Math.random()*5000+500),eng:(Math.random()*8+1).toFixed(1)+"%"}));
-  return(
-    <div style={{flex:1,overflow:"auto",padding:22,display:"flex",flexDirection:"column",gap:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontFamily:FONT_DISPLAY,fontSize:17,fontWeight:700,color:C.text,letterSpacing:"-.01em"}}>Performance</div><div style={{fontSize:13,color:C.textSoft,marginTop:2}}>Social Media Resultate</div></div>
-        <div style={{display:"flex",gap:3,background:C.borderLight,borderRadius:8,padding:3}}>
-          {[["7d","7T"],["30d","30T"],["90d","90T"]].map(([v,l])=><button key={v} onClick={()=>setPer(v)} style={{padding:"5px 11px",borderRadius:6,border:"none",background:per===v?C.surface:"transparent",color:per===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>{l}</button>)}
-        </div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12}}>
-        <SCrd icon={Eye}          label="Reichweite"   value="44.3K" delta={18} color={C.accent}/>
-        <SCrd icon={TrendingUp}   label="Impressionen" value="114K"  delta={12} color={C.info}/>
-        <SCrd icon={Star}         label="Ø Engagement" value="5.7%"  delta={2}  color={C.warning}/>
-        <SCrd icon={Activity}     label="Klicks"       value="3.07K" delta={24} color={C.success}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
-        {CHANNELS.map(ch=>{const d=MOCK[ch.id];if(!d)return null;
-          return <Card key={ch.id} style={{padding:"15px 18px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-              <div style={{width:32,height:32,borderRadius:8,background:ch.color+"15",display:"flex",alignItems:"center",justifyContent:"center"}}><ChIco id={ch.id} size={15}/></div>
-              <div style={{fontWeight:800,fontSize:14}}>{ch.label}</div>
-            </div>
-            {[["Reichweite",d.reach.toLocaleString("de")],["Impressionen",d.imp.toLocaleString("de")],["Engagement",d.eng],["Follower",d.fol.toLocaleString("de")],["Klicks",d.clk]].map(([l,v])=>(
-              <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0"}}><span style={{color:C.textSoft}}>{l}</span><span style={{fontWeight:700}}>{v}</span></div>
-            ))}
-          </Card>;
-        })}
-      </div>
-      {top.length>0&&<Card>
-        <div style={{padding:"13px 18px",borderBottom:`1px solid ${C.borderLight}`,fontWeight:500,fontSize:12}}>Top Posts</div>
-        {top.map((p,i)=><div key={p.id} style={{display:"flex",alignItems:"center",gap:14,padding:"10px 18px",borderBottom:i<top.length-1?`1px solid ${C.borderLight}`:"none"}}>
+  const {order,dragId,setDragId,overId,setOverId,drop}=useSections("performance","default",['stats','channels','posts']);
+
+  const perRight=<div style={{display:"flex",gap:3,background:"#F3F4F6",borderRadius:8,padding:3}}>
+    {[["7d","7T"],["30d","30T"],["90d","90T"]].map(([v,l])=><button key={v} onClick={()=>setPer(v)} style={{padding:"4px 9px",borderRadius:6,border:"none",background:per===v?"#fff":"transparent",color:per===v?C.text:C.textSoft,fontWeight:600,fontSize:11,cursor:"pointer",fontFamily:FONT}}>{l}</button>)}
+  </div>;
+
+  const statsContent=(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12}}>
+      <SCrd icon={Eye}          label="Reichweite"   value="44.3K" delta={18} color={C.accent}/>
+      <SCrd icon={TrendingUp}   label="Impressionen" value="114K"  delta={12} color={C.info}/>
+      <SCrd icon={Star}         label="Ø Engagement" value="5.7%"  delta={2}  color={C.warning}/>
+      <SCrd icon={Activity}     label="Klicks"       value="3.07K" delta={24} color={C.success}/>
+    </div>
+  );
+
+  const channelsContent=(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+      {CHANNELS.map(ch=>{const d=MOCK[ch.id];if(!d)return null;
+        return <Card key={ch.id} style={{padding:"15px 18px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+            <div style={{width:32,height:32,borderRadius:8,background:ch.color+"15",display:"flex",alignItems:"center",justifyContent:"center"}}><ChIco id={ch.id} size={15}/></div>
+            <div style={{fontWeight:800,fontSize:14}}>{ch.label}</div>
+          </div>
+          {[["Reichweite",d.reach.toLocaleString("de")],["Impressionen",d.imp.toLocaleString("de")],["Engagement",d.eng],["Follower",d.fol.toLocaleString("de")],["Klicks",d.clk]].map(([l,v])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0"}}><span style={{color:C.textSoft}}>{l}</span><span style={{fontWeight:700}}>{v}</span></div>
+          ))}
+        </Card>;
+      })}
+    </div>
+  );
+
+  const topPostsContent=(
+    top.length===0?(
+      <div style={{padding:"20px 0",textAlign:"center",fontSize:12,color:C.textMute}}>Keine Posts vorhanden.</div>
+    ):(
+      <div>
+        {top.map((p,i)=><div key={p.id} style={{display:"flex",alignItems:"center",gap:14,padding:"10px 0",borderBottom:i<top.length-1?`1px solid ${C.borderLight}`:"none"}}>
           <div style={{width:26,height:26,borderRadius:7,background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,color:i===0?C.accent:C.textMute}}>{i+1}</div>
           <div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div><div style={{display:"flex",gap:3,marginTop:2}}>{p.channels?.map(c=><ChIco key={c} id={c} size={11}/>)}</div></div>
           <div style={{display:"flex",gap:14,fontSize:12}}>
@@ -3450,7 +3463,26 @@ function PerformancePage({posts}){
             <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{p.eng}</div><div style={{color:C.textMute,fontSize:10}}>Eng.</div></div>
           </div>
         </div>)}
-      </Card>}
+      </div>
+    )
+  );
+
+  const widgetMap={
+    stats:{title:'Übersicht',right:perRight,content:statsContent},
+    channels:{title:'Kanäle',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{CHANNELS.length} Kanäle</span>,content:channelsContent},
+    posts:{title:'Top Posts',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{top.length} Posts</span>,content:topPostsContent},
+  };
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:"#F9FAFB"}}>
+      <div style={{marginBottom:12}}>
+        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:600,color:"#111827",letterSpacing:"-.3px"}}>Performance</div>
+        <div style={{fontSize:12,color:"#9CA3AF",marginTop:2}}>Social Media Resultate</div>
+      </div>
+      {order.map(id=>{
+        const w=widgetMap[id];if(!w)return null;
+        return <SecCard key={id} id={id} title={w.title} right={w.right} dragId={dragId} overId={overId} setDragId={setDragId} setOverId={setOverId} drop={drop}>{w.content}</SecCard>;
+      })}
     </div>
   );
 }
@@ -3494,6 +3526,7 @@ function KTag({label,colorIdx=0}){
 }
 
 function CalendarPage({posts,onEdit}){
+  const {order,dragId:cDragId,setDragId:cSetDragId,overId:cOverId,setOverId:cSetOverId,drop:cDrop}=useSections("calendar","default",['calendar','list']);
   const today=new Date();
   const [cur,setCur]=useState({y:today.getFullYear(),m:today.getMonth()});
   const [viewMode,setViewMode]=useState("month"); // "month" | "agenda"
@@ -3718,70 +3751,79 @@ function CalendarPage({posts,onEdit}){
     );
   };
 
-  return(
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:K.bg,fontFamily:FONT}}>
-
-      {/* ── Toolbar ── */}
-      <div style={{
-        display:"flex",alignItems:"center",gap:12,padding:"12px 20px",
-        background:K.surface,borderBottom:`1px solid ${K.borderMid}`,
-        flexShrink:0,
-      }}>
-        {/* Month nav */}
-        <div style={{display:"flex",alignItems:"center",gap:4}}>
-          <button onClick={prevMonth} style={{width:28,height:28,borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.borderColor=K.indigo;e.currentTarget.style.color=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.borderColor=K.border;e.currentTarget.style.color=K.navySoft;}}>‹</button>
-          <div style={{minWidth:160,textAlign:"center",fontFamily:FONT_DISPLAY,fontWeight:700,fontSize:15,color:K.navy,letterSpacing:"-.01em"}}>
-            {MONTH_NAMES[cur.m]} {cur.y}
-          </div>
-          <button onClick={nextMonth} style={{width:28,height:28,borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.borderColor=K.indigo;e.currentTarget.style.color=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.borderColor=K.border;e.currentTarget.style.color=K.navySoft;}}>›</button>
-        </div>
-
-        <button onClick={goToday} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.color=K.indigo;e.currentTarget.style.borderColor=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.color=K.navySoft;e.currentTarget.style.borderColor=K.border;}}>Heute</button>
-
-        <div style={{flex:1}}/>
-
-        {/* Stats */}
-        <div style={{fontSize:12,color:K.navySoft,display:"flex",alignItems:"center",gap:6}}>
+  // Calendar toolbar (shared across both views)
+  const calToolbar=(
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:4,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:4}}>
+        <button onClick={prevMonth} style={{width:28,height:28,borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.borderColor=K.indigo;e.currentTarget.style.color=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.borderColor=K.border;e.currentTarget.style.color=K.navySoft;}}>‹</button>
+        <div style={{minWidth:160,textAlign:"center",fontFamily:FONT_DISPLAY,fontWeight:700,fontSize:15,color:K.navy,letterSpacing:"-.01em"}}>{MONTH_NAMES[cur.m]} {cur.y}</div>
+        <button onClick={nextMonth} style={{width:28,height:28,borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.borderColor=K.indigo;e.currentTarget.style.color=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.borderColor=K.border;e.currentTarget.style.color=K.navySoft;}}>›</button>
+      </div>
+      <button onClick={goToday} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.color=K.indigo;e.currentTarget.style.borderColor=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.color=K.navySoft;e.currentTarget.style.borderColor=K.border;}}>Heute</button>
+      <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+        <div style={{fontSize:12,color:K.navySoft,display:"flex",alignItems:"center",gap:4}}>
           <span style={{fontWeight:700,color:K.indigo}}>{monthPosts.length}</span> Posts im {MONTH_NAMES[cur.m]}
         </div>
-
-        {/* View toggle */}
         <div style={{display:"flex",gap:1,background:K.bg,borderRadius:7,padding:3,border:`1px solid ${K.border}`}}>
           {[["month","Monat",Calendar],["agenda","Agenda",BarChart2]].map(([v,l,Ic])=>(
-            <button key={v} onClick={()=>setViewMode(v)} style={{
-              display:"flex",alignItems:"center",gap:5,
-              padding:"5px 11px",borderRadius:5,border:"none",
-              background:viewMode===v?K.surface:"transparent",
-              color:viewMode===v?K.navy:K.navySoft,
-              fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,
-              boxShadow:viewMode===v?"0 1px 3px rgba(26,35,64,.08)":"none",
-              transition:"all .15s",
-            }}>
+            <button key={v} onClick={()=>setViewMode(v)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:5,border:"none",background:viewMode===v?K.surface:"transparent",color:viewMode===v?K.navy:K.navySoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,boxShadow:viewMode===v?"0 1px 3px rgba(26,35,64,.08)":"none",transition:"all .15s"}}>
               <Ic size={13} strokeWidth={2}/>{l}
             </button>
           ))}
         </div>
       </div>
+    </div>
+  );
 
-      {/* ── Legend strip ── */}
-      <div style={{display:"flex",alignItems:"center",gap:14,padding:"7px 20px",background:K.surface,borderBottom:`1px solid ${K.border}`,flexShrink:0}}>
-        <span style={{fontSize:10.5,fontWeight:700,color:K.navyMute,letterSpacing:".05em"}}>STATUS:</span>
-        {Object.entries(STATUS_COLOR).map(([s,t])=>(
-          <div key={s} style={{display:"flex",alignItems:"center",gap:4}}>
-            <div style={{width:8,height:8,borderRadius:2,background:t.color,opacity:.8}}/>
-            <span style={{fontSize:10.5,color:K.navySoft,fontWeight:600}}>{STATUS_LABEL[s]}</span>
-          </div>
-        ))}
+  const legendStrip=(
+    <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10,flexWrap:"wrap"}}>
+      <span style={{fontSize:10.5,fontWeight:700,color:K.navyMute,letterSpacing:".05em"}}>STATUS:</span>
+      {Object.entries(STATUS_COLOR).map(([s,t])=>(
+        <div key={s} style={{display:"flex",alignItems:"center",gap:4}}>
+          <div style={{width:8,height:8,borderRadius:2,background:t.color,opacity:.8}}/>
+          <span style={{fontSize:10.5,color:K.navySoft,fontWeight:600}}>{STATUS_LABEL[s]}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  const calendarContent=(
+    <div style={{fontFamily:FONT}}>
+      {calToolbar}
+      {legendStrip}
+      <MonthView/>
+    </div>
+  );
+
+  const agendaContent=(
+    <div style={{fontFamily:FONT}}>
+      {calToolbar}
+      <AgendaView/>
+    </div>
+  );
+
+  const widgetMap={
+    calendar:{title:'Kalender',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{viewMode==="month"?"Monatsansicht":"Agenda"}</span>,content:calendarContent},
+    list:{title:'Posts',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{monthPosts.length} Posts</span>,content:agendaContent},
+  };
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:"#F9FAFB",fontFamily:FONT}}>
+      <div style={{marginBottom:12}}>
+        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:600,color:"#111827",letterSpacing:"-.3px"}}>Kalender</div>
+        <div style={{fontSize:12,color:"#9CA3AF",marginTop:2}}>Alle geplanten Posts im Überblick</div>
       </div>
-
-      {/* ── Content ── */}
-      {viewMode==="month"?<MonthView/>:<AgendaView/>}
+      {order.map(id=>{
+        const w=widgetMap[id];if(!w)return null;
+        return <SecCard key={id} id={id} title={w.title} right={w.right} dragId={cDragId} overId={cOverId} setDragId={cSetDragId} setOverId={cSetOverId} drop={cDrop}>{w.content}</SecCard>;
+      })}
     </div>
   );
 }
 
 // ── PLANNER PAGE ────────────────────────────────────────────────────────────
 function PlannerPage({posts,campaigns,items,onEdit}){
+  const {order,dragId:pDragId,setDragId:pSetDragId,overId:pOverId,setOverId:pSetOverId,drop:pDrop}=useSections("planner","planner",['timeline','campaigns','upcoming']);
   const today=new Date();
   const todayStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
   const livePosts=posts.filter(p=>!p.deleted);
@@ -3880,312 +3922,172 @@ function PlannerPage({posts,campaigns,items,onEdit}){
   const card={background:"#fff",border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
   const SK={scheduled:{c:"#16A34A",l:"Geplant"},draft:{c:"#D97706",l:"Entwurf"},pending:{c:"#2563EB",l:"Review"},published:{c:"#7C3AED",l:"Live"}};
 
-  return(
-    <div style={{flex:1,overflow:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:14,background:C.bg,fontFamily:FONT}}>
-
-      {/* ── Header row ── */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,letterSpacing:"-.03em"}}>Planner</div>
-          <div style={{fontSize:12,color:C.textSoft,marginTop:2}}>Übersicht über alle geplanten Posts & Kampagnen</div>
-        </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={prevPeriod} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid}}>
-            <ChevronLeft size={15}/>
-          </button>
-          <button onClick={goToday} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,height:32,padding:"0 12px",cursor:"pointer",fontSize:12,fontWeight:700,color:C.accent,fontFamily:FONT}}>Heute</button>
-          <button onClick={nextPeriod} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid}}>
-            <ChevronRight size={15}/>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Main layout: Gantt + right panel ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 272px",gap:14,alignItems:"start"}}>
-
-        {/* ── LEFT: Gantt + Progress Cards ── */}
-        <div style={{display:"flex",flexDirection:"column",gap:14}}>
-
-          {/* ── GANTT ── */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:8}}>
-              <CalendarRange size={14} color={C.accent} strokeWidth={2}/>
-              <span style={{fontSize:13,fontWeight:700,color:C.textMid}}>Timeline</span>
-              <span style={{fontSize:11,color:C.textMute,marginLeft:"auto"}}>
-                {timeStart.toLocaleDateString("de-DE",{month:"long",year:"numeric"})} – {timeEnd.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}
-              </span>
-            </div>
-
-            <div style={{padding:"0 16px 14px"}}>
-              {/* Month headers */}
-              <div style={{position:"relative",height:28,marginTop:10,marginLeft:140}}>
-                {monthHeaders.map((mh,i)=>(
-                  <div key={i} style={{position:"absolute",left:`${mh.x}%`,width:`${mh.w}%`,top:0,height:"100%",borderLeft:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",paddingLeft:6}}>
-                    <span style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",whiteSpace:"nowrap"}}>{mh.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Rows */}
-              {rows.length===0?(
-                <div style={{padding:"32px 0",textAlign:"center",color:C.textMute,fontSize:13}}>
-                  <CalendarRange size={32} strokeWidth={1} style={{margin:"0 auto 10px",display:"block",opacity:.3}}/>
-                  Keine geplanten Posts. Plane Posts im Publisher.
-                </div>
-              ):rows.map((row,ri)=>(
-                <div key={row.id} style={{display:"flex",alignItems:"center",gap:0,height:38,borderBottom:ri<rows.length-1?`1px solid ${C.borderLight}`:"none"}}>
-                  {/* Label */}
-                  <div style={{width:140,flexShrink:0,display:"flex",alignItems:"center",gap:7,paddingRight:12}}>
-                    {row.type==="campaign"?(
-                      <span style={{fontSize:13}}>{row.emoji}</span>
-                    ):(
-                      <div style={{width:8,height:8,borderRadius:"50%",background:row.color,flexShrink:0}}/>
-                    )}
-                    <span style={{fontSize:11.5,fontWeight:600,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.label}</span>
-                    <span style={{fontSize:10,color:C.textMute,marginLeft:"auto",flexShrink:0}}>{row.posts.length}</span>
-                  </div>
-                  {/* Bar area */}
-                  <div style={{flex:1,position:"relative",height:20}}>
-                    {/* Month grid lines */}
-                    {monthHeaders.map((mh,i)=>(
-                      <div key={i} style={{position:"absolute",left:`${mh.x}%`,top:0,bottom:0,borderLeft:`1px dashed ${C.borderLight}`,pointerEvents:"none"}}/>
-                    ))}
-                    {/* Today line */}
-                    {todayX!==null&&todayX>=0&&todayX<=100&&(
-                      <div style={{position:"absolute",left:`${todayX}%`,top:-8,bottom:-8,width:1.5,background:C.accent,zIndex:3,pointerEvents:"none"}}>
-                        <div style={{position:"absolute",top:-2,left:-3,width:7,height:7,borderRadius:"50%",background:C.accent}}/>
-                      </div>
-                    )}
-                    {/* Main bar */}
-                    {row.x1!==null&&row.x2!==null&&row.x2>row.x1&&(
-                      <div style={{
-                        position:"absolute",
-                        left:`${row.x1}%`,
-                        width:`${Math.max(0.5,row.x2-row.x1)}%`,
-                        height:10,top:5,
-                        borderRadius:5,
-                        background:`${row.color}30`,
-                        border:`1.5px solid ${row.color}60`,
-                      }}/>
-                    )}
-                    {/* Post dots */}
-                    {allTimelinePosts.filter(p=>row.type==="campaign"?p.campaignId===row.id:p.channels?.includes(row.id)).map((p,pi)=>{
-                      const x=dateToX(p.scheduledDate);
-                      if(x===null||x<0||x>100)return null;
-                      const sc=SK[p.status]||{c:C.textMute};
-                      return <div key={pi} title={`${p.title||"Post"} – ${p.scheduledDate}`}
-                        onClick={()=>onEdit(p)}
-                        style={{position:"absolute",left:`${x}%`,top:4,width:12,height:12,borderRadius:"50%",
-                          background:sc.c,border:"2px solid #fff",cursor:"pointer",zIndex:2,
-                          transform:"translateX(-50%)",boxShadow:"0 1px 3px rgba(0,0,0,.2)",
-                          transition:"transform .1s"}}
-                        onMouseEnter={e=>e.currentTarget.style.transform="translateX(-50%) scale(1.35)"}
-                        onMouseLeave={e=>e.currentTarget.style.transform="translateX(-50%) scale(1)"}/>;
-                    })}
-                  </div>
-                </div>
-              ))}
-
-              {/* Legend */}
-              <div style={{display:"flex",gap:12,marginTop:10,paddingTop:8,borderTop:`1px solid ${C.borderLight}`,flexWrap:"wrap"}}>
-                {Object.entries(SK).map(([k,v])=>(
-                  <div key={k} style={{display:"flex",alignItems:"center",gap:4,fontSize:10}}>
-                    <div style={{width:8,height:8,borderRadius:"50%",background:v.c}}/>
-                    <span style={{color:C.textMute,fontWeight:500}}>{v.l}</span>
-                  </div>
-                ))}
-                {todayX!==null&&todayX>=0&&todayX<=100&&(
-                  <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10}}>
-                    <div style={{width:1.5,height:10,background:C.accent}}/>
-                    <span style={{color:C.textMute,fontWeight:500}}>Heute</span>
-                  </div>
-                )}
-              </div>
-            </div>
+  // ── Gantt content (full width, no inner card wrapper) ──
+  const ganttContent=(
+    <div>
+      {/* Month headers */}
+      <div style={{position:"relative",height:28,marginTop:4,marginLeft:140}}>
+        {monthHeaders.map((mh,i)=>(
+          <div key={i} style={{position:"absolute",left:`${mh.x}%`,width:`${mh.w}%`,top:0,height:"100%",borderLeft:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",paddingLeft:6}}>
+            <span style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",whiteSpace:"nowrap"}}>{mh.label}</span>
           </div>
-
-          {/* ── CAMPAIGN PROGRESS CARDS ── */}
-          {campCards.length>0&&(
-            <div style={{...card,overflow:"hidden"}}>
-              <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:8}}>
-                <Target size={14} color={C.accent} strokeWidth={2}/>
-                <span style={{fontSize:13,fontWeight:700,color:C.textMid}}>Aktive Kampagnen</span>
-                <span style={{marginLeft:"auto",fontSize:11,color:C.textMute}}>{campCards.length} Kampagnen</span>
-              </div>
-              <div style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:10}}>
-                {campCards.map(c=>(
-                  <div key={c.id} style={{borderRadius:10,border:`1px solid ${C.border}`,padding:"12px 14px",background:C.bg,transition:"all .15s"}}
-                    onMouseEnter={e=>{e.currentTarget.style.borderColor=c.color+"60";e.currentTarget.style.background="#fff";}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.bg;}}>
-                    <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
-                      <div style={{width:34,height:34,borderRadius:9,background:c.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{c.emoji}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontWeight:700,fontSize:12.5,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
-                        <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{c.total} Posts{c.start?` · ${new Date(c.start+"T12:00").toLocaleDateString("de-DE",{day:"numeric",month:"short"})}`:""}</div>
-                      </div>
-                      <div style={{fontSize:13,fontWeight:800,color:c.color}}>{c.pct}%</div>
-                    </div>
-                    {/* Progress bar */}
-                    <div style={{height:4,borderRadius:4,background:C.borderLight,overflow:"hidden"}}>
-                      <div style={{height:"100%",borderRadius:4,background:c.color,width:`${c.pct}%`,transition:"width .4s"}}/>
-                    </div>
-                    <div style={{display:"flex",justifyContent:"space-between",marginTop:5}}>
-                      <span style={{fontSize:10,color:C.textMute}}>{c.pub} veröffentlicht</span>
-                      <span style={{fontSize:10,color:C.textMute}}>{c.total-c.pub} ausstehend</span>
-                    </div>
-                    {/* Channel icons */}
-                    <div style={{display:"flex",gap:4,marginTop:8}}>
-                      {[...new Set(livePosts.filter(p=>p.campaignId===c.id).flatMap(p=>p.channels||[]))].map(ch=>(
-                        <ChIco key={ch} id={ch} size={12}/>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── UPCOMING POSTS TABLE ── */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:8}}>
-              <ListTodo size={14} color={C.accent} strokeWidth={2}/>
-              <span style={{fontSize:13,fontWeight:700,color:C.textMid}}>Nächste Posts</span>
-              <span style={{marginLeft:"auto",fontSize:11,color:C.textMute}}>{upcomingPosts.length} kommende</span>
-            </div>
-            {upcomingPosts.length===0?(
-              <div style={{padding:"28px 16px",textAlign:"center",fontSize:12,color:C.textMute}}>Keine geplanten Posts in den nächsten Tagen.</div>
+        ))}
+      </div>
+      {/* Rows */}
+      {rows.length===0?(
+        <div style={{padding:"32px 0",textAlign:"center",color:C.textMute,fontSize:13}}>
+          <CalendarRange size={32} strokeWidth={1} style={{margin:"0 auto 10px",display:"block",opacity:.3}}/>
+          Keine geplanten Posts. Plane Posts im Publisher.
+        </div>
+      ):rows.map((row,ri)=>(
+        <div key={row.id} style={{display:"flex",alignItems:"center",gap:0,height:38,borderBottom:ri<rows.length-1?`1px solid ${C.borderLight}`:"none"}}>
+          <div style={{width:140,flexShrink:0,display:"flex",alignItems:"center",gap:7,paddingRight:12}}>
+            {row.type==="campaign"?(
+              <span style={{fontSize:13}}>{row.emoji}</span>
             ):(
-              <div>
-                {/* Table header */}
-                <div style={{display:"grid",gridTemplateColumns:"80px 70px 1fr 100px 80px",padding:"6px 16px",background:C.bg,borderBottom:`1px solid ${C.borderLight}`}}>
-                  {["Datum","Uhrzeit","Post","Kanäle","Status"].map((h,i)=>(
-                    <div key={i} style={{fontSize:9.5,fontWeight:700,color:C.textMute,letterSpacing:".05em",textTransform:"uppercase"}}>{h}</div>
-                  ))}
-                </div>
-                {upcomingPosts.map((p,i)=>{
-                  const sc=SK[p.status]||{c:C.textMute,l:p.status};
-                  const camp=campaigns.find(c=>c.id===p.campaignId);
-                  return(
-                    <div key={p.id} onClick={()=>onEdit(p)}
-                      style={{display:"grid",gridTemplateColumns:"80px 70px 1fr 100px 80px",padding:"9px 16px",borderBottom:i<upcomingPosts.length-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",transition:"background .1s",alignItems:"center"}}
-                      onMouseEnter={e=>e.currentTarget.style.background=C.bg}
-                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                      <div style={{fontSize:11,fontWeight:700,color:C.textMid}}>{new Date(p.scheduledDate+"T12:00").toLocaleDateString("de-DE",{day:"numeric",month:"short"})}</div>
-                      <div style={{fontSize:11,color:C.textSoft}}>{p.scheduledTime||"–"}</div>
-                      <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                        {camp&&<span style={{fontSize:10,marginRight:5}}>{camp.emoji}</span>}
-                        <span style={{fontSize:11.5,fontWeight:600,color:C.text}}>{p.title||"Kein Titel"}</span>
-                      </div>
-                      <div style={{display:"flex",gap:3}}>{p.channels?.slice(0,4).map(c=><ChIco key={c} id={c} size={11}/>)}</div>
-                      <div style={{padding:"2px 7px",borderRadius:5,background:sc.c+"15",display:"inline-flex",width:"fit-content"}}>
-                        <span style={{fontSize:10,fontWeight:700,color:sc.c}}>{sc.l}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{width:8,height:8,borderRadius:"50%",background:row.color,flexShrink:0}}/>
+            )}
+            <span style={{fontSize:11.5,fontWeight:600,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.label}</span>
+            <span style={{fontSize:10,color:C.textMute,marginLeft:"auto",flexShrink:0}}>{row.posts.length}</span>
+          </div>
+          <div style={{flex:1,position:"relative",height:20}}>
+            {monthHeaders.map((mh,i)=>(
+              <div key={i} style={{position:"absolute",left:`${mh.x}%`,top:0,bottom:0,borderLeft:`1px dashed ${C.borderLight}`,pointerEvents:"none"}}/>
+            ))}
+            {todayX!==null&&todayX>=0&&todayX<=100&&(
+              <div style={{position:"absolute",left:`${todayX}%`,top:-8,bottom:-8,width:1.5,background:C.accent,zIndex:3,pointerEvents:"none"}}>
+                <div style={{position:"absolute",top:-2,left:-3,width:7,height:7,borderRadius:"50%",background:C.accent}}/>
               </div>
             )}
+            {row.x1!==null&&row.x2!==null&&row.x2>row.x1&&(
+              <div style={{position:"absolute",left:`${row.x1}%`,width:`${Math.max(0.5,row.x2-row.x1)}%`,height:10,top:5,borderRadius:5,background:`${row.color}30`,border:`1.5px solid ${row.color}60`}}/>
+            )}
+            {allTimelinePosts.filter(p=>row.type==="campaign"?p.campaignId===row.id:p.channels?.includes(row.id)).map((p,pi)=>{
+              const x=dateToX(p.scheduledDate);
+              if(x===null||x<0||x>100)return null;
+              const sc=SK[p.status]||{c:C.textMute};
+              return <div key={pi} title={`${p.title||"Post"} – ${p.scheduledDate}`}
+                onClick={()=>onEdit(p)}
+                style={{position:"absolute",left:`${x}%`,top:4,width:12,height:12,borderRadius:"50%",background:sc.c,border:"2px solid #fff",cursor:"pointer",zIndex:2,transform:"translateX(-50%)",boxShadow:"0 1px 3px rgba(0,0,0,.2)",transition:"transform .1s"}}
+                onMouseEnter={e=>e.currentTarget.style.transform="translateX(-50%) scale(1.35)"}
+                onMouseLeave={e=>e.currentTarget.style.transform="translateX(-50%) scale(1)"}/>;
+            })}
           </div>
+        </div>
+      ))}
+      {/* Legend */}
+      <div style={{display:"flex",gap:12,marginTop:10,paddingTop:8,borderTop:`1px solid ${C.borderLight}`,flexWrap:"wrap"}}>
+        {Object.entries(SK).map(([k,v])=>(
+          <div key={k} style={{display:"flex",alignItems:"center",gap:4,fontSize:10}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:v.c}}/>
+            <span style={{color:C.textMute,fontWeight:500}}>{v.l}</span>
+          </div>
+        ))}
+        {todayX!==null&&todayX>=0&&todayX<=100&&(
+          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10}}>
+            <div style={{width:1.5,height:10,background:C.accent}}/>
+            <span style={{color:C.textMute,fontWeight:500}}>Heute</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
-        </div>{/* END LEFT */}
-
-        {/* ── RIGHT PANEL ── */}
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-          {/* Mini calendar */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <button onClick={()=>setCalM(d=>new Date(d.getFullYear(),d.getMonth()-1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,padding:"1px 3px",fontFamily:FONT,display:"flex"}}><ChevronLeft size={14}/></button>
-              <span style={{fontSize:12,fontWeight:700,color:C.textMid}}>{calLabel}</span>
-              <button onClick={()=>setCalM(d=>new Date(d.getFullYear(),d.getMonth()+1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,padding:"1px 3px",fontFamily:FONT,display:"flex"}}><ChevronRight size={14}/></button>
+  // ── Campaigns content ──
+  const campaignsContent=(
+    campCards.length===0?(
+      <div style={{padding:"20px 0",textAlign:"center",fontSize:12,color:C.textMute}}>Keine Kampagnen mit Posts.</div>
+    ):(
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:10}}>
+        {campCards.map(c=>(
+          <div key={c.id} style={{borderRadius:10,border:`1px solid ${C.border}`,padding:"12px 14px",background:C.bg,transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=c.color+"60";e.currentTarget.style.background="#fff";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.bg;}}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
+              <div style={{width:34,height:34,borderRadius:9,background:c.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{c.emoji}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:12.5,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{c.total} Posts{c.start?` · ${new Date(c.start+"T12:00").toLocaleDateString("de-DE",{day:"numeric",month:"short"})}`:""}</div>
+              </div>
+              <div style={{fontSize:13,fontWeight:800,color:c.color}}>{c.pct}%</div>
             </div>
-            <div style={{padding:"6px 10px 2px",display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
-              {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>(
-                <div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,color:C.textMute,padding:"2px 0"}}>{d}</div>
+            <div style={{height:4,borderRadius:4,background:C.borderLight,overflow:"hidden"}}>
+              <div style={{height:"100%",borderRadius:4,background:c.color,width:`${c.pct}%`,transition:"width .4s"}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:5}}>
+              <span style={{fontSize:10,color:C.textMute}}>{c.pub} veröffentlicht</span>
+              <span style={{fontSize:10,color:C.textMute}}>{c.total-c.pub} ausstehend</span>
+            </div>
+            <div style={{display:"flex",gap:4,marginTop:8}}>
+              {[...new Set(livePosts.filter(p=>p.campaignId===c.id).flatMap(p=>p.channels||[]))].map(ch=>(
+                <ChIco key={ch} id={ch} size={12}/>
               ))}
             </div>
-            <div style={{padding:"0 10px 10px",display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
-              {Array(firstDayMon).fill(null).map((_,i)=><div key={`e${i}`}/>)}
-              {Array(dIM).fill(null).map((_,i)=>{
-                const day=i+1;
-                const dStr=`${calY}-${String(calMon+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-                const isToday=dStr===todayStr;
-                const dayPosts=postsByDay[day];
-                return(
-                  <div key={day} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"2px 0"}}>
-                    <div style={{width:22,height:22,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
-                      background:isToday?C.accent:"transparent",
-                      color:isToday?"#fff":C.textMid,fontSize:10.5,fontWeight:isToday?700:400}}>{day}</div>
-                    {dayPosts&&<div style={{width:4,height:4,borderRadius:"50%",background:C.accent,marginTop:1}}/>}
-                  </div>
-                );
-              })}
-            </div>
           </div>
+        ))}
+      </div>
+    )
+  );
 
-          {/* Today's Posts */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:7}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:C.accent}}/>
-              <span style={{fontSize:12.5,fontWeight:700,color:C.textMid}}>Heute</span>
-              <span style={{fontSize:11,color:C.textMute,marginLeft:"auto"}}>{today.toLocaleDateString("de-DE",{day:"numeric",month:"short"})}</span>
+  // ── Upcoming posts content ──
+  const upcomingContent=(
+    upcomingPosts.length===0?(
+      <div style={{padding:"20px 0",textAlign:"center",fontSize:12,color:C.textMute}}>Keine geplanten Posts in den nächsten Tagen.</div>
+    ):(
+      <div>
+        <div style={{display:"grid",gridTemplateColumns:"80px 70px 1fr 100px 80px",padding:"6px 0",borderBottom:`1px solid ${C.borderLight}`,marginBottom:2}}>
+          {["Datum","Uhrzeit","Post","Kanäle","Status"].map((h,i)=>(
+            <div key={i} style={{fontSize:9.5,fontWeight:700,color:C.textMute,letterSpacing:".05em",textTransform:"uppercase"}}>{h}</div>
+          ))}
+        </div>
+        {upcomingPosts.map((p,i)=>{
+          const sc=SK[p.status]||{c:C.textMute,l:p.status};
+          const camp=campaigns.find(c=>c.id===p.campaignId);
+          return(
+            <div key={p.id} onClick={()=>onEdit(p)}
+              style={{display:"grid",gridTemplateColumns:"80px 70px 1fr 100px 80px",padding:"9px 0",borderBottom:i<upcomingPosts.length-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",transition:"background .1s",alignItems:"center"}}
+              onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <div style={{fontSize:11,fontWeight:700,color:C.textMid}}>{new Date(p.scheduledDate+"T12:00").toLocaleDateString("de-DE",{day:"numeric",month:"short"})}</div>
+              <div style={{fontSize:11,color:C.textSoft}}>{p.scheduledTime||"–"}</div>
+              <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {camp&&<span style={{fontSize:10,marginRight:5}}>{camp.emoji}</span>}
+                <span style={{fontSize:11.5,fontWeight:600,color:C.text}}>{p.title||"Kein Titel"}</span>
+              </div>
+              <div style={{display:"flex",gap:3}}>{p.channels?.slice(0,4).map(c=><ChIco key={c} id={c} size={11}/>)}</div>
+              <div style={{padding:"2px 7px",borderRadius:5,background:sc.c+"15",display:"inline-flex",width:"fit-content"}}>
+                <span style={{fontSize:10,fontWeight:700,color:sc.c}}>{sc.l}</span>
+              </div>
             </div>
-            {todayPosts.length===0?(
-              <div style={{padding:"16px 14px",fontSize:11,color:C.textMute,textAlign:"center"}}>Keine Posts heute geplant</div>
-            ):todayPosts.map((p,i)=>{
-              const sc=SK[p.status]||{c:C.textMute};
-              return(
-                <div key={p.id} onClick={()=>onEdit(p)}
-                  style={{padding:"8px 14px",borderBottom:i<todayPosts.length-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",transition:"background .1s"}}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <div style={{width:3,height:3,borderRadius:"50%",background:sc.c,flexShrink:0}}/>
-                    <span style={{fontSize:12,fontWeight:700,color:C.text,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</span>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3,paddingLeft:9}}>
-                    <span style={{fontSize:10,color:C.textMute}}>{p.scheduledTime||"–"}</span>
-                    {p.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={9}/>)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          );
+        })}
+      </div>
+    )
+  );
 
-          {/* Kommende Posts */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:7}}>
-              <Clock size={13} color={C.textMute} strokeWidth={2}/>
-              <span style={{fontSize:12.5,fontWeight:700,color:C.textMid}}>Kommende Posts</span>
-            </div>
-            {upcomingPosts.slice(0,5).length===0?(
-              <div style={{padding:"16px 14px",fontSize:11,color:C.textMute,textAlign:"center"}}>Keine weiteren Posts</div>
-            ):upcomingPosts.slice(0,5).map((p,i)=>{
-              const sc=SK[p.status]||{c:C.textMute};
-              return(
-                <div key={p.id} onClick={()=>onEdit(p)}
-                  style={{padding:"8px 14px",borderBottom:i<Math.min(upcomingPosts.length,5)-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",display:"flex",gap:9,alignItems:"center",transition:"background .1s"}}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <div style={{width:28,textAlign:"center",flexShrink:0}}>
-                    <div style={{fontSize:13,fontWeight:800,color:C.text,lineHeight:1}}>{new Date(p.scheduledDate+"T12:00").getDate()}</div>
-                    <div style={{fontSize:8.5,color:C.textMute,fontWeight:600,textTransform:"uppercase"}}>{new Date(p.scheduledDate+"T12:00").toLocaleDateString("de-DE",{month:"short"})}</div>
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:11.5,fontWeight:700,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:4,marginTop:2}}>
-                      {p.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={9}/>)}
-                      <span style={{fontSize:9.5,color:C.textMute}}>{p.scheduledTime||""}</span>
-                    </div>
-                  </div>
-                  <div style={{fontSize:9.5,fontWeight:700,color:sc.c,flexShrink:0}}>{sc.l}</div>
-                </div>
-              );
-            })}
-          </div>
+  const timelineRight=<div style={{display:"flex",gap:6,alignItems:"center"}}>
+    <button onClick={prevPeriod} style={{background:"transparent",border:`1px solid #E5E7EB`,borderRadius:6,width:26,height:26,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid}}><ChevronLeft size={13}/></button>
+    <span style={{fontSize:11,color:C.textMute}}>{timeStart.toLocaleDateString("de-DE",{month:"short",year:"2-digit"})} – {timeEnd.toLocaleDateString("de-DE",{month:"short",year:"2-digit"})}</span>
+    <button onClick={goToday} style={{background:"transparent",border:`1px solid #E5E7EB`,borderRadius:6,height:26,padding:"0 8px",cursor:"pointer",fontSize:10,fontWeight:700,color:C.accent,fontFamily:FONT}}>Heute</button>
+    <button onClick={nextPeriod} style={{background:"transparent",border:`1px solid #E5E7EB`,borderRadius:6,width:26,height:26,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid}}><ChevronRight size={13}/></button>
+  </div>;
 
-        </div>{/* END RIGHT */}
-      </div>{/* END GRID */}
+  const widgetMap={
+    timeline:{title:'Timeline',right:timelineRight,content:ganttContent},
+    campaigns:{title:'Aktive Kampagnen',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{campCards.length} Kampagnen</span>,content:campaignsContent},
+    upcoming:{title:'Nächste Posts',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{upcomingPosts.length} kommende</span>,content:upcomingContent},
+  };
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:"#F9FAFB",fontFamily:FONT}}>
+      <div style={{marginBottom:12}}>
+        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:600,color:"#111827",letterSpacing:"-.3px"}}>Planner</div>
+        <div style={{fontSize:12,color:"#9CA3AF",marginTop:2}}>Übersicht über alle geplanten Posts & Kampagnen</div>
+      </div>
+      {order.map(id=>{
+        const w=widgetMap[id];if(!w)return null;
+        return <SecCard key={id} id={id} title={w.title} right={w.right} dragId={pDragId} overId={pOverId} setDragId={pSetDragId} setOverId={pSetOverId} drop={pDrop}>{w.content}</SecCard>;
+      })}
     </div>
   );
 }
@@ -4698,6 +4600,7 @@ function StoryEditorModal({story,items,onSave,onClose,onUpload,onConvertSection}
 
 // ── STORIES PAGE ────────────────────────────────────────────────────────────
 function StoriesPage({stories,items,onEdit,onNew,onDelete}){
+  const {order,dragId:sDragId,setDragId:sSetDragId,overId:sOverId,setOverId:sSetOverId,drop:sDrop}=useSections("stories","default",['stories']);
   const [filt,setFilt]=useState("all");
   const [q,setQ]=useState("");
   const filtered=stories.filter(s=>{
@@ -4766,26 +4669,27 @@ function StoriesPage({stories,items,onEdit,onNew,onDelete}){
     );
   };
 
-  return(
-    <div style={{flex:1,overflow:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
-      {/* Toolbar */}
-      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <div style={{position:"relative",flex:1,minWidth:200}}>
-          <Search size={12} color={C.textMute} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Storys suchen…"
-            style={{width:"100%",padding:"7px 12px 7px 28px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
-        </div>
-        <div style={{display:"flex",gap:2,background:C.borderLight,borderRadius:8,padding:3}}>
-          {[["all","Alle"],["draft","Entwürfe"],["published","Veröffentlicht"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setFilt(v)} style={{padding:"5px 12px",borderRadius:6,border:"none",background:filt===v?C.surface:"transparent",color:filt===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>{l}</button>
-          ))}
-        </div>
-        <Btn onClick={onNew}><Plus size={13} strokeWidth={2.5}/>Neue Story</Btn>
+  const storiesToolbar=(
+    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
+      <div style={{position:"relative",flex:1,minWidth:200}}>
+        <Search size={12} color={C.textMute} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Storys suchen…"
+          style={{width:"100%",padding:"7px 12px 7px 28px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
       </div>
+      <div style={{display:"flex",gap:2,background:C.borderLight,borderRadius:8,padding:3}}>
+        {[["all","Alle"],["draft","Entwürfe"],["published","Veröffentlicht"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setFilt(v)} style={{padding:"5px 12px",borderRadius:6,border:"none",background:filt===v?C.surface:"transparent",color:filt===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>{l}</button>
+        ))}
+      </div>
+      <Btn onClick={onNew}><Plus size={13} strokeWidth={2.5}/>Neue Story</Btn>
+    </div>
+  );
 
-      {/* Grid */}
+  const storiesGridContent=(
+    <div>
+      {storiesToolbar}
       {filtered.length===0?(
-        <div style={{textAlign:"center",padding:"72px 20px",background:C.surface,borderRadius:12,border:`1px solid ${C.border}`,color:C.textMute}}>
+        <div style={{textAlign:"center",padding:"56px 20px",color:C.textMute}}>
           <BookOpen size={48} strokeWidth={1} style={{margin:"0 auto 14px",display:"block",opacity:.3}}/>
           <div style={{fontWeight:700,fontSize:15,color:C.textMid,marginBottom:4}}>
             {q?"Keine Treffer":"Noch keine Storys"}
@@ -4798,6 +4702,23 @@ function StoriesPage({stories,items,onEdit,onNew,onDelete}){
           {filtered.map(s=><StoryCard key={s.id} story={s}/>)}
         </div>
       )}
+    </div>
+  );
+
+  const widgetMap={
+    stories:{title:'Alle Storys',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{filtered.length} Storys</span>,content:storiesGridContent},
+  };
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:"#F9FAFB"}}>
+      <div style={{marginBottom:12}}>
+        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:600,color:"#111827",letterSpacing:"-.3px"}}>Storys</div>
+        <div style={{fontSize:12,color:"#9CA3AF",marginTop:2}}>Artikel & Stories verwalten</div>
+      </div>
+      {order.map(id=>{
+        const w=widgetMap[id];if(!w)return null;
+        return <SecCard key={id} id={id} title={w.title} right={w.right} dragId={sDragId} overId={sOverId} setDragId={sSetDragId} setOverId={sSetOverId} drop={sDrop}>{w.content}</SecCard>;
+      })}
     </div>
   );
 }
