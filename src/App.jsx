@@ -1354,10 +1354,13 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
   const initContent = post.hashtags
     ? (post.content+(post.content?"\n\n":"")+post.hashtags).trim()
     : (post.content||"");
-  const [form,setForm]=useState({...post, content:initContent});
+  const [form,setForm]=useState({...post, content:initContent, channelTexts:post.channelTexts||{}});
   const [pch,setPch]=useState(post.channels?.[0]||"instagram");
   const [rightPane,setRightPane]=useState("preview");
   const [picker,setPicker]=useState(false);
+  const [convOpen,setConvOpen]=useState({}); // which channel konverter sections are open
+  const [autoSaved,setAutoSaved]=useState(null); // timestamp of last auto-save
+  const autoSaveRef=useRef();
   const media=items.find(m=>m.id===form.mediaId);
   const PC=PREV[pch]||PREV.instagram;
   const maxC=form.channels?.length>0?Math.min(...form.channels.map(id=>CHANNELS.find(c=>c.id===id)?.maxChars||9999)):9999;
@@ -1367,22 +1370,70 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
   const charPct=maxC<9999?charLen/maxC*100:0;
   const charColor=charPct>90?C.accent:charPct>70?"#F59E0B":C.textMute;
 
+  // Content stats
+  const wordCount=(form.content||"").trim().split(/\s+/).filter(Boolean).length;
+  const sentenceCount=(form.content||"").split(/[.!?]+/).filter(s=>s.trim()).length;
+  const lineCount=(form.content||"").split("\n").filter(Boolean).length||0;
+
+  // Auto-save: saves draft every 30 seconds if there's content
+  useEffect(()=>{
+    clearTimeout(autoSaveRef.current);
+    if(!form.content&&!form.title)return;
+    autoSaveRef.current=setTimeout(()=>{
+      onSave({...form,status:form.status==="published"?form.status:"draft"});
+      setAutoSaved(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}));
+    },30000);
+    return()=>clearTimeout(autoSaveRef.current);
+  },[form.content,form.title]);
+
+  // Category presets
+  const CATS=["","Politik","Wirtschaft","Tech","Sport","Lifestyle","Kultur","Gesundheit","Reise","Bildung","Andere"];
+  const catColors={"Politik":"#3B82F6","Wirtschaft":"#10B981","Tech":"#8B5CF6","Sport":"#F59E0B","Lifestyle":"#EC4899","Kultur":"#6366F1","Gesundheit":"#EF4444","Reise":"#14B8A6","Bildung":"#F97316","Andere":"#6B7280"};
+
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{background:C.surface,borderRadius:16,width:"100%",maxWidth:1060,maxHeight:"94vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 24px 64px rgba(0,0,0,.2)",border:`1px solid ${C.border}`}}>
 
         {/* Modal top bar */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 20px",borderBottom:`1px solid ${C.borderLight}`,flexShrink:0}}>
-          <h2 style={{margin:0,fontFamily:FONT_DISPLAY,fontSize:16,fontWeight:700,color:C.text,letterSpacing:"-.01em"}}>{form.id?"Post bearbeiten":"Neuer Post"}</h2>
-          <div style={{display:"flex",gap:3,background:C.bg,borderRadius:9,padding:3,border:`1px solid ${C.border}`}}>
-            {[["preview","Vorschau",Eye],["ai","KI-Assistent",Sparkles]].map(([id,label,Ic])=>(
-              <button key={id} onClick={()=>setRightPane(id)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:7,border:"none",background:rightPane===id?(id==="ai"?`linear-gradient(135deg,${C.ai1},${C.ai2})`:C.surface):"transparent",color:rightPane===id?(id==="ai"?"#fff":C.text):C.textSoft,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:FONT,boxShadow:rightPane===id?"0 1px 4px rgba(0,0,0,.1)":"none",transition:"all .15s"}}>
-                <Ic size={12} strokeWidth={2}/>{label}
-                {id==="ai"&&<span style={{fontSize:9,fontWeight:700,padding:"0 5px",borderRadius:8,background:rightPane==="ai"?"rgba(255,255,255,.25)":C.purpleGlow,color:rightPane==="ai"?"#fff":C.purple}}>PRO</span>}
+        <div style={{flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 20px",borderBottom:`1px solid ${C.borderLight}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+              <h2 style={{margin:0,fontFamily:FONT_DISPLAY,fontSize:15,fontWeight:700,color:C.text,letterSpacing:"-.01em",flexShrink:0}}>{form.id?"Post bearbeiten":"Neuer Post"}</h2>
+              {/* Category badge */}
+              {form.category&&<span style={{fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:(catColors[form.category]||"#6B7280")+"18",color:catColors[form.category]||"#6B7280",flexShrink:0,textTransform:"uppercase",letterSpacing:".04em"}}>{form.category}</span>}
+              {/* Auto-save indicator */}
+              {autoSaved&&<span style={{fontSize:10,color:C.textMute,fontWeight:500}}>· AUTO-SAVE: {autoSaved}</span>}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {/* Content stats */}
+              {charLen>0&&<div style={{display:"flex",gap:6,alignItems:"center",background:C.bg,border:`1px solid ${C.border}`,borderRadius:7,padding:"4px 9px",fontSize:10,color:C.textMute,flexShrink:0}}>
+                <span>{wordCount} Wörter</span>
+                <span style={{color:C.borderLight}}>·</span>
+                <span>{charLen} Z.</span>
+                <span style={{color:C.borderLight}}>·</span>
+                <span>{sentenceCount} Sätze</span>
+              </div>}
+              <div style={{display:"flex",gap:3,background:C.bg,borderRadius:9,padding:3,border:`1px solid ${C.border}`}}>
+                {[["preview","Vorschau",Eye],["ai","KI-Assistent",Sparkles]].map(([id,label,Ic])=>(
+                  <button key={id} onClick={()=>setRightPane(id)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:7,border:"none",background:rightPane===id?(id==="ai"?`linear-gradient(135deg,${C.ai1},${C.ai2})`:C.surface):"transparent",color:rightPane===id?(id==="ai"?"#fff":C.text):C.textSoft,fontWeight:700,fontSize:11.5,cursor:"pointer",fontFamily:FONT,boxShadow:rightPane===id?"0 1px 4px rgba(0,0,0,.1)":"none",transition:"all .15s"}}>
+                    <Ic size={11} strokeWidth={2}/>{label}
+                    {id==="ai"&&<span style={{fontSize:9,fontWeight:700,padding:"0 5px",borderRadius:8,background:rightPane==="ai"?"rgba(255,255,255,.25)":C.purpleGlow,color:rightPane==="ai"?"#fff":C.purple}}>PRO</span>}
+                  </button>
+                ))}
+              </div>
+              <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:4}}><X size={19} strokeWidth={2}/></button>
+            </div>
+          </div>
+          {/* Category selector row */}
+          <div style={{padding:"6px 20px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",gap:4,alignItems:"center",overflowX:"auto",flexShrink:0,background:C.bg}}>
+            <span style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".04em",flexShrink:0,marginRight:2}}>KATEGORIE</span>
+            {CATS.filter(c=>c).map(cat=>(
+              <button key={cat} onClick={()=>setForm(f=>({...f,category:f.category===cat?"":cat}))}
+                style={{padding:"3px 10px",borderRadius:20,border:`1.5px solid ${form.category===cat?(catColors[cat]||"#6B7280"):C.border}`,background:form.category===cat?(catColors[cat]||"#6B7280")+"14":"transparent",color:form.category===cat?(catColors[cat]||"#6B7280"):C.textSoft,fontSize:10.5,fontWeight:700,cursor:"pointer",fontFamily:FONT,flexShrink:0,transition:"all .12s"}}>
+                {cat}
               </button>
             ))}
           </div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:4}}><X size={20} strokeWidth={2}/></button>
         </div>
 
         <div style={{flex:1,overflow:"hidden",display:"flex"}}>
@@ -1449,6 +1500,66 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
               <TIn label="Datum" type="date" value={form.scheduledDate||""} onChange={e=>setForm({...form,scheduledDate:e.target.value})}/>
               <TIn label="Uhrzeit" type="time" value={form.scheduledTime||"12:00"} onChange={e=>setForm({...form,scheduledTime:e.target.value})}/>
             </div>
+
+            {/* ── Social Konverter: per-channel text adaptation ── */}
+            {(form.channels||[]).length>0&&(
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <div style={{flex:1,height:1,background:C.borderLight}}/>
+                  <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".06em",flexShrink:0}}>KANAL-ANPASSUNG</span>
+                  <div style={{flex:1,height:1,background:C.borderLight}}/>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {(form.channels||[]).map(chId=>{
+                    const ch=CHANNELS.find(c=>c.id===chId);
+                    if(!ch)return null;
+                    const maxCh=ch.maxChars||9999;
+                    const chText=form.channelTexts?.[chId]||"";
+                    const isOpen=convOpen[chId]??false;
+                    const chLen=chText.length;
+                    const hasCustom=!!chText;
+                    return(
+                      <div key={chId} style={{border:`1.5px solid ${isOpen?ch.color+"50":C.border}`,borderRadius:10,overflow:"hidden",transition:"border-color .15s"}}>
+                        {/* Header */}
+                        <div onClick={()=>setConvOpen(p=>({...p,[chId]:!p[chId]}))}
+                          style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",background:isOpen?ch.color+"08":C.surface,transition:"background .15s"}}>
+                          <ChIco id={chId} size={14} color={isOpen?ch.color:C.textSoft}/>
+                          <span style={{flex:1,fontSize:12,fontWeight:700,color:isOpen?ch.color:C.textMid}}>{ch.label}</span>
+                          {hasCustom&&<span style={{fontSize:9.5,fontWeight:700,padding:"1px 6px",borderRadius:5,background:ch.color+"15",color:ch.color}}>Angepasst</span>}
+                          {!hasCustom&&<span style={{fontSize:9.5,color:C.textMute}}>Haupttext</span>}
+                          <ChevronDown size={13} color={C.textMute} strokeWidth={2} style={{transform:isOpen?"rotate(180deg)":"none",transition:"transform .15s"}}/>
+                        </div>
+                        {/* Body */}
+                        {isOpen&&(
+                          <div style={{padding:"10px 12px",borderTop:`1px solid ${C.borderLight}`,background:C.bg}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                              <span style={{fontSize:10,color:C.textMute}}>Spezifischer Text für {ch.label} (optional)</span>
+                              <div style={{display:"flex",gap:5}}>
+                                {!hasCustom&&<button onClick={()=>setForm(f=>({...f,channelTexts:{...f.channelTexts,[chId]:f.content||""}}))}
+                                  style={{fontSize:10,fontWeight:600,color:C.accent,background:"none",border:"none",cursor:"pointer",fontFamily:FONT,padding:0}}>← Haupttext übernehmen</button>}
+                                {hasCustom&&<button onClick={()=>setForm(f=>{const t={...f.channelTexts};delete t[chId];return{...f,channelTexts:t};})}
+                                  style={{fontSize:10,fontWeight:600,color:C.textSoft,background:"none",border:"none",cursor:"pointer",fontFamily:FONT,padding:0}}>✕ Zurücksetzen</button>}
+                                {hasCustom&&maxCh<9999&&<span style={{fontSize:10,fontWeight:600,color:chLen>maxCh?C.red:chLen>maxCh*.8?"#F59E0B":C.textMute}}>{chLen}/{maxCh}</span>}
+                              </div>
+                            </div>
+                            <textarea
+                              value={chText}
+                              onChange={e=>setForm(f=>({...f,channelTexts:{...f.channelTexts,[chId]:e.target.value}}))}
+                              placeholder={`Leer lassen → Haupttext wird verwendet\n(max. ${maxCh<9999?maxCh+"  Zeichen":"unbegrenzt"})`}
+                              style={{width:"100%",minHeight:80,padding:"8px 10px",borderRadius:8,border:`1px solid ${chLen>maxCh?C.red:C.border}`,fontSize:12,outline:"none",fontFamily:FONT,resize:"vertical",boxSizing:"border-box",color:C.text,lineHeight:1.55,background:C.surface}}/>
+                            {maxCh<9999&&chLen>0&&(
+                              <div style={{height:3,borderRadius:99,marginTop:5,background:C.borderLight,overflow:"hidden"}}>
+                                <div style={{height:"100%",width:`${Math.min(100,chLen/maxCh*100)}%`,background:chLen>maxCh?C.red:chLen>maxCh*.8?"#F59E0B":ch.color,borderRadius:99,transition:"width .2s"}}/>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* RIGHT: Preview or AI */}
@@ -2198,7 +2309,9 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   const sched=posts.filter(p=>p.status==="scheduled");
   const drafts=posts.filter(p=>p.status==="draft");
   const pend=posts.filter(p=>p.status==="pending");
-  const recent=[...posts].slice(-6).reverse();
+  const pub=posts.filter(p=>p.status==="published");
+  const recent=[...posts].slice(-12).reverse();
+  const [hovCard,setHovCard]=useState(null);
 
   // Live clock
   const [now,setNow]=useState(new Date());
@@ -2315,183 +2428,283 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
     return null;
   };
 
-  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.05)"};
-  const hoverCard=e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.08)";e.currentTarget.style.transform="translateY(-1px)";};
-  const leaveCard=e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.05)";e.currentTarget.style.transform="";};
+  // Mini calendar state
+  const [calMonth,setCalMonth]=useState(new Date());
+  const calYear=calMonth.getFullYear(),calMon=calMonth.getMonth();
+  const firstDay=new Date(calYear,calMon,1).getDay();
+  const firstDayMon=firstDay===0?6:firstDay-1;
+  const daysInMonth=new Date(calYear,calMon+1,0).getDate();
+  const schedDays=new Set(sched.filter(p=>p.scheduledDate).map(p=>{
+    const d=new Date(p.scheduledDate);
+    if(d.getFullYear()===calYear&&d.getMonth()===calMon)return d.getDate();
+    return null;
+  }).filter(Boolean));
+  const calLabel=calMonth.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  const todayD=now.getDate(),todayM=now.getMonth(),todayY=now.getFullYear();
+
+  // Image cover helper
+  const getCover=p=>{if(p.mediaId){const m=items.find(x=>x.id===p.mediaId);return m?.url;}return null;};
+
+  // Activity feed: most recent posts as "actions"
+  const actMap={
+    scheduled:{verb:"geplant",color:C.accent,icon:"📅"},
+    pending:{verb:"zur Freigabe eingereicht",color:C.warning,icon:"⏳"},
+    published:{verb:"veröffentlicht",color:C.success,icon:"✅"},
+    draft:{verb:"als Entwurf gespeichert",color:C.textSoft,icon:"📝"},
+  };
+
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
+  const lift=e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.09)";};
+  const drop=e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.04)";};
+
+  // ── Image-forward post card ──
+  const PostCard=({post})=>{
+    const cover=getCover(post);
+    const camp=campaigns.find(c=>c.id===post.campaignId);
+    const isHov=hovCard===post.id;
+    const sc={scheduled:{c:C.accent,l:"Geplant"},draft:{c:C.warning,l:"Entwurf"},pending:{c:"#818CF8",l:"Freigabe"},published:{c:C.success,l:"Live"}}[post.status]||{c:C.textSoft,l:"–"};
+    return(
+      <div onClick={()=>onNav("publisher")} onMouseEnter={()=>setHovCard(post.id)} onMouseLeave={()=>setHovCard(null)}
+        style={{borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:10,
+          border:`1.5px solid ${isHov?C.accent+"55":C.border}`,transition:"all .18s",
+          transform:isHov?"translateY(-2px)":"none",boxShadow:isHov?"0 8px 22px rgba(0,0,0,.1)":"0 1px 3px rgba(0,0,0,.04)",
+          background:cover?"#111":C.surface}}>
+        {cover?(
+          <>
+            <img src={cover} alt={post.title||""} style={{width:"100%",display:"block",objectFit:"cover",maxHeight:200,minHeight:90}} loading="lazy"/>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.05) 0%,transparent 35%,rgba(0,0,0,.72) 100%)"}}/>
+            <div style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.58)",borderRadius:5,padding:"2px 7px",backdropFilter:"blur(6px)"}}>
+              <span style={{fontSize:9.5,fontWeight:700,color:sc.c}}>{sc.l}</span>
+            </div>
+            {camp&&<div style={{position:"absolute",top:8,left:8,fontSize:14,filter:"drop-shadow(0 1px 2px rgba(0,0,0,.5))"}}>{camp.emoji}</div>}
+            <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"8px 10px"}}>
+              <div style={{fontWeight:700,fontSize:12,color:"#fff",lineHeight:1.3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{post.title||"Kein Titel"}</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:5}}>
+                <div style={{display:"flex",gap:3}}>{post.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={11}/>)}</div>
+                {post.scheduledDate&&<span style={{fontSize:9,color:"rgba(255,255,255,.55)"}}>{post.scheduledDate}</span>}
+              </div>
+            </div>
+          </>
+        ):(
+          <div style={{padding:"13px 13px 11px",background:`linear-gradient(135deg,${C.surface} 60%,${camp?camp.color+"0a":C.bg})`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <div style={{display:"flex",gap:3}}>{post.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={13}/>)}</div>
+              <span style={{fontSize:9.5,fontWeight:700,padding:"2px 7px",borderRadius:5,background:sc.c+"15",color:sc.c}}>{sc.l}</span>
+            </div>
+            <div style={{fontWeight:700,fontSize:12.5,color:C.text,lineHeight:1.35,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical"}}>{post.title||"Kein Titel"}</div>
+            {post.content&&<div style={{fontSize:11,color:C.textSoft,marginTop:5,lineHeight:1.45,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{post.content}</div>}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:9,paddingTop:7,borderTop:`1px solid ${C.borderLight}`}}>
+              <span style={{fontSize:10,color:C.textMute}}>{camp?`${camp.emoji} ${camp.name}`:"Kein Projekt"}</span>
+              <span style={{fontSize:10,color:C.textMute}}>{post.scheduledDate||"–"}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return(
-    <div style={{flex:1,overflow:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:12,background:C.bg}}>
+    <div style={{flex:1,overflow:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:10,background:C.bg}}>
 
-      {/* ── HERO: dark clock | greeting | KPIs ── */}
-      <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:124}}>
-        {/* Clock block */}
-        <div style={{background:C.text,padding:"20px 26px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:164}}>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:38,fontWeight:800,color:"#fff",lineHeight:1,letterSpacing:"-1px"}}>{timeStr}</div>
-          <div style={{fontSize:10,fontWeight:600,color:"#555550",textTransform:"uppercase",letterSpacing:".6px",marginTop:4}}>Uhr</div>
-          <div style={{fontSize:11,fontWeight:500,color:"#666660",marginTop:8,lineHeight:1.4}}>{dateStr}</div>
-          <div style={{fontSize:10,color:"#3a3a38",marginTop:2}}>KW {kw}</div>
+      {/* ── HERO: clock | greeting | totals ── */}
+      <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
+        <div style={{background:C.text,padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:148}}>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:36,fontWeight:800,color:"#fff",lineHeight:1,letterSpacing:"-1px"}}>{timeStr}</div>
+          <div style={{fontSize:9.5,fontWeight:600,color:"rgba(255,255,255,.28)",textTransform:"uppercase",letterSpacing:".7px",marginTop:4}}>KW {kw}</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.38)",marginTop:7,lineHeight:1.4}}>{dateStr}</div>
         </div>
-
-        {/* Greeting */}
-        <div style={{padding:"20px 26px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
-          <div style={{fontSize:10,fontWeight:600,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:21,fontWeight:800,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]} 👋</div>
-          <div style={{display:"flex",gap:6,marginTop:9,flexWrap:"wrap"}}>
-            {pend.length>0&&<span style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.redLight,color:C.red}}>{pend.length} zur Freigabe</span>}
-            {sched.length>0&&<span style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.accentLight,color:C.accent}}>{sched.length} heute geplant</span>}
+        <div style={{padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
+          <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:20,fontWeight:800,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]} 👋</div>
+          <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
+            {pend.length>0&&<span onClick={()=>onFilterNav("publisher","pending")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.warningBg,color:C.warning,cursor:"pointer"}}>{pend.length} zur Freigabe</span>}
+            {sched.length>0&&<span onClick={()=>onFilterNav("publisher","scheduled")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.accentLight,color:C.accent,cursor:"pointer"}}>{sched.length} geplant</span>}
+            {posts.length===0&&<span style={{fontSize:12,color:C.textSoft,fontStyle:"italic"}}>Erstelle deinen ersten Post ✨</span>}
           </div>
         </div>
-
-        {/* KPIs */}
         <div style={{display:"flex"}}>
-          <div style={{padding:"20px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>44.3K</div>
-            <div style={{fontSize:11,color:C.textSoft,marginTop:2}}>Reichweite</div>
-            <div style={{fontSize:10,fontWeight:700,color:C.success,marginTop:4}}>↑ 18% diese Woche</div>
+          <div style={{padding:"18px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>{posts.length}</div>
+            <div style={{fontSize:11,color:C.textSoft,marginTop:2}}>Posts gesamt</div>
           </div>
-          <div style={{padding:"20px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>5.7%</div>
-            <div style={{fontSize:11,color:C.textSoft,marginTop:2}}>Ø Engagement</div>
-            <div style={{fontSize:10,fontWeight:700,color:C.success,marginTop:4}}>↑ 2% vs. Vorwoche</div>
+          <div style={{padding:"18px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:800,color:C.text,lineHeight:1}}>{campaigns.length}</div>
+            <div style={{fontSize:11,color:C.textSoft,marginTop:2}}>Kampagnen</div>
           </div>
         </div>
+      </div>
+
+      {/* ── STAT CHIPS – 5 cols like design ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+        {[
+          {label:"Aktive Posts",  value:sched.length,  sub:"Geplant",         color:"#3B82F6", nav:()=>onFilterNav("publisher","scheduled")},
+          {label:"Zur Freigabe",  value:pend.length,   sub:"Ausstehend",       color:C.warning, nav:()=>onFilterNav("publisher","pending")},
+          {label:"Entwürfe",      value:drafts.length, sub:"Nicht geplant",    color:"#8B5CF6", nav:()=>onFilterNav("publisher","draft")},
+          {label:"Veröffentlicht",value:pub.length,    sub:"Alle Zeiten",      color:C.success, nav:()=>onFilterNav("publisher","published")},
+          {label:"Kampagnen",     value:campaigns.length,sub:"Aktiv",          color:"#EC4899", nav:()=>onNav("campaigns")},
+        ].map((st,i)=>(
+          <div key={i} onClick={st.nav}
+            style={{...card,padding:"12px 14px",cursor:"pointer",transition:"all .15s",borderTop:`3px solid ${st.color}`}}
+            onMouseEnter={lift} onMouseLeave={drop}>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:24,fontWeight:800,color:C.text,lineHeight:1}}>{st.value}</div>
+            <div style={{fontSize:11.5,fontWeight:600,color:C.textMid,marginTop:4}}>{st.label}</div>
+            <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{st.sub}</div>
+          </div>
+        ))}
       </div>
 
       {/* ── QUICK ACTIONS ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
         {[
-          {type:"post",  label:"Post erstellen",  sub:"Neuer Inhalt",    nav:"publisher"},
-          {type:"cal",   label:"Kalender",         sub:"Zeitplan",        nav:"calendar"},
-          {type:"upload",label:"Medien hochladen", sub:"Bilder & Videos", nav:"media"},
-          {type:"perf",  label:"Performance",      sub:"Auswertungen",    nav:"performance"},
-          {type:"camp",  label:"Kampagne",          sub:"Neue Kampagne",   nav:"campaigns"},
+          {I:Send,      label:"Post erstellen",   sub:"Neuer Inhalt",     nav:"publisher",   color:"#3B82F6"},
+          {I:Calendar,  label:"Kalender",          sub:"Zeitplan",         nav:"calendar",    color:"#8B5CF6"},
+          {I:Image,     label:"Medien",            sub:"Bilder & Videos",  nav:"media",       color:"#10B981"},
+          {I:BarChart2, label:"Performance",       sub:"Auswertungen",     nav:"performance", color:"#F59E0B"},
+          {I:Flag,      label:"Kampagnen",         sub:"Projekte",         nav:"campaigns",   color:"#EC4899"},
         ].map((qa,i)=>(
           <div key={i} onClick={()=>onNav(qa.nav)}
-            style={{...card,padding:14,display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,cursor:"pointer",transition:"all .15s"}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor="#888";hoverCard(e);}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;leaveCard(e);}}>
-            <div style={{width:30,height:30,borderRadius:7,background:C.bg,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <QaIcon type={qa.type}/>
+            style={{...card,padding:"11px 13px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=qa.color+"55";lift(e);}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;drop(e);}}>
+            <div style={{width:32,height:32,borderRadius:8,background:qa.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <qa.I size={15} color={qa.color} strokeWidth={1.8}/>
             </div>
-            <div>
-              <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>{qa.label}</div>
-              <div style={{fontSize:10,color:C.textMute,marginTop:2}}>{qa.sub}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── STAT CARDS ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-        {[
-          {Ico:SvgCheck,label:"Geplante Posts", value:sched.length, delta:"+12%", up:true,  barW:"35%",barC:C.accent, nav:()=>onFilterNav("publisher","scheduled")},
-          {Ico:SvgDoc,  label:"Entwürfe",       value:drafts.length,delta:"−3%",  up:false, barW:"20%",barC:C.warning,nav:()=>onFilterNav("publisher","draft")},
-          {Ico:SvgClock,label:"Zur Freigabe",   value:pend.length,  delta:"±0%",  up:null,  barW:"10%",barC:C.red,   nav:()=>onFilterNav("publisher","pending")},
-          {Ico:SvgTrend,label:"Ø Engagement",   value:"5.7%",       delta:"+2%",  up:true,  barW:"57%",barC:C.success},
-        ].map((sc,i)=>(
-          <div key={i} onClick={sc.nav}
-            style={{...card,padding:"14px 16px",cursor:sc.nav?"pointer":"default",transition:"all .15s"}}
-            onMouseEnter={e=>{if(sc.nav)hoverCard(e);}}
-            onMouseLeave={e=>{if(sc.nav)leaveCard(e);}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-              <div style={{width:28,height:28,borderRadius:7,background:C.bg,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <sc.Ico/>
-              </div>
-              <span style={{fontSize:11,fontWeight:600,padding:"2px 7px",borderRadius:5,background:sc.up===true?C.successBg:sc.up===false?C.redLight:C.bg,color:sc.up===true?C.success:sc.up===false?C.red:C.textSoft}}>{sc.delta}</span>
-            </div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:26,fontWeight:800,lineHeight:1,color:C.text}}>{sc.value}</div>
-            <div style={{fontSize:11,color:C.textSoft,marginTop:3}}>{sc.label}</div>
-            <div style={{height:3,borderRadius:99,marginTop:12,background:C.borderLight,overflow:"hidden"}}>
-              <div style={{height:"100%",width:sc.barW,borderRadius:99,background:sc.barC}}/>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:700,color:C.textMid,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qa.label}</div>
+              <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{qa.sub}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ── TWO COL: posts list + right panel ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:12}}>
+      {/* ── MAIN CONTENT: post grid + right panel ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 268px",gap:10}}>
 
-        {/* Posts list */}
-        <div style={{...card,overflow:"hidden"}}>
-          <div style={{padding:"11px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontWeight:700,fontSize:13}}>Letzte Posts</span>
-              <div style={{display:"flex",gap:1,padding:3,background:C.bg,borderRadius:7,border:`1px solid ${C.border}`}}>
-                {["Alle","Geplant","Entwürfe"].map((t,i)=>(
-                  <span key={i} style={{padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,cursor:"pointer",color:i===0?C.text:C.textSoft,background:i===0?C.surface:"transparent"}}>{t}</span>
-                ))}
-              </div>
-            </div>
-            <button onClick={()=>onNav("publisher")} style={{fontSize:12,color:C.accent,fontWeight:500,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
+        {/* ── POST GRID (image-forward masonry) ── */}
+        <div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <span style={{fontWeight:700,fontSize:13,color:C.textMid}}>Letzte Posts</span>
+            <button onClick={()=>onNav("publisher")} style={{fontSize:12,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle anzeigen →</button>
           </div>
-          {recent.length===0
-            ?<div style={{padding:"32px 0",textAlign:"center",color:C.textMute,fontSize:12}}>Noch keine Posts</div>
-            :recent.slice(0,5).map((p,i)=>{
-              const sMap={scheduled:{c:C.accent,bg:C.accentLight,l:"Geplant"},draft:{c:C.textSoft,bg:C.bg,l:"Entwurf"},pending:{c:C.warning,bg:C.warningBg,l:"Review"},published:{c:C.success,bg:C.successBg,l:"Live"}};
-              const s=sMap[p.status]||sMap.draft;
-              return <div key={p.id} style={{padding:"9px 16px",borderBottom:i<Math.min(recent.length,5)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"background .1s"}}
-                onClick={()=>onNav("publisher")}
-                onMouseEnter={e=>e.currentTarget.style.background="#F5F5FF"}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <div style={{width:32,height:32,borderRadius:7,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${C.border}`,background:C.bg,fontSize:14}}>
-                  {campaigns.find(c=>c.id===p.campaignId)?.emoji||"📄"}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:600,fontSize:12,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title||"Kein Titel"}</div>
-                  <div style={{fontSize:11,color:C.textSoft,marginTop:2,display:"flex",alignItems:"center",gap:5}}>
-                    {p.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={11} color={C.textMute}/>)}
-                    <span>{p.scheduledDate?`· ${p.scheduledDate}`:p.status==="pending"?"· Zur Freigabe":"· Entwurf"}</span>
-                  </div>
-                </div>
-                <span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:5,background:s.bg,color:s.c,flexShrink:0}}>{s.l}</span>
-              </div>;
-            })
-          }
+          {recent.length===0?(
+            <div style={{...card,padding:"48px 20px",textAlign:"center",color:C.textMute}}>
+              <Send size={40} strokeWidth={1} style={{margin:"0 auto 12px",display:"block",opacity:.35}}/>
+              <div style={{fontWeight:700,fontSize:14,color:C.textMid,marginBottom:4}}>Noch keine Posts</div>
+              <div style={{fontSize:12,marginBottom:16}}>Erstelle deinen ersten Social-Media-Post</div>
+              <Btn onClick={()=>onNav("publisher")}><Plus size={13}/>Post erstellen</Btn>
+            </div>
+          ):(
+            <div style={{columns:"3 180px",columnGap:10}}>
+              {recent.map(p=><PostCard key={p.id} post={p}/>)}
+            </div>
+          )}
         </div>
 
-        {/* Right panel */}
+        {/* ── RIGHT PANEL ── */}
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
+
+          {/* Mini calendar */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <button onClick={()=>setCalMonth(new Date(calYear,calMon-1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,fontSize:16,lineHeight:1,padding:"0 2px",fontFamily:FONT}}>‹</button>
+              <span style={{fontSize:12,fontWeight:700,color:C.textMid}}>{calLabel}</span>
+              <button onClick={()=>setCalMonth(new Date(calYear,calMon+1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,fontSize:16,lineHeight:1,padding:"0 2px",fontFamily:FONT}}>›</button>
+            </div>
+            <div style={{padding:"6px 10px 2px",display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
+              {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>(
+                <div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,color:C.textMute,padding:"2px 0"}}>{d}</div>
+              ))}
+            </div>
+            <div style={{padding:"0 10px 10px",display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
+              {Array(firstDayMon).fill(null).map((_,i)=><div key={`e${i}`}/>)}
+              {Array(daysInMonth).fill(null).map((_,i)=>{
+                const day=i+1;
+                const isToday=day===todayD&&calMon===todayM&&calYear===todayY;
+                const hasPosts=schedDays.has(day);
+                return(
+                  <div key={day} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"2px 0",cursor:hasPosts?"pointer":"default"}}
+                    onClick={hasPosts?()=>onNav("calendar"):undefined}>
+                    <div style={{width:22,height:22,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
+                      background:isToday?C.accent:"transparent",
+                      color:isToday?"#fff":C.textMid,fontSize:10.5,fontWeight:isToday?700:400}}>
+                      {day}
+                    </div>
+                    {hasPosts&&<div style={{width:4,height:4,borderRadius:"50%",background:C.accent,marginTop:1}}/>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Activity feed – Letzte Aktionen */}
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Letzte Aktionen</span>
+              <Activity size={13} color={C.textMute} strokeWidth={1.8}/>
+            </div>
+            {recent.length===0
+              ?<div style={{padding:"20px 14px",textAlign:"center",fontSize:11,color:C.textMute}}>Noch keine Aktivität</div>
+              :recent.slice(0,7).map((p,i)=>{
+                const a=actMap[p.status]||actMap.draft;
+                return(
+                  <div key={p.id} style={{padding:"8px 14px",borderBottom:i<Math.min(recent.length,7)-1?`1px solid ${C.borderLight}`:"none",display:"flex",gap:9,alignItems:"flex-start",cursor:"pointer",transition:"background .1s"}}
+                    onClick={()=>onNav("publisher")}
+                    onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <div style={{width:26,height:26,borderRadius:7,background:a.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12}}>{a.icon}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:600,fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
+                      <div style={{fontSize:10,color:C.textSoft,marginTop:1,display:"flex",alignItems:"center",gap:4}}>
+                        <span style={{color:a.color,fontWeight:600}}>{a.verb}</span>
+                        {p.channels?.slice(0,2).map(c=><ChIco key={c} id={c} size={9}/>)}
+                      </div>
+                    </div>
+                    {p.scheduledDate&&<span style={{fontSize:9,color:C.textMute,flexShrink:0,paddingTop:1}}>{p.scheduledDate}</span>}
+                  </div>
+                );
+              })
+            }
+          </div>
 
           {/* Posts je Kanal */}
           <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"11px 16px",borderBottom:`1px solid ${C.borderLight}`}}>
-              <span style={{fontWeight:700,fontSize:13}}>Posts je Kanal</span>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`}}>
+              <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Posts je Kanal</span>
             </div>
             {CHANNELS.map((ch,i)=>{
               const n=posts.filter(p=>p.channels?.includes(ch.id)).length;
               const total=Math.max(1,posts.length);
-              return <div key={ch.id} style={{padding:"8px 16px",borderBottom:i<CHANNELS.length-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:10}}>
-                <div style={{fontSize:12,fontWeight:600,color:C.textMid,width:82,display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                  <ChIco id={ch.id} size={13} color={C.text}/>
-                  {ch.label}
+              return <div key={ch.id} style={{padding:"7px 14px",borderBottom:i<CHANNELS.length-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8}}>
+                <ChIco id={ch.id} size={12} color={C.textMid}/>
+                <span style={{fontSize:11,color:C.textMid,flex:1}}>{ch.label}</span>
+                <div style={{width:60,height:4,background:C.borderLight,borderRadius:99,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${(n/total)*100}%`,background:C.accent,borderRadius:99}}/>
                 </div>
-                <div style={{flex:1,height:5,background:C.borderLight,borderRadius:99,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${(n/total)*100}%`,background:C.text,borderRadius:99}}/>
-                </div>
-                <span style={{fontSize:11,fontWeight:600,color:C.textSoft,width:16,textAlign:"right",flexShrink:0}}>{n}</span>
+                <span style={{fontSize:11,fontWeight:700,color:C.textSoft,width:14,textAlign:"right"}}>{n}</span>
               </div>;
             })}
           </div>
 
           {/* Kampagnen */}
           <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"11px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontWeight:700,fontSize:13}}>Kampagnen</span>
-              <button onClick={()=>onNav("campaigns")} style={{fontSize:12,color:C.accent,fontWeight:500,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Kampagnen</span>
+              <button onClick={()=>onNav("campaigns")} style={{fontSize:11,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
             </div>
             {campaigns.length===0
-              ?<div style={{padding:"20px 16px",textAlign:"center",color:C.textMute,fontSize:12}}>Keine Kampagnen</div>
+              ?<div style={{padding:"16px 14px",textAlign:"center",color:C.textMute,fontSize:11}}>Keine Kampagnen</div>
               :campaigns.slice(0,4).map((c,i)=>{
                 const n=posts.filter(p=>p.campaignId===c.id).length;
-                return <div key={c.id} style={{padding:"9px 16px",borderBottom:i<Math.min(campaigns.length,4)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",transition:"background .1s"}}
+                return <div key={c.id} style={{padding:"8px 14px",borderBottom:i<Math.min(campaigns.length,4)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",transition:"background .1s"}}
                   onClick={()=>onNav("campaigns")}
                   onMouseEnter={e=>e.currentTarget.style.background=C.bg}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:c.color,flexShrink:0}}/>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>{c.name}</div>
-                    <div style={{fontSize:11,color:C.textMute,marginTop:1}}>{n} Post{n!==1?"s":""} · aktiv</div>
+                  <div style={{fontSize:16,flexShrink:0}}>{c.emoji}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:11.5,fontWeight:700,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                    <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{n} Post{n!==1?"s":""}</div>
                   </div>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:c.color,flexShrink:0}}/>
                 </div>;
               })
             }
