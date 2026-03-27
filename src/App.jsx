@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings, Flag,
   Users, Bell, LogOut, Plus, Search, Clock, Check, X, Edit2, Trash2,
@@ -1411,7 +1411,7 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
   const [rRes,setRRes]=useState([]);
   const [rLdg,setRLdg]=useState(false);
   const rTimer=useRef();
-  const rKeys={unsplash:skGet("unsplash"),pexels:skGet("pexels"),pixabay:skGet("pixabay")};
+  const rKeys=useMemo(()=>({unsplash:skGet("unsplash"),pexels:skGet("pexels"),pixabay:skGet("pixabay")}),[]);
   const rHasKeys=STOCK_SRCS.some(s=>rKeys[s.id]);
   useEffect(()=>{
     clearTimeout(rTimer.current);
@@ -1425,7 +1425,7 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
       setRLdg(false);
     },500);
     return()=>clearTimeout(rTimer.current);
-  },[rQ]);
+  },[rQ,rKeys]);
   const media=items.find(m=>m.id===form.mediaId);
   const PC=PREV[pch]||PREV.instagram;
   const maxC=form.channels?.length>0?Math.min(...form.channels.map(id=>CHANNELS.find(c=>c.id===id)?.maxChars||9999)):9999;
@@ -1441,11 +1441,15 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
   const lineCount=(form.content||"").split("\n").filter(Boolean).length||0;
 
   // Auto-save: saves draft every 30 seconds if there's content
+  // Use a ref to always capture the latest form without re-scheduling the timer
+  const formRef=useRef(form);
+  formRef.current=form;
   useEffect(()=>{
     clearTimeout(autoSaveRef.current);
     if(!form.content&&!form.title)return;
     autoSaveRef.current=setTimeout(()=>{
-      onSave({...form,status:form.status==="published"?form.status:"draft"});
+      const f=formRef.current;
+      onSave({...f,status:f.status==="published"?f.status:"draft"});
       setAutoSaved(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}));
     },30000);
     return()=>clearTimeout(autoSaveRef.current);
@@ -2619,19 +2623,19 @@ function GlobalRightSidebar({posts,campaigns,onNav}){
   const firstDay=new Date(calYear,calMon,1).getDay();
   const firstDayMon=firstDay===0?6:firstDay-1;
   const daysInMonth=new Date(calYear,calMon+1,0).getDate();
-  const schedDays=new Set(posts.filter(p=>p.scheduledDate).map(p=>{
+  const schedDays=useMemo(()=>new Set(posts.filter(p=>p.scheduledDate).map(p=>{
     const d=new Date(p.scheduledDate+"T12:00");
     return(d.getFullYear()===calYear&&d.getMonth()===calMon)?d.getDate():null;
-  }).filter(Boolean));
-  const calLabel=calMonth.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  }).filter(Boolean)),[posts,calYear,calMon]);
+  const calLabel=useMemo(()=>calMonth.toLocaleDateString("de-DE",{month:"long",year:"numeric"}),[calMonth]);
 
-  const recent=[...posts].slice(-10).reverse();
-  const actMap={
+  const recent=useMemo(()=>[...posts].slice(-10).reverse(),[posts]);
+  const actMap=useMemo(()=>({
     scheduled:{verb:"geplant",color:C.accent,icon:"📅"},
     pending:{verb:"zur Freigabe",color:C.warning,icon:"⏳"},
     published:{verb:"veröffentlicht",color:C.success,icon:"✅"},
     draft:{verb:"Entwurf",color:C.textSoft,icon:"📝"},
-  };
+  }),[]);
 
   // Widget header shared style
   const WHeader=({title,right,dragHandleProps})=>(
@@ -2931,11 +2935,11 @@ function SecCard({id,title,right,dragId,overId,setDragId,setOverId,drop,children
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────
 function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
-  const sched=posts.filter(p=>p.status==="scheduled");
-  const drafts=posts.filter(p=>p.status==="draft");
-  const pend=posts.filter(p=>p.status==="pending");
-  const pub=posts.filter(p=>p.status==="published");
-  const recent=[...posts].slice(-12).reverse();
+  const sched=useMemo(()=>posts.filter(p=>p.status==="scheduled"),[posts]);
+  const drafts=useMemo(()=>posts.filter(p=>p.status==="draft"),[posts]);
+  const pend=useMemo(()=>posts.filter(p=>p.status==="pending"),[posts]);
+  const pub=useMemo(()=>posts.filter(p=>p.status==="published"),[posts]);
+  const recent=useMemo(()=>[...posts].slice(-12).reverse(),[posts]);
   const [hovCard,setHovCard]=useState(null);
 
   // Widget order + drag state (uses shared useSections hook)
@@ -3418,7 +3422,7 @@ const MOCK={
 };
 function PerformancePage({posts}){
   const [per,setPer]=useState("30d");
-  const top=[...posts].slice(0,5).map(p=>({...p,reach:Math.floor(Math.random()*5000+500),eng:(Math.random()*8+1).toFixed(1)+"%"}));
+  const top=useMemo(()=>[...posts].slice(0,5).map(p=>({...p,reach:Math.floor(Math.random()*5000+500),eng:(Math.random()*8+1).toFixed(1)+"%"})),[posts]);
   const {order,dragId,setDragId,overId,setOverId,drop}=useSections("performance","default",['stats','channels','posts']);
 
   const perRight=<div style={{display:"flex",gap:3,background:"#F3F4F6",borderRadius:8,padding:3}}>
@@ -4412,16 +4416,19 @@ function StoryEditorModal({story,items,onSave,onClose,onUpload,onConvertSection}
   const wordCount=(allText).trim().split(/\s+/).filter(Boolean).length;
   const charCount=allText.length;
 
-  // Auto-save
+  // Auto-save: ref keeps latest form so timer fires with current data without resetting on every section edit
+  const storyFormRef=useRef(form);
+  storyFormRef.current=form;
   useEffect(()=>{
     clearTimeout(asRef.current);
     if(!form.title)return;
     asRef.current=setTimeout(()=>{
-      onSave({...form,id:form.id||uid()});
+      const f=storyFormRef.current;
+      onSave({...f,id:f.id||uid()});
       setAutoSaved(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}));
     },30000);
     return()=>clearTimeout(asRef.current);
-  },[form.title,form.sections]);
+  },[form.title]);
 
   const addSection=()=>setForm(f=>({...f,sections:[...f.sections,{id:uid(),heading:"",content:""}]}));
   const updSec=(id,key,val)=>setForm(f=>({...f,sections:f.sections.map(s=>s.id===id?{...s,[key]:val}:s)}));
