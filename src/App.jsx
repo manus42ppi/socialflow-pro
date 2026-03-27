@@ -32,7 +32,7 @@ const C = {
   glassStroke:"rgba(255,255,255,0.9)",
 };
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@200;300;400;500;600;700;800;900&display=swap');
   @keyframes spin { to { transform:rotate(360deg); } }
   @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
