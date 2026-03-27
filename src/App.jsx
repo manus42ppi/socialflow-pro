@@ -407,10 +407,12 @@ const NAV_GROUPS=[
 // flat list kept for any legacy references
 const NAV=NAV_GROUPS.flatMap(g=>g.items).concat([{id:"admin",label:"Admin",I:Settings,adm:true}]);
 
-function Sidebar({active,onNav,user,onLogout,pend}){
+function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
   const [open,setOpen]=useState(()=>{try{return localStorage.getItem("sb_open")!=="0";}catch{return true;}});
   const toggle=()=>{const n=!open;setOpen(n);try{localStorage.setItem("sb_open",n?"1":"0");}catch{}};
   const W=open?240:64;
+  // Per-channel post counts (only channels with posts)
+  const chCounts=CHANNELS.map(ch=>({...ch,n:posts.filter(p=>p.channels?.includes(ch.id)).length})).filter(c=>c.n>0);
   const BtnSB=({id,label,I,badge})=>{
     const on=active===id;
     return(
@@ -471,7 +473,31 @@ function Sidebar({active,onNav,user,onLogout,pend}){
               :gi>0&&<div style={{height:1,background:"rgba(255,255,255,.06)",margin:"6px 4px 10px"}}/>
             }
             {grp.items.map(({id,label,I})=>(
-              <BtnSB key={id} id={id} label={label} I={I} badge={id==="publisher"?pend:0}/>
+              <div key={id}>
+                <BtnSB id={id} label={label} I={I} badge={id==="publisher"?pend:0}/>
+                {/* Channel quick-links under Publisher */}
+                {id==="publisher"&&open&&chCounts.length>0&&(
+                  <div style={{marginLeft:22,marginBottom:2,marginTop:1}}>
+                    {chCounts.map(ch=>{
+                      const isCh=active==="publisher"&&activeCh===ch.id;
+                      return(
+                        <button key={ch.id} onClick={()=>onChNav(ch.id)}
+                          title={ch.label}
+                          style={{width:"100%",height:28,borderRadius:7,border:"none",background:isCh?"rgba(255,255,255,.08)":"transparent",
+                            color:isCh?"#D1D5DB":"#4B5563",cursor:"pointer",display:"flex",alignItems:"center",gap:7,
+                            padding:"0 8px 0 10px",fontFamily:FONT,fontSize:11.5,fontWeight:isCh?600:400,transition:"all .12s"}}
+                          onMouseEnter={e=>{if(!isCh){e.currentTarget.style.background="rgba(255,255,255,.04)";e.currentTarget.style.color="#6B7280";}}}
+                          onMouseLeave={e=>{if(!isCh){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#4B5563";}}}>
+                          <div style={{width:1,height:14,background:"rgba(255,255,255,.1)",flexShrink:0}}/>
+                          <ChIco id={ch.id} size={11} color={isCh?"#D1D5DB":"#4B5563"}/>
+                          <span style={{flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ch.label}</span>
+                          <span style={{fontSize:10,fontWeight:600,color:"#374151",background:"rgba(255,255,255,.08)",borderRadius:6,padding:"0 5px",lineHeight:"18px"}}>{ch.n}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         ))}
@@ -2717,10 +2743,9 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
 }
 
 // ── PUBLISHER PAGE ─────────────────────────────────────────────────────────
-function PublisherPage({posts,items,campaigns,onEdit,onSched,onDel,onApprove,onStatus,onCampaign,onNew,role,filt,setFilt}){
+function PublisherPage({posts,items,campaigns,onEdit,onSched,onDel,onApprove,onStatus,onCampaign,onNew,role,filt,setFilt,chFilt,setChFilt}){
   const [view,setView]=useState("grid");
   const [sort,setSort]=useState("date_asc");
-  const [chFilt,setChFilt]=useState("all");
   const can=p=>ROLES[role]?.can.includes(p);
 
   // All channels used across posts (for filter pills)
@@ -3464,6 +3489,7 @@ export default function App(){
   const [edPost,setEdPost]=useState(null);
   const [schPost,setSchPost]=useState(null);
   const [filt,setFilt]=useState("all");
+  const [chFilt,setChFilt]=useState("all"); // channel filter lifted to top level for sidebar nav
   const mediaLoaded=useRef(false);
   const postsLoaded=useRef(false);
   const campsLoaded=useRef(false);
@@ -3529,19 +3555,20 @@ export default function App(){
   const chSt=(id,st)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,status:st}:p));
   const chCamp=(id,cid)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,campaignId:cid}:p));
   const newPost=()=>setEdPost({id:null,title:"",content:"",channels:[],scheduledDate:"",scheduledTime:"",status:"draft",mediaId:null,campaignId:null});
-  const goNav=n=>{setNav(n);setFilt("all");};
-  const goFilter=(pg,f)=>{setNav(pg);setFilt(f);};
+  const goNav=n=>{setNav(n);setFilt("all");setChFilt("all");};
+  const goFilter=(pg,f)=>{setNav(pg);setFilt(f);setChFilt("all");};
+  const goChNav=(chId)=>{setNav("publisher");setFilt("all");setChFilt(chId);};
 
   const TITLE={dashboard:"Dashboard",publisher:"Publisher",campaigns:"Kampagnen",media:"Medienbibliothek",calendar:"Kalender",performance:"Performance",admin:"Admin"};
 
   return(
     <div style={{display:"flex",height:"100vh",fontFamily:FONT,background:C.bg,overflow:"hidden"}}>
       <style>{CSS}</style>
-      <Sidebar active={nav} onNav={goNav} user={user} onLogout={()=>setUser(null)} pend={posts.filter(p=>p.status==="pending").length}/>
+      <Sidebar active={nav} onNav={goNav} user={user} onLogout={()=>setUser(null)} pend={posts.filter(p=>p.status==="pending").length} posts={posts} onChNav={goChNav} activeCh={chFilt}/>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <TopBar title={TITLE[nav]||"SocialFlow"} user={user} onNew={newPost}/>
         {nav==="dashboard"   &&<Dashboard posts={posts} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
-        {nav==="publisher"   &&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={filt} setFilt={setFilt}/>}
+        {nav==="publisher"   &&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={filt} setFilt={setFilt} chFilt={chFilt} setChFilt={setChFilt}/>}
         {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts} onEditPost={setEdPost}/>}
         {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} onDelete={ids=>setItems(p=>p.filter(x=>!ids.includes(x.id)))}/>}
         {nav==="calendar"    &&<CalendarPage posts={posts} onEdit={setEdPost}/>}
