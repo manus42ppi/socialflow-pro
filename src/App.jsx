@@ -2838,7 +2838,10 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   };
 
   return(
-    <div style={{flex:1,overflow:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:10,background:C.bg}}>
+    <div style={{flex:1,overflow:"hidden",display:"grid",gridTemplateColumns:"1fr 268px",background:C.bg}}>
+
+    {/* ══ LEFT: scrollable main content ══ */}
+    <div style={{overflow:"auto",padding:"20px 14px 20px 22px",display:"flex",flexDirection:"column",gap:10}}>
 
       {/* ── HERO: clock | greeting | totals ── */}
       <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
@@ -2916,31 +2919,30 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
       <MiniGantt posts={posts} campaigns={campaigns} onNav={onNav}/>
       <WeekStrip posts={posts} campaigns={campaigns} now={now} onNav={onNav}/>
 
-      {/* ── MAIN CONTENT: post grid + right panel ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 268px",gap:10}}>
-
-        {/* ── POST GRID (image-forward masonry) ── */}
-        <div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <span style={{fontWeight:700,fontSize:13,color:C.textMid}}>Letzte Posts</span>
-            <button onClick={()=>onNav("publisher")} style={{fontSize:12,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle anzeigen →</button>
-          </div>
-          {recent.length===0?(
-            <div style={{...card,padding:"48px 20px",textAlign:"center",color:C.textMute}}>
-              <Send size={40} strokeWidth={1} style={{margin:"0 auto 12px",display:"block",opacity:.35}}/>
-              <div style={{fontWeight:700,fontSize:14,color:C.textMid,marginBottom:4}}>Noch keine Posts</div>
-              <div style={{fontSize:12,marginBottom:16}}>Erstelle deinen ersten Social-Media-Post</div>
-              <Btn onClick={()=>onNav("publisher")}><Plus size={13}/>Post erstellen</Btn>
-            </div>
-          ):(
-            <div style={{columns:"3 180px",columnGap:10}}>
-              {recent.map(p=><PostCard key={p.id} post={p}/>)}
-            </div>
-          )}
+      {/* ── POST GRID ── */}
+      <div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <span style={{fontWeight:700,fontSize:13,color:C.textMid}}>Letzte Posts</span>
+          <button onClick={()=>onNav("publisher")} style={{fontSize:12,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle anzeigen →</button>
         </div>
+        {recent.length===0?(
+          <div style={{...card,padding:"48px 20px",textAlign:"center",color:C.textMute}}>
+            <Send size={40} strokeWidth={1} style={{margin:"0 auto 12px",display:"block",opacity:.35}}/>
+            <div style={{fontWeight:700,fontSize:14,color:C.textMid,marginBottom:4}}>Noch keine Posts</div>
+            <div style={{fontSize:12,marginBottom:16}}>Erstelle deinen ersten Social-Media-Post</div>
+            <Btn onClick={()=>onNav("publisher")}><Plus size={13}/>Post erstellen</Btn>
+          </div>
+        ):(
+          <div style={{columns:"3 180px",columnGap:10}}>
+            {recent.map(p=><PostCard key={p.id} post={p}/>)}
+          </div>
+        )}
+      </div>
 
-        {/* ── RIGHT PANEL ── */}
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+    </div>{/* END LEFT */}
+
+    {/* ══ RIGHT SIDEBAR: sticky, full height ══ */}
+    <div style={{overflow:"auto",padding:"20px 14px 20px 0",display:"flex",flexDirection:"column",gap:10,borderLeft:`1px solid ${C.borderLight}`}}>
 
           {/* Mini calendar */}
           <div style={{...card,overflow:"hidden"}}>
@@ -3048,9 +3050,8 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
               })
             }
           </div>
-        </div>
-      </div>
 
+    </div>
     </div>
   );
 }
