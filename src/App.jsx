@@ -7,7 +7,7 @@ import {
   Twitter, Linkedin, Facebook, Hash, Layers, Inbox, Sparkles,
   Tag, MapPin, Zap, FileText, Eye, Key, Building2, User, Phone,
   ExternalLink, ChevronDown, ChevronUp, Save, Wifi, WifiOff,
-  ArrowUpDown, Menu, AlertTriangle, CheckSquare
+  ArrowUpDown, Menu, AlertTriangle, CheckSquare, RotateCcw, BookOpen
 } from "lucide-react";
 
 // ── FONT & COLORS ──────────────────────────────────────────────────────────
@@ -398,6 +398,8 @@ const NAV_GROUPS=[
     {id:"publisher",  label:"Publisher",         I:Send},
     {id:"media",      label:"Medienbibliothek",  I:Image},
     {id:"calendar",   label:"Kalender",          I:Calendar},
+    {id:"drafts",     label:"Entwürfe",          I:FileText},
+    {id:"trash",      label:"Papierkorb",        I:Trash2},
   ]},
   {label:"ANALYSE",items:[
     {id:"performance",label:"Performance",       I:BarChart2},
@@ -411,8 +413,11 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
   const [open,setOpen]=useState(()=>{try{return localStorage.getItem("sb_open")!=="0";}catch{return true;}});
   const toggle=()=>{const n=!open;setOpen(n);try{localStorage.setItem("sb_open",n?"1":"0");}catch{}};
   const W=open?240:64;
-  // Per-channel post counts (only channels with posts)
-  const chCounts=CHANNELS.map(ch=>({...ch,n:posts.filter(p=>p.channels?.includes(ch.id)).length})).filter(c=>c.n>0);
+  // Per-channel post counts (only channels with active posts)
+  const livePosts=posts.filter(p=>!p.deleted);
+  const chCounts=CHANNELS.map(ch=>({...ch,n:livePosts.filter(p=>p.channels?.includes(ch.id)).length})).filter(c=>c.n>0);
+  const draftsCount=livePosts.filter(p=>p.status==="draft").length;
+  const trashCount=posts.filter(p=>p.deleted).length;
   const BtnSB=({id,label,I,badge})=>{
     const on=active===id;
     return(
@@ -474,7 +479,7 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
             }
             {grp.items.map(({id,label,I})=>(
               <div key={id}>
-                <BtnSB id={id} label={label} I={I} badge={id==="publisher"?pend:0}/>
+                <BtnSB id={id} label={label} I={I} badge={id==="publisher"?pend:id==="drafts"?draftsCount:id==="trash"?trashCount:0}/>
                 {/* Channel quick-links under Publisher */}
                 {id==="publisher"&&open&&chCounts.length>0&&(
                   <div style={{marginLeft:22,marginBottom:2,marginTop:1}}>
@@ -1387,6 +1392,26 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
   const [convOpen,setConvOpen]=useState({}); // which channel konverter sections are open
   const [autoSaved,setAutoSaved]=useState(null); // timestamp of last auto-save
   const autoSaveRef=useRef();
+  // Research panel state
+  const [rQ,setRQ]=useState("");
+  const [rRes,setRRes]=useState([]);
+  const [rLdg,setRLdg]=useState(false);
+  const rTimer=useRef();
+  const rKeys={unsplash:skGet("unsplash"),pexels:skGet("pexels"),pixabay:skGet("pixabay")};
+  const rHasKeys=STOCK_SRCS.some(s=>rKeys[s.id]);
+  useEffect(()=>{
+    clearTimeout(rTimer.current);
+    if(!rQ.trim()){setRRes([]);return;}
+    const active=STOCK_SRCS.filter(s=>rKeys[s.id]);
+    if(!active.length)return;
+    rTimer.current=setTimeout(async()=>{
+      setRLdg(true);
+      const results=await Promise.all(active.map(s=>stockSearch(s.id,rQ).then(r=>r||[]).catch(()=>[])));
+      setRRes(results.flat().slice(0,24));
+      setRLdg(false);
+    },500);
+    return()=>clearTimeout(rTimer.current);
+  },[rQ]);
   const media=items.find(m=>m.id===form.mediaId);
   const PC=PREV[pch]||PREV.instagram;
   const maxC=form.channels?.length>0?Math.min(...form.channels.map(id=>CHANNELS.find(c=>c.id===id)?.maxChars||9999)):9999;
@@ -1440,7 +1465,7 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
                 <span>{sentenceCount} Sätze</span>
               </div>}
               <div style={{display:"flex",gap:3,background:C.bg,borderRadius:9,padding:3,border:`1px solid ${C.border}`}}>
-                {[["preview","Vorschau",Eye],["ai","KI-Assistent",Sparkles]].map(([id,label,Ic])=>(
+                {[["preview","Vorschau",Eye],["research","Recherche",BookOpen],["ai","KI-Assistent",Sparkles]].map(([id,label,Ic])=>(
                   <button key={id} onClick={()=>setRightPane(id)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:7,border:"none",background:rightPane===id?(id==="ai"?`linear-gradient(135deg,${C.ai1},${C.ai2})`:C.surface):"transparent",color:rightPane===id?(id==="ai"?"#fff":C.text):C.textSoft,fontWeight:700,fontSize:11.5,cursor:"pointer",fontFamily:FONT,boxShadow:rightPane===id?"0 1px 4px rgba(0,0,0,.1)":"none",transition:"all .15s"}}>
                     <Ic size={11} strokeWidth={2}/>{label}
                     {id==="ai"&&<span style={{fontSize:9,fontWeight:700,padding:"0 5px",borderRadius:8,background:rightPane==="ai"?"rgba(255,255,255,.25)":C.purpleGlow,color:rightPane==="ai"?"#fff":C.purple}}>PRO</span>}
@@ -1589,7 +1614,7 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
           </div>
 
           {/* RIGHT: Preview or AI */}
-          <div style={{width:320,flexShrink:0,display:"flex",flexDirection:"column",overflow:"hidden",background:rightPane==="ai"?`linear-gradient(170deg,${C.purpleBg} 0%,#fff 60%)`:C.bg}}>
+          <div style={{width:320,flexShrink:0,display:"flex",flexDirection:"column",overflow:"hidden",background:rightPane==="ai"?`linear-gradient(170deg,${C.purpleBg} 0%,#fff 60%)`:C.bg,minWidth:0}}>
             <div style={{flex:1,overflow:"auto",padding:"14px 13px"}}>
 
               {/* PREVIEW */}
@@ -1626,6 +1651,69 @@ function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,
                     <div style={{fontSize:13,fontWeight:700,color:C.textSoft,marginBottom:6}}>Kanal auswählen</div>
                     <div style={{fontSize:12,lineHeight:1.5}}>Wähle mindestens einen Kanal links aus, um den KI-Assistenten zu nutzen.</div>
                   </div>
+              )}
+
+              {/* RESEARCH PANEL */}
+              {rightPane==="research"&&(
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {/* Search field */}
+                  <div style={{position:"relative"}}>
+                    <Search size={12} color={C.textMute} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
+                    {rLdg&&<div style={{position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",width:11,height:11,border:`2px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>}
+                    <input value={rQ} onChange={e=>setRQ(e.target.value)} placeholder="Bilder suchen…"
+                      style={{width:"100%",padding:"7px 32px 7px 28px",borderRadius:8,border:`1.5px solid ${rQ?C.accent:C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box",transition:"border-color .15s"}}/>
+                  </div>
+                  {/* State: no keys */}
+                  {!rHasKeys&&<div style={{textAlign:"center",padding:"28px 12px",border:`1.5px dashed ${C.border}`,borderRadius:10,color:C.textMute}}>
+                    <BookOpen size={28} strokeWidth={1} style={{margin:"0 auto 8px",display:"block",opacity:.4}}/>
+                    <div style={{fontWeight:700,fontSize:12,color:C.textMid,marginBottom:4}}>Keine API-Keys konfiguriert</div>
+                    <div style={{fontSize:11,lineHeight:1.5}}>Konfiguriere Unsplash, Pexels oder Pixabay in der Medienbibliothek um Bilder zu suchen.</div>
+                  </div>}
+                  {/* State: no query */}
+                  {rHasKeys&&!rQ&&<div style={{textAlign:"center",padding:"28px 12px",color:C.textMute}}>
+                    <Search size={28} strokeWidth={1} style={{margin:"0 auto 8px",display:"block",opacity:.35}}/>
+                    <div style={{fontSize:12,color:C.textSoft}}>Suche nach Bildern für deinen Post</div>
+                  </div>}
+                  {/* Results grid */}
+                  {rHasKeys&&rQ&&!rLdg&&rRes.length===0&&<div style={{textAlign:"center",padding:"20px 0",fontSize:12,color:C.textMute}}>Keine Treffer für „{rQ}"</div>}
+                  {rRes.length>0&&(
+                    <div style={{columns:"2 120px",columnGap:6}}>
+                      {rRes.map(item=>{
+                        const already=items.some(m=>m.url===item.url);
+                        return(
+                          <div key={item.id} style={{position:"relative",borderRadius:7,overflow:"hidden",marginBottom:6,breakInside:"avoid",cursor:"pointer",background:C.borderLight}}
+                            onClick={()=>{
+                              if(!already){
+                                const newItem={...item,id:uid(),analyzing:false};
+                                onUpload(newItem);
+                                setForm(f=>({...f,mediaId:newItem.id}));
+                              } else {
+                                const existing=items.find(m=>m.url===item.url);
+                                if(existing)setForm(f=>({...f,mediaId:existing.id}));
+                              }
+                            }}>
+                            <img src={item.url} alt={item.name||""} style={{width:"100%",height:"auto",display:"block"}} loading="lazy"/>
+                            <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0)",transition:"background .15s"}}
+                              onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,0,0,.45)";}}
+                              onMouseLeave={e=>{e.currentTarget.style.background="rgba(0,0,0,0)";}}>
+                              <div style={{position:"absolute",bottom:5,left:5,right:5,display:"flex",justifyContent:"space-between",alignItems:"center",opacity:0,transition:"opacity .15s"}}
+                                onMouseEnter={e=>{e.currentTarget.style.opacity=1;e.currentTarget.parentElement.style.background="rgba(0,0,0,.45)";}}
+                                onMouseLeave={e=>{e.currentTarget.style.opacity=0;e.currentTarget.parentElement.style.background="rgba(0,0,0,0)";}}>
+                                <span style={{fontSize:9,color:"rgba(255,255,255,.75)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"60%"}}>{item.author||""}</span>
+                                {already
+                                  ?<span style={{fontSize:9,fontWeight:700,color:C.success,background:"rgba(0,0,0,.6)",borderRadius:4,padding:"2px 5px",display:"flex",alignItems:"center",gap:2}}><Check size={8} strokeWidth={3}/>Verwendet</span>
+                                  :<span style={{fontSize:9,fontWeight:700,color:"#fff",background:C.accent,borderRadius:4,padding:"2px 6px"}}>Verwenden</span>}
+                              </div>
+                            </div>
+                            {already&&<div style={{position:"absolute",top:4,right:4,width:16,height:16,borderRadius:"50%",background:C.success,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <Check size={9} color="#fff" strokeWidth={3}/>
+                            </div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -2742,17 +2830,81 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   );
 }
 
+// ── TRASH PAGE ──────────────────────────────────────────────────────────────
+function TrashPage({posts,onRestore,onPurge,onPurgeAll}){
+  const trashed=posts.filter(p=>p.deleted);
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12};
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"22px 24px"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+        <div>
+          <div style={{fontWeight:800,fontSize:16,color:C.text}}>Papierkorb</div>
+          <div style={{fontSize:12,color:C.textSoft,marginTop:2}}>{trashed.length} {trashed.length===1?"Eintrag":"Einträge"} im Papierkorb</div>
+        </div>
+        {trashed.length>0&&<button onClick={()=>{if(window.confirm(`Alle ${trashed.length} Posts endgültig löschen?`))onPurgeAll();}}
+          style={{background:C.red,border:"none",borderRadius:8,color:"#fff",fontSize:12,fontWeight:700,padding:"8px 16px",cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:6}}>
+          <Trash2 size={13} strokeWidth={2}/>Alle endgültig löschen
+        </button>}
+      </div>
+      {trashed.length===0?(
+        <div style={{...card,padding:"72px 24px",textAlign:"center",color:C.textMute}}>
+          <Trash2 size={48} strokeWidth={1} style={{margin:"0 auto 14px",display:"block",opacity:.3}}/>
+          <div style={{fontWeight:700,fontSize:15,color:C.textMid,marginBottom:4}}>Papierkorb ist leer</div>
+          <div style={{fontSize:13}}>Gelöschte Posts erscheinen hier und können wiederhergestellt werden.</div>
+        </div>
+      ):(
+        <div style={{...card,overflow:"hidden"}}>
+          {trashed.map((p,i)=>{
+            const sc={scheduled:{c:C.accent,l:"Geplant"},draft:{c:C.textSoft,l:"Entwurf"},pending:{c:C.warning,l:"Freigabe"},published:{c:C.success,l:"Live"}}[p.status]||{c:C.textSoft,l:"–"};
+            return(
+              <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderBottom:i<trashed.length-1?`1px solid ${C.borderLight}`:"none",transition:"background .1s"}}
+                onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <div style={{width:36,height:36,borderRadius:8,background:C.bg,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:.5}}>
+                  <FileText size={15} color={C.textMute} strokeWidth={1.5}/>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:13,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>
+                    {p.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={11} color={C.textMute}/>)}
+                    <span style={{fontSize:10.5,color:C.textMute}}>{p.scheduledDate?`· ${p.scheduledDate}`:""}</span>
+                    <span style={{fontSize:10,fontWeight:600,padding:"1px 6px",borderRadius:5,background:sc.c+"14",color:sc.c}}>{sc.l}</span>
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:6,flexShrink:0}}>
+                  <button onClick={()=>onRestore(p.id)} title="Wiederherstellen"
+                    style={{background:C.accentLight,border:"none",borderRadius:7,color:C.accent,fontSize:11,fontWeight:700,padding:"6px 12px",cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:5}}>
+                    <RotateCcw size={12} strokeWidth={2.5}/>Wiederherstellen
+                  </button>
+                  <button onClick={()=>{if(window.confirm("Endgültig löschen?"))onPurge(p.id);}} title="Endgültig löschen"
+                    style={{background:C.borderLight,border:"none",borderRadius:7,color:C.textSoft,fontSize:11,fontWeight:600,padding:"6px 10px",cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:4}}>
+                    <Trash2 size={12} strokeWidth={2}/>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div style={{marginTop:14,fontSize:11,color:C.textMute,textAlign:"center"}}>Posts im Papierkorb werden nach 30 Tagen automatisch endgültig gelöscht.</div>
+    </div>
+  );
+}
+
 // ── PUBLISHER PAGE ─────────────────────────────────────────────────────────
 function PublisherPage({posts,items,campaigns,onEdit,onSched,onDel,onApprove,onStatus,onCampaign,onNew,role,filt,setFilt,chFilt,setChFilt}){
   const [view,setView]=useState("grid");
   const [sort,setSort]=useState("date_asc");
   const can=p=>ROLES[role]?.can.includes(p);
 
+  // Exclude soft-deleted posts from publisher view
+  const livePosts=posts.filter(p=>!p.deleted);
+
   // All channels used across posts (for filter pills)
-  const usedChs=[...new Set(posts.flatMap(p=>p.channels||[]))];
+  const usedChs=[...new Set(livePosts.flatMap(p=>p.channels||[]))];
 
   // Filter: status + channel
-  const filtered=posts.filter(p=>{
+  const filtered=livePosts.filter(p=>{
     const stOk=filt==="all"||p.status===filt;
     const chOk=chFilt==="all"||p.channels?.includes(chFilt);
     return stOk&&chOk;
@@ -2769,7 +2921,7 @@ function PublisherPage({posts,items,campaigns,onEdit,onSched,onDel,onApprove,onS
   });
 
   // Per-status counts
-  const cnt=v=>posts.filter(p=>p.status===v).length;
+  const cnt=v=>livePosts.filter(p=>p.status===v).length;
 
   return(
     <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
@@ -3550,7 +3702,10 @@ export default function App(){
 
   const save=p=>{setPosts(prev=>prev.find(x=>x.id===p.id)?prev.map(x=>x.id===p.id?p:x):[...prev,p]);setEdPost(null);};
   const saveSch=p=>{setPosts(prev=>prev.map(x=>x.id===p.id?p:x));setSchPost(null);};
-  const del=id=>{if(window.confirm("Post löschen?"))setPosts(prev=>prev.filter(p=>p.id!==id));};
+  const del=id=>setPosts(prev=>prev.map(p=>p.id===id?{...p,deleted:true}:p));
+  const restore=id=>setPosts(prev=>prev.map(p=>p.id===id?{...p,deleted:false}:p));
+  const purge=id=>setPosts(prev=>prev.filter(p=>p.id!==id));
+  const purgeAll=()=>setPosts(prev=>prev.filter(p=>!p.deleted));
   const approve=(id,st)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,status:st}:p));
   const chSt=(id,st)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,status:st}:p));
   const chCamp=(id,cid)=>setPosts(prev=>prev.map(p=>p.id===id?{...p,campaignId:cid}:p));
@@ -3559,7 +3714,7 @@ export default function App(){
   const goFilter=(pg,f)=>{setNav(pg);setFilt(f);setChFilt("all");};
   const goChNav=(chId)=>{setNav("publisher");setFilt("all");setChFilt(chId);};
 
-  const TITLE={dashboard:"Dashboard",publisher:"Publisher",campaigns:"Kampagnen",media:"Medienbibliothek",calendar:"Kalender",performance:"Performance",admin:"Admin"};
+  const TITLE={dashboard:"Dashboard",publisher:"Publisher",drafts:"Entwürfe",trash:"Papierkorb",campaigns:"Kampagnen",media:"Medienbibliothek",calendar:"Kalender",performance:"Performance",admin:"Admin"};
 
   return(
     <div style={{display:"flex",height:"100vh",fontFamily:FONT,background:C.bg,overflow:"hidden"}}>
@@ -3567,9 +3722,10 @@ export default function App(){
       <Sidebar active={nav} onNav={goNav} user={user} onLogout={()=>setUser(null)} pend={posts.filter(p=>p.status==="pending").length} posts={posts} onChNav={goChNav} activeCh={chFilt}/>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <TopBar title={TITLE[nav]||"SocialFlow"} user={user} onNew={newPost}/>
-        {nav==="dashboard"   &&<Dashboard posts={posts} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
-        {nav==="publisher"   &&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={filt} setFilt={setFilt} chFilt={chFilt} setChFilt={setChFilt}/>}
-        {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts} onEditPost={setEdPost}/>}
+        {nav==="dashboard"   &&<Dashboard posts={posts.filter(p=>!p.deleted)} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
+        {(nav==="publisher"||nav==="drafts")&&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={nav==="drafts"?"draft":filt} setFilt={nav==="drafts"?()=>{}:setFilt} chFilt={chFilt} setChFilt={setChFilt}/>}
+        {nav==="trash"       &&<TrashPage posts={posts} onRestore={restore} onPurge={purge} onPurgeAll={purgeAll}/>}
+        {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts.filter(p=>!p.deleted)} onEditPost={setEdPost}/>}
         {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} onDelete={ids=>setItems(p=>p.filter(x=>!ids.includes(x.id)))}/>}
         {nav==="calendar"    &&<CalendarPage posts={posts} onEdit={setEdPost}/>}
         {nav==="performance" &&<PerformancePage posts={posts}/>}
