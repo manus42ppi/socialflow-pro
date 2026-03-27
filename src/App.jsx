@@ -2646,6 +2646,8 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   const pub=posts.filter(p=>p.status==="published");
   const recent=[...posts].slice(-12).reverse();
   const [hovCard,setHovCard]=useState(null);
+  const [sbRight,setSbRight]=useState(()=>{try{return localStorage.getItem("sb_right")!=="0";}catch{return true;}});
+  const toggleRight=()=>{const n=!sbRight;setSbRight(n);try{localStorage.setItem("sb_right",n?"1":"0");}catch{}};
 
   // Live clock
   const [now,setNow]=useState(new Date());
@@ -2838,10 +2840,10 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   };
 
   return(
-    <div style={{flex:1,overflow:"hidden",display:"grid",gridTemplateColumns:"1fr 268px",background:C.bg}}>
+    <div style={{flex:1,overflow:"hidden",display:"grid",gridTemplateColumns:sbRight?"1fr 272px":"1fr 36px",background:C.bg,transition:"grid-template-columns .2s"}}>
 
     {/* ══ LEFT: scrollable main content ══ */}
-    <div style={{overflow:"auto",padding:"20px 14px 20px 22px",display:"flex",flexDirection:"column",gap:10}}>
+    <div style={{overflow:"auto",padding:"20px 22px 20px 22px",display:"flex",flexDirection:"column",gap:10}}>
 
       {/* ── HERO: clock | greeting | totals ── */}
       <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
@@ -2941,8 +2943,21 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
 
     </div>{/* END LEFT */}
 
-    {/* ══ RIGHT SIDEBAR: sticky, full height ══ */}
-    <div style={{overflow:"auto",padding:"20px 14px 20px 0",display:"flex",flexDirection:"column",gap:10,borderLeft:`1px solid ${C.borderLight}`}}>
+    {/* ══ RIGHT SIDEBAR: collapsible, full height ══ */}
+    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${C.borderLight}`,overflow:"hidden",background:C.bg,transition:"all .2s"}}>
+
+      {/* Toggle button */}
+      <div style={{padding:"12px 0",display:"flex",justifyContent:"center",borderBottom:`1px solid ${C.borderLight}`,flexShrink:0}}>
+        <button onClick={toggleRight} title={sbRight?"Sidebar einklappen":"Sidebar ausklappen"}
+          style={{width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid,transition:"all .15s",fontFamily:FONT}}
+          onMouseEnter={e=>{e.currentTarget.style.background=C.accentLight;e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.color=C.accent;}}
+          onMouseLeave={e=>{e.currentTarget.style.background=C.surface;e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMid;}}>
+          {sbRight?<ChevronRight size={13} strokeWidth={2.5}/>:<ChevronLeft size={13} strokeWidth={2.5}/>}
+        </button>
+      </div>
+
+      {/* Sidebar content — hidden when collapsed */}
+      {sbRight&&<div style={{flex:1,overflow:"auto",padding:"14px 12px 20px 12px",display:"flex",flexDirection:"column",gap:10}}>
 
           {/* Mini calendar */}
           <div style={{...card,overflow:"hidden"}}>
@@ -3051,6 +3066,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
             }
           </div>
 
+      </div>}
     </div>
     </div>
   );
