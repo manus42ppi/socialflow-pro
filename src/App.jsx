@@ -438,13 +438,13 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
       <button onClick={()=>onNav(id)} title={open?undefined:label} style={{
         position:"relative",width:"100%",height:38,borderRadius:9,border:"none",
         background:on?"rgba(255,255,255,.1)":"transparent",
-        color:on?"#fff":"#6B7280",cursor:"pointer",
+        color:on?"#fff":"#9CA3AF",cursor:"pointer",
         display:"flex",alignItems:"center",gap:10,
         padding:open?"0 10px 0 12px":"0",justifyContent:open?"flex-start":"center",
         transition:"background .13s, color .13s",fontFamily:FONT,flexShrink:0,
       }}
-        onMouseEnter={e=>{if(!on){e.currentTarget.style.background="rgba(255,255,255,.06)";e.currentTarget.style.color="#9CA3AF";}}}
-        onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6B7280";}}}>
+        onMouseEnter={e=>{if(!on){e.currentTarget.style.background="rgba(255,255,255,.06)";e.currentTarget.style.color="#D1D5DB";}}}
+        onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#9CA3AF";}}}>
         {on&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:20,background:C.accent,borderRadius:"0 3px 3px 0",boxShadow:`2px 0 8px ${C.accentGlow}`}}/>}
         <I size={16} strokeWidth={IW} style={{flexShrink:0}}/>
         {open&&<span style={{fontSize:13,fontWeight:on?700:500,flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>}
@@ -469,8 +469,8 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
             <span style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:14,color:"#F9FAFB",letterSpacing:"-.01em",whiteSpace:"nowrap"}}>SocialFlow</span>
             <span style={{fontSize:9,fontWeight:800,color:C.accent,background:"rgba(99,102,241,.18)",padding:"2px 6px",borderRadius:4,letterSpacing:".05em",whiteSpace:"nowrap"}}>PRO</span>
           </div>
-          <button onClick={toggle} title="Einklappen" style={{width:28,height:28,borderRadius:7,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"color .13s"}}
-            onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#4A5568"}>
+          <button onClick={toggle} title="Einklappen" style={{width:28,height:28,borderRadius:7,border:"none",background:"transparent",color:"#6B7280",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginLeft:8,transition:"color .13s"}}
+            onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#6B7280"}>
             <Menu size={15} strokeWidth={2}/>
           </button>
         </div>
@@ -488,7 +488,7 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
         {NAV_GROUPS.map((grp,gi)=>(
           <div key={grp.label} style={{marginBottom:8}}>
             {open
-              ?<div style={{fontSize:10,fontWeight:700,color:"#374151",letterSpacing:".08em",padding:"2px 12px 6px",textTransform:"uppercase"}}>{grp.label}</div>
+              ?<div style={{fontSize:10,fontWeight:700,color:"#6B7280",letterSpacing:".08em",padding:"2px 12px 6px",textTransform:"uppercase"}}>{grp.label}</div>
               :gi>0&&<div style={{height:1,background:"rgba(255,255,255,.06)",margin:"6px 4px 10px"}}/>
             }
             {grp.items.map(({id,label,I})=>(
@@ -503,14 +503,14 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
                         <button key={ch.id} onClick={()=>onChNav(ch.id)}
                           title={ch.label}
                           style={{width:"100%",height:28,borderRadius:7,border:"none",background:isCh?"rgba(255,255,255,.08)":"transparent",
-                            color:isCh?"#D1D5DB":"#4B5563",cursor:"pointer",display:"flex",alignItems:"center",gap:7,
+                            color:isCh?"#D1D5DB":"#7B8797",cursor:"pointer",display:"flex",alignItems:"center",gap:7,
                             padding:"0 8px 0 10px",fontFamily:FONT,fontSize:11.5,fontWeight:isCh?600:400,transition:"all .12s"}}
-                          onMouseEnter={e=>{if(!isCh){e.currentTarget.style.background="rgba(255,255,255,.04)";e.currentTarget.style.color="#6B7280";}}}
-                          onMouseLeave={e=>{if(!isCh){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#4B5563";}}}>
+                          onMouseEnter={e=>{if(!isCh){e.currentTarget.style.background="rgba(255,255,255,.04)";e.currentTarget.style.color="#9CA3AF";}}}
+                          onMouseLeave={e=>{if(!isCh){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#7B8797";}}}>
                           <div style={{width:1,height:14,background:"rgba(255,255,255,.1)",flexShrink:0}}/>
-                          <ChIco id={ch.id} size={11} color={isCh?"#D1D5DB":"#4B5563"}/>
+                          <ChIco id={ch.id} size={11} color={isCh?"#D1D5DB":"#7B8797"}/>
                           <span style={{flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ch.label}</span>
-                          <span style={{fontSize:10,fontWeight:600,color:"#374151",background:"rgba(255,255,255,.08)",borderRadius:6,padding:"0 5px",lineHeight:"18px"}}>{ch.n}</span>
+                          <span style={{fontSize:10,fontWeight:600,color:"#9CA3AF",background:"rgba(255,255,255,.08)",borderRadius:6,padding:"0 5px",lineHeight:"18px"}}>{ch.n}</span>
                         </button>
                       );
                     })}
@@ -531,7 +531,7 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
           {open&&<>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:12,fontWeight:700,color:"#D1D5DB",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
-              <div style={{fontSize:10,color:"#4B5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
+              <div style={{fontSize:10,color:"#6B7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
             </div>
             <button onClick={onLogout} title="Abmelden" style={{width:26,height:26,borderRadius:6,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"color .13s"}}
               onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#4A5568"}>
