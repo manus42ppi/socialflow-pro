@@ -2737,7 +2737,7 @@ function GlobalRightSidebar({posts,campaigns,onNav}){
   };
 
   return(
-    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${C.borderLight}`,overflow:"hidden",background:C.bg,minHeight:0,height:"100%",transition:"width .2s cubic-bezier(.4,0,.2,1)",width:sbRight?268:36,flexShrink:0}}>
+    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${C.borderLight}`,overflow:"hidden",background:C.surface,minHeight:0,height:"100%",transition:"width .2s cubic-bezier(.4,0,.2,1)",width:sbRight?268:36,flexShrink:0}}>
 
       {/* ── Toggle handle ── */}
       {sbRight?(
