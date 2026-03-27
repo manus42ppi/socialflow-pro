@@ -2571,6 +2571,187 @@ function MiniGantt({posts,campaigns,onNav}){
   );
 }
 
+// ── GLOBAL RIGHT SIDEBAR ───────────────────────────────────────────────────
+function GlobalRightSidebar({posts,campaigns,onNav}){
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
+  const [sbRight,setSbRight]=useState(()=>{try{return localStorage.getItem("sb_right")!=="0";}catch{return true;}});
+  const toggleRight=()=>{const n=!sbRight;setSbRight(n);try{localStorage.setItem("sb_right",n?"1":"0");}catch{}};
+
+  const today=new Date();
+  const todayD=today.getDate(),todayM=today.getMonth(),todayY=today.getFullYear();
+  const todayStr=`${todayY}-${String(todayM+1).padStart(2,"0")}-${String(todayD).padStart(2,"0")}`;
+
+  const [calMonth,setCalMonth]=useState(new Date());
+  const calYear=calMonth.getFullYear(),calMon=calMonth.getMonth();
+  const firstDay=new Date(calYear,calMon,1).getDay();
+  const firstDayMon=firstDay===0?6:firstDay-1;
+  const daysInMonth=new Date(calYear,calMon+1,0).getDate();
+  const schedDays=new Set(posts.filter(p=>p.scheduledDate).map(p=>{
+    const d=new Date(p.scheduledDate+"T12:00");
+    if(d.getFullYear()===calYear&&d.getMonth()===calMon)return d.getDate();
+    return null;
+  }).filter(Boolean));
+  const calLabel=calMonth.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+
+  const recent=[...posts].slice(-10).reverse();
+  const actMap={
+    scheduled:{verb:"geplant",color:C.accent,icon:"📅"},
+    pending:{verb:"zur Freigabe eingereicht",color:C.warning,icon:"⏳"},
+    published:{verb:"veröffentlicht",color:C.success,icon:"✅"},
+    draft:{verb:"als Entwurf gespeichert",color:C.textSoft,icon:"📝"},
+  };
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${C.borderLight}`,overflow:"hidden",background:C.bg,minHeight:0,height:"100%",transition:"all .2s",width:sbRight?272:36,flexShrink:0}}>
+
+      {/* ── Toggle handle ── */}
+      {sbRight?(
+        <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 12px 0 14px",height:44,borderBottom:`1px solid ${C.borderLight}`,background:C.surface}}>
+          <div style={{display:"flex",alignItems:"center",gap:7}}>
+            <div style={{display:"flex",flexDirection:"column",gap:3.5,opacity:.45}}>
+              {[0,1,2].map(i=><div key={i} style={{display:"flex",gap:3.5}}>{[0,1].map(j=><div key={j} style={{width:2.5,height:2.5,borderRadius:"50%",background:C.textMid}}/>)}</div>)}
+            </div>
+            <span style={{fontSize:10,fontWeight:800,color:C.textMute,textTransform:"uppercase",letterSpacing:".1em",fontFamily:FONT}}>Widgets</span>
+          </div>
+          <button onClick={toggleRight} title="Sidebar einklappen"
+            style={{width:26,height:26,borderRadius:8,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMute,transition:"all .15s",fontFamily:FONT}}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.borderLight;e.currentTarget.style.color=C.textMid;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMute;}}>
+            <ChevronRight size={14} strokeWidth={2.5}/>
+          </button>
+        </div>
+      ):(
+        <div onClick={toggleRight} title="Sidebar ausklappen"
+          style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:8,userSelect:"none",transition:"background .15s"}}
+          onMouseEnter={e=>e.currentTarget.style.background=C.borderLight}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+          <div style={{display:"flex",flexDirection:"column",gap:3,opacity:.4}}>
+            {[0,1,2,3,4].map(i=><div key={i} style={{width:3,height:3,borderRadius:"50%",background:C.textMid}}/>)}
+          </div>
+          <div style={{width:24,height:24,borderRadius:7,background:C.surface,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 3px rgba(0,0,0,.07)"}}>
+            <ChevronLeft size={12} strokeWidth={2.5} color={C.textMid}/>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:3,opacity:.4}}>
+            {[0,1,2,3,4].map(i=><div key={i} style={{width:3,height:3,borderRadius:"50%",background:C.textMid}}/>)}
+          </div>
+        </div>
+      )}
+
+      {/* ── Sidebar content ── */}
+      {sbRight&&<div style={{flex:1,minHeight:0,overflow:"auto",padding:"12px 12px 20px 12px",display:"flex",flexDirection:"column",gap:10}}>
+
+        {/* Mini calendar */}
+        <div style={{...card,overflow:"hidden"}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <button onClick={()=>setCalMonth(new Date(calYear,calMon-1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,fontSize:16,lineHeight:1,padding:"0 2px",fontFamily:FONT}}>‹</button>
+            <span style={{fontSize:12,fontWeight:700,color:C.textMid}}>{calLabel}</span>
+            <button onClick={()=>setCalMonth(new Date(calYear,calMon+1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,fontSize:16,lineHeight:1,padding:"0 2px",fontFamily:FONT}}>›</button>
+          </div>
+          <div style={{padding:"6px 10px 2px",display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
+            {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>(
+              <div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,color:C.textMute,padding:"2px 0"}}>{d}</div>
+            ))}
+          </div>
+          <div style={{padding:"0 10px 10px",display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
+            {Array(firstDayMon).fill(null).map((_,i)=><div key={`e${i}`}/>)}
+            {Array(daysInMonth).fill(null).map((_,i)=>{
+              const day=i+1;
+              const isToday=day===todayD&&calMon===todayM&&calYear===todayY;
+              const hasPosts=schedDays.has(day);
+              return(
+                <div key={day} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"2px 0",cursor:hasPosts?"pointer":"default"}}
+                  onClick={hasPosts?()=>onNav("calendar"):undefined}>
+                  <div style={{width:22,height:22,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
+                    background:isToday?C.accent:"transparent",
+                    color:isToday?"#fff":C.textMid,fontSize:10.5,fontWeight:isToday?700:400}}>
+                    {day}
+                  </div>
+                  {hasPosts&&<div style={{width:4,height:4,borderRadius:"50%",background:C.accent,marginTop:1}}/>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Activity feed */}
+        <div style={{...card,overflow:"hidden"}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Letzte Aktionen</span>
+            <Activity size={13} color={C.textMute} strokeWidth={1.8}/>
+          </div>
+          {recent.length===0
+            ?<div style={{padding:"20px 14px",textAlign:"center",fontSize:11,color:C.textMute}}>Noch keine Aktivität</div>
+            :recent.slice(0,7).map((p,i)=>{
+              const a=actMap[p.status]||actMap.draft;
+              return(
+                <div key={p.id} style={{padding:"8px 14px",borderBottom:i<Math.min(recent.length,7)-1?`1px solid ${C.borderLight}`:"none",display:"flex",gap:9,alignItems:"flex-start",cursor:"pointer",transition:"background .1s"}}
+                  onClick={()=>onNav("publisher")}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <div style={{width:26,height:26,borderRadius:7,background:a.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12}}>{a.icon}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:600,fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
+                    <div style={{fontSize:10,color:C.textSoft,marginTop:1,display:"flex",alignItems:"center",gap:4}}>
+                      <span style={{color:a.color,fontWeight:600}}>{a.verb}</span>
+                      {p.channels?.slice(0,2).map(c=><ChIco key={c} id={c} size={9}/>)}
+                    </div>
+                  </div>
+                  {p.scheduledDate&&<span style={{fontSize:9,color:C.textMute,flexShrink:0,paddingTop:1}}>{p.scheduledDate}</span>}
+                </div>
+              );
+            })
+          }
+        </div>
+
+        {/* Posts je Kanal */}
+        <div style={{...card,overflow:"hidden"}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`}}>
+            <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Posts je Kanal</span>
+          </div>
+          {CHANNELS.map((ch,i)=>{
+            const n=posts.filter(p=>p.channels?.includes(ch.id)).length;
+            const total=Math.max(1,posts.length);
+            return <div key={ch.id} style={{padding:"7px 14px",borderBottom:i<CHANNELS.length-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8}}>
+              <ChIco id={ch.id} size={12} color={C.textMid}/>
+              <span style={{fontSize:11,color:C.textMid,flex:1}}>{ch.label}</span>
+              <div style={{width:60,height:4,background:C.borderLight,borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${(n/total)*100}%`,background:C.accent,borderRadius:99}}/>
+              </div>
+              <span style={{fontSize:11,fontWeight:700,color:C.textSoft,width:14,textAlign:"right"}}>{n}</span>
+            </div>;
+          })}
+        </div>
+
+        {/* Kampagnen */}
+        <div style={{...card,overflow:"hidden"}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Kampagnen</span>
+            <button onClick={()=>onNav("campaigns")} style={{fontSize:11,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
+          </div>
+          {campaigns.length===0
+            ?<div style={{padding:"16px 14px",textAlign:"center",color:C.textMute,fontSize:11}}>Keine Kampagnen</div>
+            :campaigns.slice(0,4).map((c,i)=>{
+              const n=posts.filter(p=>p.campaignId===c.id).length;
+              return <div key={c.id} style={{padding:"8px 14px",borderBottom:i<Math.min(campaigns.length,4)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",transition:"background .1s"}}
+                onClick={()=>onNav("campaigns")}
+                onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <div style={{fontSize:16,flexShrink:0}}>{c.emoji}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11.5,fontWeight:700,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                  <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{n} Post{n!==1?"s":""}</div>
+                </div>
+                <div style={{width:6,height:6,borderRadius:"50%",background:c.color,flexShrink:0}}/>
+              </div>;
+            })
+          }
+        </div>
+
+      </div>}
+    </div>
+  );
+}
+
 // ── WEEK STRIP ──────────────────────────────────────────────────────────────
 function WeekStrip({posts,campaigns,now,onNav}){
   const SK={scheduled:"#16A34A",draft:"#D97706",pending:"#2563EB",published:"#7C3AED"};
@@ -2646,8 +2827,6 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   const pub=posts.filter(p=>p.status==="published");
   const recent=[...posts].slice(-12).reverse();
   const [hovCard,setHovCard]=useState(null);
-  const [sbRight,setSbRight]=useState(()=>{try{return localStorage.getItem("sb_right")!=="0";}catch{return true;}});
-  const toggleRight=()=>{const n=!sbRight;setSbRight(n);try{localStorage.setItem("sb_right",n?"1":"0");}catch{}};
 
   // Live clock
   const [now,setNow]=useState(new Date());
@@ -2764,30 +2943,8 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
     return null;
   };
 
-  // Mini calendar state
-  const [calMonth,setCalMonth]=useState(new Date());
-  const calYear=calMonth.getFullYear(),calMon=calMonth.getMonth();
-  const firstDay=new Date(calYear,calMon,1).getDay();
-  const firstDayMon=firstDay===0?6:firstDay-1;
-  const daysInMonth=new Date(calYear,calMon+1,0).getDate();
-  const schedDays=new Set(sched.filter(p=>p.scheduledDate).map(p=>{
-    const d=new Date(p.scheduledDate);
-    if(d.getFullYear()===calYear&&d.getMonth()===calMon)return d.getDate();
-    return null;
-  }).filter(Boolean));
-  const calLabel=calMonth.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
-  const todayD=now.getDate(),todayM=now.getMonth(),todayY=now.getFullYear();
-
   // Image cover helper
   const getCover=p=>{if(p.mediaId){const m=items.find(x=>x.id===p.mediaId);return m?.url;}return null;};
-
-  // Activity feed: most recent posts as "actions"
-  const actMap={
-    scheduled:{verb:"geplant",color:C.accent,icon:"📅"},
-    pending:{verb:"zur Freigabe eingereicht",color:C.warning,icon:"⏳"},
-    published:{verb:"veröffentlicht",color:C.success,icon:"✅"},
-    draft:{verb:"als Entwurf gespeichert",color:C.textSoft,icon:"📝"},
-  };
 
   const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
   const lift=e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.09)";};
@@ -2840,10 +2997,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   };
 
   return(
-    <div style={{flex:1,overflow:"hidden",display:"grid",gridTemplateColumns:sbRight?"1fr 272px":"1fr 36px",background:C.bg,transition:"grid-template-columns .2s"}}>
-
-    {/* ══ LEFT: scrollable main content ══ */}
-    <div style={{overflow:"auto",padding:"20px 22px 20px 22px",display:"flex",flexDirection:"column",gap:10}}>
+    <div style={{flex:1,overflow:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:10,background:C.bg}}>
 
       {/* ── HERO: clock | greeting | totals ── */}
       <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
@@ -2941,161 +3095,6 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         )}
       </div>
 
-    </div>{/* END LEFT */}
-
-    {/* ══ RIGHT SIDEBAR: collapsible, full height ══ */}
-    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${C.borderLight}`,overflow:"hidden",background:C.bg,transition:"grid-template-columns .2s",minHeight:0,height:"100%"}}>
-
-      {/* ── Designed toggle handle ── */}
-      {sbRight?(
-        /* OPEN: header bar with label + collapse tab */
-        <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 12px 0 14px",height:44,borderBottom:`1px solid ${C.borderLight}`,background:C.surface}}>
-          <div style={{display:"flex",alignItems:"center",gap:7}}>
-            {/* grip dots */}
-            <div style={{display:"flex",flexDirection:"column",gap:3.5,opacity:.45}}>
-              {[0,1,2].map(i=><div key={i} style={{display:"flex",gap:3.5}}>{[0,1].map(j=><div key={j} style={{width:2.5,height:2.5,borderRadius:"50%",background:C.textMid}}/>)}</div>)}
-            </div>
-            <span style={{fontSize:10,fontWeight:800,color:C.textMute,textTransform:"uppercase",letterSpacing:".1em",fontFamily:FONT}}>Widgets</span>
-          </div>
-          {/* collapse button */}
-          <button onClick={toggleRight} title="Sidebar einklappen"
-            style={{width:26,height:26,borderRadius:8,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMute,transition:"all .15s",fontFamily:FONT}}
-            onMouseEnter={e=>{e.currentTarget.style.background=C.borderLight;e.currentTarget.style.color=C.textMid;}}
-            onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMute;}}>
-            <ChevronRight size={14} strokeWidth={2.5}/>
-          </button>
-        </div>
-      ):(
-        /* CLOSED: full-height expand strip */
-        <div onClick={toggleRight} title="Sidebar ausklappen"
-          style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:8,userSelect:"none",transition:"background .15s"}}
-          onMouseEnter={e=>e.currentTarget.style.background=C.borderLight}
-          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-          {/* grip dots vertical */}
-          <div style={{display:"flex",flexDirection:"column",gap:3,opacity:.4}}>
-            {[0,1,2,3,4].map(i=><div key={i} style={{width:3,height:3,borderRadius:"50%",background:C.textMid}}/>)}
-          </div>
-          <div style={{width:24,height:24,borderRadius:7,background:C.surface,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 3px rgba(0,0,0,.07)"}}>
-            <ChevronLeft size={12} strokeWidth={2.5} color={C.textMid}/>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:3,opacity:.4}}>
-            {[0,1,2,3,4].map(i=><div key={i} style={{width:3,height:3,borderRadius:"50%",background:C.textMid}}/>)}
-          </div>
-        </div>
-      )}
-
-      {/* Sidebar content — only when open, minHeight:0 fixes flex-scroll */}
-      {sbRight&&<div style={{flex:1,minHeight:0,overflow:"auto",padding:"12px 12px 20px 12px",display:"flex",flexDirection:"column",gap:10}}>
-
-          {/* Mini calendar */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <button onClick={()=>setCalMonth(new Date(calYear,calMon-1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,fontSize:16,lineHeight:1,padding:"0 2px",fontFamily:FONT}}>‹</button>
-              <span style={{fontSize:12,fontWeight:700,color:C.textMid}}>{calLabel}</span>
-              <button onClick={()=>setCalMonth(new Date(calYear,calMon+1,1))} style={{background:"none",border:"none",cursor:"pointer",color:C.textSoft,fontSize:16,lineHeight:1,padding:"0 2px",fontFamily:FONT}}>›</button>
-            </div>
-            <div style={{padding:"6px 10px 2px",display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
-              {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>(
-                <div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,color:C.textMute,padding:"2px 0"}}>{d}</div>
-              ))}
-            </div>
-            <div style={{padding:"0 10px 10px",display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
-              {Array(firstDayMon).fill(null).map((_,i)=><div key={`e${i}`}/>)}
-              {Array(daysInMonth).fill(null).map((_,i)=>{
-                const day=i+1;
-                const isToday=day===todayD&&calMon===todayM&&calYear===todayY;
-                const hasPosts=schedDays.has(day);
-                return(
-                  <div key={day} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"2px 0",cursor:hasPosts?"pointer":"default"}}
-                    onClick={hasPosts?()=>onNav("calendar"):undefined}>
-                    <div style={{width:22,height:22,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
-                      background:isToday?C.accent:"transparent",
-                      color:isToday?"#fff":C.textMid,fontSize:10.5,fontWeight:isToday?700:400}}>
-                      {day}
-                    </div>
-                    {hasPosts&&<div style={{width:4,height:4,borderRadius:"50%",background:C.accent,marginTop:1}}/>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Activity feed – Letzte Aktionen */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Letzte Aktionen</span>
-              <Activity size={13} color={C.textMute} strokeWidth={1.8}/>
-            </div>
-            {recent.length===0
-              ?<div style={{padding:"20px 14px",textAlign:"center",fontSize:11,color:C.textMute}}>Noch keine Aktivität</div>
-              :recent.slice(0,7).map((p,i)=>{
-                const a=actMap[p.status]||actMap.draft;
-                return(
-                  <div key={p.id} style={{padding:"8px 14px",borderBottom:i<Math.min(recent.length,7)-1?`1px solid ${C.borderLight}`:"none",display:"flex",gap:9,alignItems:"flex-start",cursor:"pointer",transition:"background .1s"}}
-                    onClick={()=>onNav("publisher")}
-                    onMouseEnter={e=>e.currentTarget.style.background=C.bg}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <div style={{width:26,height:26,borderRadius:7,background:a.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12}}>{a.icon}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
-                      <div style={{fontSize:10,color:C.textSoft,marginTop:1,display:"flex",alignItems:"center",gap:4}}>
-                        <span style={{color:a.color,fontWeight:600}}>{a.verb}</span>
-                        {p.channels?.slice(0,2).map(c=><ChIco key={c} id={c} size={9}/>)}
-                      </div>
-                    </div>
-                    {p.scheduledDate&&<span style={{fontSize:9,color:C.textMute,flexShrink:0,paddingTop:1}}>{p.scheduledDate}</span>}
-                  </div>
-                );
-              })
-            }
-          </div>
-
-          {/* Posts je Kanal */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`}}>
-              <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Posts je Kanal</span>
-            </div>
-            {CHANNELS.map((ch,i)=>{
-              const n=posts.filter(p=>p.channels?.includes(ch.id)).length;
-              const total=Math.max(1,posts.length);
-              return <div key={ch.id} style={{padding:"7px 14px",borderBottom:i<CHANNELS.length-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8}}>
-                <ChIco id={ch.id} size={12} color={C.textMid}/>
-                <span style={{fontSize:11,color:C.textMid,flex:1}}>{ch.label}</span>
-                <div style={{width:60,height:4,background:C.borderLight,borderRadius:99,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${(n/total)*100}%`,background:C.accent,borderRadius:99}}/>
-                </div>
-                <span style={{fontSize:11,fontWeight:700,color:C.textSoft,width:14,textAlign:"right"}}>{n}</span>
-              </div>;
-            })}
-          </div>
-
-          {/* Kampagnen */}
-          <div style={{...card,overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontWeight:700,fontSize:12.5,color:C.textMid}}>Kampagnen</span>
-              <button onClick={()=>onNav("campaigns")} style={{fontSize:11,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Alle →</button>
-            </div>
-            {campaigns.length===0
-              ?<div style={{padding:"16px 14px",textAlign:"center",color:C.textMute,fontSize:11}}>Keine Kampagnen</div>
-              :campaigns.slice(0,4).map((c,i)=>{
-                const n=posts.filter(p=>p.campaignId===c.id).length;
-                return <div key={c.id} style={{padding:"8px 14px",borderBottom:i<Math.min(campaigns.length,4)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",transition:"background .1s"}}
-                  onClick={()=>onNav("campaigns")}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <div style={{fontSize:16,flexShrink:0}}>{c.emoji}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:11.5,fontWeight:700,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
-                    <div style={{fontSize:10,color:C.textMute,marginTop:1}}>{n} Post{n!==1?"s":""}</div>
-                  </div>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:c.color,flexShrink:0}}/>
-                </div>;
-              })
-            }
-          </div>
-
-      </div>}
-    </div>
     </div>
   );
 }
@@ -4730,16 +4729,21 @@ export default function App(){
       <Sidebar active={nav} onNav={goNav} user={user} onLogout={()=>setUser(null)} pend={posts.filter(p=>p.status==="pending").length} posts={posts} onChNav={goChNav} activeCh={chFilt}/>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <TopBar title={TITLE[nav]||"SocialFlow"} user={user} onNew={newPost}/>
-        {nav==="dashboard"   &&<Dashboard posts={posts.filter(p=>!p.deleted)} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
-        {(nav==="publisher"||nav==="drafts")&&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={nav==="drafts"?"draft":filt} setFilt={nav==="drafts"?()=>{}:setFilt} chFilt={chFilt} setChFilt={setChFilt}/>}
-        {nav==="trash"       &&<TrashPage posts={posts} onRestore={restore} onPurge={purge} onPurgeAll={purgeAll}/>}
-        {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts.filter(p=>!p.deleted)} onEditPost={setEdPost}/>}
-        {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} onDelete={ids=>setItems(p=>p.filter(x=>!ids.includes(x.id)))}/>}
-        {nav==="calendar"    &&<CalendarPage posts={posts} onEdit={setEdPost}/>}
-        {nav==="planner"     &&<PlannerPage posts={posts} campaigns={campaigns} items={items} onEdit={setEdPost}/>}
-        {nav==="performance" &&<PerformancePage posts={posts}/>}
-        {nav==="stories"     &&<StoriesPage stories={stories} items={items} onEdit={setEdStory} onNew={newStory} onDelete={delStory}/>}
-        {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user}/>}
+        <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+          <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+            {nav==="dashboard"   &&<Dashboard posts={posts.filter(p=>!p.deleted)} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
+            {(nav==="publisher"||nav==="drafts")&&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={nav==="drafts"?"draft":filt} setFilt={nav==="drafts"?()=>{}:setFilt} chFilt={chFilt} setChFilt={setChFilt}/>}
+            {nav==="trash"       &&<TrashPage posts={posts} onRestore={restore} onPurge={purge} onPurgeAll={purgeAll}/>}
+            {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts.filter(p=>!p.deleted)} onEditPost={setEdPost}/>}
+            {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} onDelete={ids=>setItems(p=>p.filter(x=>!ids.includes(x.id)))}/>}
+            {nav==="calendar"    &&<CalendarPage posts={posts} onEdit={setEdPost}/>}
+            {nav==="planner"     &&<PlannerPage posts={posts} campaigns={campaigns} items={items} onEdit={setEdPost}/>}
+            {nav==="performance" &&<PerformancePage posts={posts}/>}
+            {nav==="stories"     &&<StoriesPage stories={stories} items={items} onEdit={setEdStory} onNew={newStory} onDelete={delStory}/>}
+            {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user}/>}
+          </div>
+          <GlobalRightSidebar posts={posts.filter(p=>!p.deleted)} campaigns={campaigns} onNav={goNav}/>
+        </div>
       </div>
       {edPost&&<Editor post={edPost} items={items} posts={posts} campaigns={campaigns} onSave={save} onClose={()=>setEdPost(null)} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} user={user}/>}
       {edStory&&<StoryEditorModal story={edStory} items={items} onSave={saveStory} onClose={()=>setEdStory(null)} onUpload={i=>setItems(p=>[...p,i])} onConvertSection={convertSection}/>}
