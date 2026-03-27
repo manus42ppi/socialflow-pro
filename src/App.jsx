@@ -2706,6 +2706,67 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         ))}
       </div>
 
+      {/* ── WOCHENVORSCHAU / MINI-PLANNER ── */}
+      {(()=>{
+        const days=Array.from({length:7},(_,i)=>{
+          const d=new Date(now); d.setDate(d.getDate()+i);
+          const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+          const dayPosts=posts.filter(p=>p.scheduledDate===ds).sort((a,b)=>(a.scheduledTime||"").localeCompare(b.scheduledTime||""));
+          return{d,ds,dayPosts};
+        });
+        const hasPosts=days.some(d=>d.dayPosts.length>0);
+        const SK={scheduled:"#16A34A",draft:"#D97706",pending:"#2563EB",published:"#7C3AED"};
+        return(
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"10px 16px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <CalendarRange size={13} color={C.accent} strokeWidth={2}/>
+                <span style={{fontSize:12.5,fontWeight:700,color:C.textMid}}>Nächste 7 Tage</span>
+              </div>
+              <button onClick={()=>onNav("planner")} style={{fontSize:11,color:C.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>Planner öffnen →</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:0}}>
+              {days.map(({d,ds,dayPosts},i)=>{
+                const isToday=i===0;
+                const dow=d.toLocaleDateString("de-DE",{weekday:"short"});
+                const dayNum=d.getDate();
+                return(
+                  <div key={ds} style={{borderRight:i<6?`1px solid ${C.borderLight}`:"none",padding:"10px 8px 10px",minHeight:72,background:isToday?C.accentLight+"50":"transparent",transition:"background .1s",cursor:dayPosts.length>0?"pointer":"default"}}
+                    onClick={dayPosts.length>0?()=>onNav("planner"):undefined}
+                    onMouseEnter={e=>{if(dayPosts.length>0)e.currentTarget.style.background=isToday?C.accentLight:C.bg;}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=isToday?C.accentLight+"50":"transparent";}}>
+                    <div style={{textAlign:"center",marginBottom:6}}>
+                      <div style={{fontSize:9.5,fontWeight:700,color:isToday?C.accent:C.textMute,textTransform:"uppercase",letterSpacing:".05em"}}>{dow}</div>
+                      <div style={{width:22,height:22,borderRadius:"50%",margin:"3px auto 0",display:"flex",alignItems:"center",justifyContent:"center",
+                        background:isToday?C.accent:"transparent",
+                        color:isToday?"#fff":C.textMid,fontSize:11.5,fontWeight:isToday?700:500}}>{dayNum}</div>
+                    </div>
+                    {dayPosts.length===0?(
+                      <div style={{height:4}}/>
+                    ):(
+                      <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                        {dayPosts.slice(0,3).map(p=>{
+                          const camp=campaigns.find(c=>c.id===p.campaignId);
+                          return(
+                            <div key={p.id} title={`${p.scheduledTime||""} ${p.title||"Post"}`}
+                              style={{borderRadius:4,padding:"2px 5px",background:(SK[p.status]||C.textMute)+"18",
+                                borderLeft:`2px solid ${SK[p.status]||C.textMute}`,overflow:"hidden"}}>
+                              <div style={{fontSize:9.5,fontWeight:700,color:SK[p.status]||C.textMute,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.scheduledTime||""} {camp?camp.emoji:""} {p.title||"–"}</div>
+                            </div>
+                          );
+                        })}
+                        {dayPosts.length>3&&<div style={{fontSize:9,color:C.textMute,textAlign:"center",fontWeight:600}}>+{dayPosts.length-3}</div>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {!hasPosts&&<div style={{padding:"8px 16px 10px",fontSize:11,color:C.textMute,textAlign:"center"}}>Keine Posts diese Woche geplant – <span onClick={()=>onNav("publisher")} style={{color:C.accent,cursor:"pointer",fontWeight:600}}>Post erstellen</span></div>}
+          </div>
+        );
+      })()}
+
       {/* ── MAIN CONTENT: post grid + right panel ── */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 268px",gap:10}}>
 
