@@ -7,7 +7,7 @@ import {
   Twitter, Linkedin, Facebook, Hash, Layers, Inbox, Sparkles,
   Tag, MapPin, Zap, FileText, Eye, Key, Building2, User, Phone,
   ExternalLink, ChevronDown, ChevronUp, Save, Wifi, WifiOff,
-  ArrowUpDown
+  ArrowUpDown, Menu
 } from "lucide-react";
 
 // ── FONT & COLORS ──────────────────────────────────────────────────────────
@@ -392,35 +392,100 @@ function Login({onLogin}){
 }
 
 // ── SIDEBAR + TOPBAR ───────────────────────────────────────────────────────
-const NAV=[
-  {id:"dashboard",  label:"Dashboard",   I:LayoutDashboard},
-  {id:"publisher",  label:"Publisher",   I:Send},
-  {id:"campaigns",  label:"Kampagnen",   I:Flag},
-  {id:"media",      label:"Medien",      I:Image},
-  {id:"calendar",   label:"Kalender",    I:Calendar},
-  {id:"performance",label:"Performance", I:BarChart2},
-  {id:"admin",      label:"Admin",       I:Settings, adm:true},
+const NAV_GROUPS=[
+  {label:"WORKSPACE",items:[
+    {id:"dashboard",  label:"Dashboard",        I:LayoutDashboard},
+    {id:"publisher",  label:"Publisher",         I:Send},
+    {id:"media",      label:"Medienbibliothek",  I:Image},
+    {id:"calendar",   label:"Kalender",          I:Calendar},
+  ]},
+  {label:"ANALYSE",items:[
+    {id:"performance",label:"Performance",       I:BarChart2},
+    {id:"campaigns",  label:"Kampagnen",         I:Flag},
+  ]},
 ];
+// flat list kept for any legacy references
+const NAV=NAV_GROUPS.flatMap(g=>g.items).concat([{id:"admin",label:"Admin",I:Settings,adm:true}]);
+
 function Sidebar({active,onNav,user,onLogout,pend}){
-  const items=NAV.filter(n=>!n.adm||user.role==="admin");
-  return(
-    <div style={{width:64,background:C.sidebar,display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 0 12px",gap:2,flexShrink:0,borderRight:`1px solid rgba(255,255,255,.04)`}}>
-      <div style={{width:40,height:40,borderRadius:12,background:`linear-gradient(135deg,${C.accent},#4444b8)`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:18,boxShadow:`0 4px 16px ${C.accentGlow}`}}><Layers size={19} color="#fff" strokeWidth={1.5}/></div>
-      {items.map(({id,label,I})=>{const on=active===id;
-        return <button key={id} onClick={()=>onNav(id)} title={label} style={{position:"relative",width:44,height:44,borderRadius:12,border:"none",background:on?"rgba(255,255,255,.09)":"transparent",color:on?"#fff":"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .18s"}}
-          onMouseEnter={e=>{if(!on){e.currentTarget.style.background="rgba(255,255,255,.06)";e.currentTarget.style.color="#9CA3AF";}}}
-          onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#4A5568";}}}>
-          <I size={18} strokeWidth={IW}/>
-          {on&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:20,background:C.accent,borderRadius:"0 3px 3px 0",boxShadow:`2px 0 8px ${C.accentGlow}`}}/>}
-        </button>;
-      })}
-      <div style={{flex:1}}/>
-      <button title="Benachrichtigungen" style={{position:"relative",width:44,height:44,borderRadius:12,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .18s"}}
-        onMouseEnter={e=>{e.currentTarget.style.color="#9CA3AF";}} onMouseLeave={e=>{e.currentTarget.style.color="#4A5568";}}>
-        <Bell size={18} strokeWidth={IW}/>{pend>0&&<div style={{position:"absolute",top:9,right:9,width:7,height:7,borderRadius:"50%",background:C.accent,boxShadow:`0 0 6px ${C.accent}`}}/>}
+  const [open,setOpen]=useState(()=>{try{return localStorage.getItem("sb_open")!=="0";}catch{return true;}});
+  const toggle=()=>{const n=!open;setOpen(n);try{localStorage.setItem("sb_open",n?"1":"0");}catch{}};
+  const W=open?240:64;
+  const BtnSB=({id,label,I,badge})=>{
+    const on=active===id;
+    return(
+      <button onClick={()=>onNav(id)} title={open?undefined:label} style={{
+        position:"relative",width:"100%",height:38,borderRadius:9,border:"none",
+        background:on?"rgba(255,255,255,.1)":"transparent",
+        color:on?"#fff":"#6B7280",cursor:"pointer",
+        display:"flex",alignItems:"center",gap:10,
+        padding:open?"0 10px 0 12px":"0",justifyContent:open?"flex-start":"center",
+        transition:"background .13s, color .13s",fontFamily:FONT,flexShrink:0,
+      }}
+        onMouseEnter={e=>{if(!on){e.currentTarget.style.background="rgba(255,255,255,.06)";e.currentTarget.style.color="#9CA3AF";}}}
+        onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6B7280";}}}>
+        {on&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:20,background:C.accent,borderRadius:"0 3px 3px 0",boxShadow:`2px 0 8px ${C.accentGlow}`}}/>}
+        <I size={16} strokeWidth={IW} style={{flexShrink:0}}/>
+        {open&&<span style={{fontSize:13,fontWeight:on?700:500,flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>}
+        {badge>0&&<div style={{minWidth:18,height:18,borderRadius:9,background:C.accent,color:"#fff",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",flexShrink:0,marginLeft:open?0:"auto"}}>{badge}</div>}
       </button>
-      <button onClick={onLogout} title="Abmelden" style={{width:44,height:44,borderRadius:12,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .18s"}} onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#4A5568"}><LogOut size={18} strokeWidth={IW}/></button>
-      <div style={{marginTop:6,marginBottom:2}}><Avatar initials={user.avatar} size={32} color={C.accent}/></div>
+    );
+  };
+  return(
+    <div style={{width:W,minWidth:W,background:C.sidebar,display:"flex",flexDirection:"column",flexShrink:0,borderRight:"1px solid rgba(255,255,255,.06)",transition:"width .22s cubic-bezier(.4,0,.2,1),min-width .22s cubic-bezier(.4,0,.2,1)",overflow:"hidden"}}>
+
+      {/* ── Logo + toggle ── */}
+      <div style={{height:56,display:"flex",alignItems:"center",padding:"0 14px",gap:10,flexShrink:0,borderBottom:"1px solid rgba(255,255,255,.05)"}}>
+        <div style={{width:30,height:30,borderRadius:8,flexShrink:0,background:`linear-gradient(135deg,${C.accent},#4444b8)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 3px 10px ${C.accentGlow}`}}>
+          <Layers size={15} color="#fff" strokeWidth={1.5}/>
+        </div>
+        {open&&<div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:7}}>
+          <span style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:14,color:"#F9FAFB",letterSpacing:"-.01em",whiteSpace:"nowrap"}}>SocialFlow</span>
+          <span style={{fontSize:9,fontWeight:800,color:C.accent,background:"rgba(99,102,241,.18)",padding:"2px 6px",borderRadius:4,letterSpacing:".05em",whiteSpace:"nowrap"}}>PRO</span>
+        </div>}
+        <button onClick={toggle} style={{width:30,height:30,borderRadius:7,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"color .13s"}}
+          onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#4A5568"}>
+          <Menu size={15} strokeWidth={2}/>
+        </button>
+      </div>
+
+      {/* ── Nav groups ── */}
+      <div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"10px 8px 0"}}>
+        {NAV_GROUPS.map((grp,gi)=>(
+          <div key={grp.label} style={{marginBottom:8}}>
+            {open
+              ?<div style={{fontSize:10,fontWeight:700,color:"#374151",letterSpacing:".08em",padding:"2px 12px 6px",textTransform:"uppercase"}}>{grp.label}</div>
+              :gi>0&&<div style={{height:1,background:"rgba(255,255,255,.06)",margin:"6px 4px 10px"}}/>
+            }
+            {grp.items.map(({id,label,I})=>(
+              <BtnSB key={id} id={id} label={label} I={I} badge={id==="publisher"?pend:0}/>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Bottom: admin + user ── */}
+      <div style={{padding:"8px",borderTop:"1px solid rgba(255,255,255,.06)",flexShrink:0,display:"flex",flexDirection:"column",gap:2}}>
+        {user.role==="admin"&&<BtnSB id="admin" label="Admin" I={Settings} badge={0}/>}
+        <div style={{height:4}}/>
+        <div style={{display:"flex",alignItems:"center",gap:8,padding:open?"6px 10px":"6px 0",justifyContent:open?"flex-start":"center",borderRadius:9,transition:"all .13s"}}>
+          <Avatar initials={user.avatar} size={26} color={C.accent}/>
+          {open&&<>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#D1D5DB",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
+              <div style={{fontSize:10,color:"#4B5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
+            </div>
+            <button onClick={onLogout} title="Abmelden" style={{width:26,height:26,borderRadius:6,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"color .13s"}}
+              onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#4A5568"}>
+              <LogOut size={13} strokeWidth={IW}/>
+            </button>
+          </>}
+        </div>
+        {!open&&<button onClick={onLogout} title="Abmelden" style={{width:"100%",height:32,borderRadius:7,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"color .13s"}}
+          onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#4A5568"}>
+          <LogOut size={15} strokeWidth={IW}/>
+        </button>}
+      </div>
     </div>
   );
 }
