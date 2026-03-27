@@ -2435,7 +2435,7 @@ function MediaPage({items,posts=[],onUpload,onUpdate,onDelete}){
 // ── MINI GANTT (Dashboard widget) ───────────────────────────────────────────
 function MiniGantt({posts,campaigns,onNav}){
   const SK={scheduled:"#16A34A",draft:"#D97706",pending:"#2563EB",published:"#7C3AED"};
-  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)",flexShrink:0};
 
   const today=new Date();
   const todayStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
@@ -2574,7 +2574,7 @@ function MiniGantt({posts,campaigns,onNav}){
 // ── WEEK STRIP ──────────────────────────────────────────────────────────────
 function WeekStrip({posts,campaigns,now,onNav}){
   const SK={scheduled:"#16A34A",draft:"#D97706",pending:"#2563EB",published:"#7C3AED"};
-  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)",flexShrink:0};
   const days=Array.from({length:7},(_,i)=>{
     const d=new Date(now); d.setDate(d.getDate()+i);
     const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
