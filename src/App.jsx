@@ -427,27 +427,40 @@ function Sidebar({active,onNav,user,onLogout,pend}){
         {on&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:20,background:C.accent,borderRadius:"0 3px 3px 0",boxShadow:`2px 0 8px ${C.accentGlow}`}}/>}
         <I size={16} strokeWidth={IW} style={{flexShrink:0}}/>
         {open&&<span style={{fontSize:13,fontWeight:on?700:500,flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>}
-        {badge>0&&<div style={{minWidth:18,height:18,borderRadius:9,background:C.accent,color:"#fff",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",flexShrink:0,marginLeft:open?0:"auto"}}>{badge}</div>}
+        {/* Badge: inline when expanded, absolute (top-right over icon) when collapsed */}
+        {badge>0&&open&&<div style={{minWidth:18,height:18,borderRadius:9,background:C.accent,color:"#fff",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",flexShrink:0}}>{badge}</div>}
+        {badge>0&&!open&&<div style={{position:"absolute",top:5,right:7,minWidth:15,height:15,borderRadius:8,background:C.accent,color:"#fff",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>{badge}</div>}
       </button>
     );
   };
   return(
     <div style={{width:W,minWidth:W,background:C.sidebar,display:"flex",flexDirection:"column",flexShrink:0,borderRight:"1px solid rgba(255,255,255,.06)",transition:"width .22s cubic-bezier(.4,0,.2,1),min-width .22s cubic-bezier(.4,0,.2,1)",overflow:"hidden"}}>
 
-      {/* ── Logo + toggle ── */}
-      <div style={{height:56,display:"flex",alignItems:"center",padding:"0 14px",gap:10,flexShrink:0,borderBottom:"1px solid rgba(255,255,255,.05)"}}>
-        <div style={{width:30,height:30,borderRadius:8,flexShrink:0,background:`linear-gradient(135deg,${C.accent},#4444b8)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 3px 10px ${C.accentGlow}`}}>
-          <Layers size={15} color="#fff" strokeWidth={1.5}/>
+      {/* ── Logo + toggle ──
+          Expanded: [Logo icon] [SocialFlow PRO text] [≡ button]
+          Collapsed: entire header = one big toggle button (64×56px, easy to click) */}
+      {open?(
+        <div style={{height:56,display:"flex",alignItems:"center",padding:"0 10px 0 14px",gap:10,flexShrink:0,borderBottom:"1px solid rgba(255,255,255,.05)"}}>
+          <div style={{width:30,height:30,borderRadius:8,flexShrink:0,background:`linear-gradient(135deg,${C.accent},#4444b8)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 3px 10px ${C.accentGlow}`}}>
+            <Layers size={15} color="#fff" strokeWidth={1.5}/>
+          </div>
+          <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:7}}>
+            <span style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:14,color:"#F9FAFB",letterSpacing:"-.01em",whiteSpace:"nowrap"}}>SocialFlow</span>
+            <span style={{fontSize:9,fontWeight:800,color:C.accent,background:"rgba(99,102,241,.18)",padding:"2px 6px",borderRadius:4,letterSpacing:".05em",whiteSpace:"nowrap"}}>PRO</span>
+          </div>
+          <button onClick={toggle} title="Einklappen" style={{width:28,height:28,borderRadius:7,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"color .13s"}}
+            onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#4A5568"}>
+            <Menu size={15} strokeWidth={2}/>
+          </button>
         </div>
-        {open&&<div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:7}}>
-          <span style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:14,color:"#F9FAFB",letterSpacing:"-.01em",whiteSpace:"nowrap"}}>SocialFlow</span>
-          <span style={{fontSize:9,fontWeight:800,color:C.accent,background:"rgba(99,102,241,.18)",padding:"2px 6px",borderRadius:4,letterSpacing:".05em",whiteSpace:"nowrap"}}>PRO</span>
-        </div>}
-        <button onClick={toggle} style={{width:30,height:30,borderRadius:7,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"color .13s"}}
-          onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#4A5568"}>
-          <Menu size={15} strokeWidth={2}/>
+      ):(
+        <button onClick={toggle} title="Aufklappen" style={{height:56,width:"100%",border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,.05)",transition:"background .13s"}}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.05)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+          <div style={{width:30,height:30,borderRadius:8,background:`linear-gradient(135deg,${C.accent},#4444b8)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 3px 10px ${C.accentGlow}`}}>
+            <Layers size={15} color="#fff" strokeWidth={1.5}/>
+          </div>
         </button>
-      </div>
+      )}
 
       {/* ── Nav groups ── */}
       <div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"10px 8px 0"}}>
