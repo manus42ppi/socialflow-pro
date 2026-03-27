@@ -32,7 +32,7 @@ const C = {
   glassStroke:"rgba(255,255,255,0.9)",
 };
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
   @keyframes spin { to { transform:rotate(360deg); } }
   @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
@@ -202,7 +202,7 @@ function SCrd({icon:Icon,label,value,delta,color,onClick}){
           {delta>=0?<ArrowUp size={11} strokeWidth={2.5}/>:<ArrowDown size={11} strokeWidth={2.5}/>}{Math.abs(delta)}%
         </div>}
       </div>
-      <div style={{marginTop:14,fontFamily:FONT_DISPLAY,fontSize:26,fontWeight:800,color:C.text,letterSpacing:"-.03em"}}>{value}</div>
+      <div style={{marginTop:14,fontFamily:FONT,fontSize:26,fontWeight:600,color:C.text,letterSpacing:"-.03em"}}>{value}</div>
       <div style={{fontSize:10,fontWeight:400,textTransform:"uppercase",letterSpacing:".05em",color:C.textMute,marginTop:3,display:"flex",alignItems:"center"}}>
         {label}{onClick&&<span style={{marginLeft:"auto",fontSize:11,color:C.textMute,opacity:.6}}>→</span>}
       </div>
@@ -3049,7 +3049,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         </div>
         <div style={{padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
           <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:20,fontWeight:800,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]}</div>
+          <div style={{fontFamily:FONT,fontSize:20,fontWeight:600,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]}</div>
           <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
             {pend.length>0&&<span onClick={()=>onFilterNav("publisher","pending")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.warningBg,color:C.warning,cursor:"pointer"}}>{pend.length} zur Freigabe</span>}
             {sched.length>0&&<span onClick={()=>onFilterNav("publisher","scheduled")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.accentLight,color:C.accent,cursor:"pointer"}}>{sched.length} geplant</span>}
@@ -3059,11 +3059,11 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         <div style={{display:"flex"}}>
           <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${C.borderLight}`}}>
             <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".11em",color:C.textMute,marginBottom:6}}>Posts gesamt</div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:34,fontWeight:800,color:C.text,lineHeight:1,letterSpacing:"-1px"}}>{posts.length}</div>
+            <div style={{fontFamily:FONT,fontSize:34,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{posts.length}</div>
           </div>
           <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
             <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".11em",color:C.textMute,marginBottom:6}}>Kampagnen</div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:34,fontWeight:800,color:C.text,lineHeight:1,letterSpacing:"-1px"}}>{campaigns.length}</div>
+            <div style={{fontFamily:FONT,fontSize:34,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{campaigns.length}</div>
           </div>
         </div>
       </div>
@@ -3081,7 +3081,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
             style={{...card,padding:"16px 18px 14px",cursor:"pointer",transition:"all .15s",borderTop:`2px solid ${st.color}`}}
             onMouseEnter={lift} onMouseLeave={drop}>
             <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".1em",color:C.textMute,marginBottom:8}}>{st.label}</div>
-            <div style={{fontFamily:FONT_DISPLAY,fontSize:40,fontWeight:800,color:C.text,lineHeight:1,letterSpacing:"-1px"}}>{st.value}</div>
+            <div style={{fontFamily:FONT,fontSize:40,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{st.value}</div>
             <div style={{fontSize:10,fontWeight:300,color:C.textSoft,marginTop:6,letterSpacing:".02em"}}>{st.sub}</div>
           </div>
         ))}
