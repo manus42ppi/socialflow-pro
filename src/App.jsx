@@ -7,7 +7,7 @@ import {
   Twitter, Linkedin, Facebook, Hash, Layers, Inbox, Sparkles,
   Tag, MapPin, Zap, FileText, Eye, Key, Building2, User, Phone,
   ExternalLink, ChevronDown, ChevronUp, Save, Wifi, WifiOff,
-  ArrowUpDown, Menu
+  ArrowUpDown, Menu, AlertTriangle, CheckSquare
 } from "lucide-react";
 
 // ── FONT & COLORS ──────────────────────────────────────────────────────────
@@ -1842,7 +1842,7 @@ function CampaignsPage({campaigns,setCampaigns,posts,onEditPost}){
   );
 }
 // ── MEDIA PAGE ─────────────────────────────────────────────────────────────
-function MediaPage({items,posts=[],onUpload,onUpdate}){
+function MediaPage({items,posts=[],onUpload,onUpdate,onDelete}){
   const [q,setQ]=useState(""); const [f,setF]=useState("all");
   const [flt,setFlt]=useState({type:"",orient:"",sort:"relevant"});
   const [drag,setDrag]=useState(false); const [det,setDet]=useState(null);
@@ -1850,6 +1850,9 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
   const [ldg,setLdg]=useState({});
   const [showKeys,setShowKeys]=useState(false);
   const [keys,setKeys]=useState({unsplash:skGet("unsplash"),pexels:skGet("pexels"),pixabay:skGet("pixabay")});
+  const [batchMode,setBatchMode]=useState(false);
+  const [sel,setSel]=useState(new Set());
+  const [delConfirm,setDelConfirm]=useState(null); // {ids,futurePosts}
   const ref=useRef(); const timer=useRef();
 
   const upload=useCallback(async files=>{
@@ -1896,6 +1899,26 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
   },[q,flt,keys]);
 
   const usedIn=id=>posts.filter(p=>p.mediaId===id);
+
+  // Delete helpers
+  const getFuturePosts=ids=>{
+    const now=new Date();
+    return posts.filter(p=>ids.includes(p.mediaId)&&p.scheduledDate&&new Date(p.scheduledDate)>now);
+  };
+  const requestDelete=ids=>{
+    const fp=getFuturePosts(ids);
+    if(fp.length>0){setDelConfirm({ids,futurePosts:fp});}
+    else{onDelete&&onDelete(ids);setBatchMode(false);setSel(new Set());}
+  };
+  const confirmDelete=()=>{
+    if(!delConfirm)return;
+    onDelete&&onDelete(delConfirm.ids);
+    setDelConfirm(null);setBatchMode(false);setSel(new Set());
+  };
+  const toggleSel=id=>setSel(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
+  const selAll=()=>setSel(new Set(list.map(i=>i.id)));
+  const selNone=()=>setSel(new Set());
+
   const hasKeys=STOCK_SRCS.some(s=>keys[s.id]);
   const activeSrcs=STOCK_SRCS.filter(s=>keys[s.id]);
   const anyLdg=Object.values(ldg).some(Boolean);
@@ -1909,9 +1932,14 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
   const LibTile=({item})=>{
     const used=usedIn(item.id);
     const [hov,setHov]=useState(false);
+    const isSel=sel.has(item.id);
+    const handleClick=e=>{
+      if(batchMode){toggleSel(item.id);}
+      else{setDet(item);}
+    };
     return(
-      <div style={{borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:10,background:C.borderLight}}
-        onClick={()=>setDet(item)}
+      <div style={{borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:10,background:C.borderLight,outline:isSel?`2.5px solid ${C.accent}`:"none"}}
+        onClick={handleClick}
         onMouseEnter={()=>setHov(true)}
         onMouseLeave={()=>setHov(false)}>
         {item.type==="video"
@@ -1922,8 +1950,12 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
           <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
           <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
         </div>}
-        {/* Hover overlay – Unsplash-style */}
-        <div style={{position:"absolute",inset:0,borderRadius:10,background:hov?"linear-gradient(180deg,rgba(0,0,0,.38) 0%,transparent 40%,transparent 55%,rgba(0,0,0,.52) 100%)":"none",transition:"all .18s",pointerEvents:hov?"auto":"none"}}>
+        {/* Batch mode: checkbox top-left (always visible) */}
+        {batchMode&&<div style={{position:"absolute",top:8,left:8,width:20,height:20,borderRadius:6,background:isSel?C.accent:"rgba(255,255,255,.85)",border:`2px solid ${isSel?C.accent:"rgba(0,0,0,.25)"}`,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",transition:"all .12s"}}>
+          {isSel&&<Check size={12} color="#fff" strokeWidth={3}/>}
+        </div>}
+        {/* Hover overlay – Unsplash-style (only in normal mode) */}
+        {!batchMode&&<div style={{position:"absolute",inset:0,borderRadius:10,background:hov?"linear-gradient(180deg,rgba(0,0,0,.38) 0%,transparent 40%,transparent 55%,rgba(0,0,0,.52) 100%)":"none",transition:"all .18s",pointerEvents:hov?"auto":"none"}}>
           {/* Top row */}
           {hov&&<div style={{position:"absolute",top:10,left:10,right:10,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             {used.length>0
@@ -1931,8 +1963,15 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
                 <Check size={8} strokeWidth={3}/>{used.length} Post{used.length!==1?"s":""}
               </div>
               :<div/>}
-            <div style={{background:"rgba(255,255,255,.92)",borderRadius:8,padding:"5px 8px",display:"flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,color:C.text,backdropFilter:"blur(6px)"}}>
-              <Edit2 size={11} strokeWidth={2}/>Details
+            <div style={{display:"flex",gap:5,alignItems:"center"}}>
+              {/* Delete button */}
+              <div onClick={e=>{e.stopPropagation();requestDelete([item.id]);}} title="Löschen"
+                style={{width:28,height:28,borderRadius:8,background:"rgba(220,40,40,.85)",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)",cursor:"pointer"}}>
+                <Trash2 size={12} color="#fff" strokeWidth={2.5}/>
+              </div>
+              <div onClick={e=>{e.stopPropagation();setDet(item);}} style={{background:"rgba(255,255,255,.92)",borderRadius:8,padding:"5px 8px",display:"flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,color:C.text,backdropFilter:"blur(6px)",cursor:"pointer"}}>
+                <Edit2 size={11} strokeWidth={2}/>Details
+              </div>
             </div>
           </div>}
           {/* Bottom row */}
@@ -1940,9 +1979,9 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
             <div style={{color:"#fff",fontSize:11,fontWeight:600,textShadow:"0 1px 3px rgba(0,0,0,.6)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
             {item.tags&&<div style={{color:"rgba(255,255,255,.7)",fontSize:9.5,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.tags}</div>}
           </div>}
-        </div>
-        {/* Source badge (always visible) */}
-        {item.source&&!hov&&<div style={{position:"absolute",bottom:8,left:8}}><SrcBadge source={item.source}/></div>}
+        </div>}
+        {/* Source badge (always visible, normal mode only) */}
+        {item.source&&!hov&&!batchMode&&<div style={{position:"absolute",bottom:8,left:8}}><SrcBadge source={item.source}/></div>}
       </div>
     );
   };
@@ -2019,7 +2058,20 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
           <Settings size={12} strokeWidth={2}/>API-Keys
           {hasKeys&&<span style={{width:6,height:6,borderRadius:"50%",background:C.success,display:"inline-block"}}/>}
         </button>
-        <Btn onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Hochladen</Btn>
+        {!batchMode
+          ?<><Btn onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Hochladen</Btn>
+             {list.length>0&&<Btn variant="secondary" onClick={()=>{setBatchMode(true);setSel(new Set());}}><CheckSquare size={13} strokeWidth={2}/>Auswählen</Btn>}</>
+          :<div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <span style={{fontSize:12,fontWeight:700,color:C.textMid}}>{sel.size} ausgewählt</span>
+            <button onClick={sel.size===list.length?selNone:selAll} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,color:C.textSoft,fontSize:11,fontWeight:600,padding:"4px 9px",cursor:"pointer",fontFamily:FONT}}>
+              {sel.size===list.length?"Keine":"Alle"}
+            </button>
+            <button disabled={sel.size===0} onClick={()=>requestDelete([...sel])}
+              style={{background:sel.size>0?"#e53e3e":"#e53e3e44",border:"none",borderRadius:6,color:"#fff",fontSize:11,fontWeight:700,padding:"5px 12px",cursor:sel.size>0?"pointer":"default",display:"flex",alignItems:"center",gap:5,fontFamily:FONT}}>
+              <Trash2 size={12} strokeWidth={2.5}/>{sel.size>0?`${sel.size} löschen`:"Löschen"}
+            </button>
+            <button onClick={()=>{setBatchMode(false);setSel(new Set());}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,color:C.textSoft,fontSize:11,fontWeight:600,padding:"4px 9px",cursor:"pointer",fontFamily:FONT}}>Abbrechen</button>
+          </div>}
         <input ref={ref} type="file" multiple accept="image/*,video/*" style={{display:"none"}} onChange={e=>upload(e.target.files)}/>
       </div>
 
@@ -2099,6 +2151,44 @@ function MediaPage({items,posts=[],onUpload,onUpdate}){
         </div>
       </div>
       {det&&<MediaDetail item={det} onSave={u=>{onUpdate(u);setDet(null);}} onClose={()=>setDet(null)}/>}
+
+      {/* ── Delete confirm modal ── */}
+      {delConfirm&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}} onClick={()=>setDelConfirm(null)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:14,padding:28,maxWidth:440,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,.25)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <div style={{width:36,height:36,borderRadius:10,background:"#fff0f0",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <Trash2 size={18} color="#e53e3e" strokeWidth={2}/>
+            </div>
+            <div>
+              <div style={{fontWeight:800,fontSize:15,color:C.text}}>{delConfirm.ids.length===1?"Bild löschen":`${delConfirm.ids.length} Bilder löschen`}</div>
+              <div style={{fontSize:12,color:C.textSoft}}>Diese Aktion kann nicht rückgängig gemacht werden.</div>
+            </div>
+          </div>
+          <div style={{background:"#fff8f0",border:"1.5px solid #f6ad55",borderRadius:10,padding:"12px 14px",marginBottom:18}}>
+            <div style={{fontWeight:700,fontSize:12,color:"#c05621",marginBottom:6,display:"flex",alignItems:"center",gap:5}}>
+              <AlertTriangle size={13} strokeWidth={2.5}/>Verwendung in zukünftigen Posts
+            </div>
+            {delConfirm.futurePosts.map(p=>(
+              <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,paddingTop:5,borderTop:`1px solid #fbd38d`,marginTop:5}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
+                  <div style={{fontSize:11,color:C.textSoft}}>{p.scheduledDate}</div>
+                </div>
+                <SBadge status={p.status}/>
+              </div>
+            ))}
+            <div style={{fontSize:11,color:"#c05621",marginTop:8}}>
+              {delConfirm.futurePosts.length===1?"Dieser Post":"Diese Posts"} {delConfirm.futurePosts.length===1?"verliert":"verlieren"} das zugeordnete Bild.
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button onClick={()=>setDelConfirm(null)} style={{background:"none",border:`1.5px solid ${C.border}`,borderRadius:8,color:C.textSoft,fontWeight:600,fontSize:13,padding:"8px 18px",cursor:"pointer",fontFamily:FONT}}>Abbrechen</button>
+            <button onClick={confirmDelete} style={{background:"#e53e3e",border:"none",borderRadius:8,color:"#fff",fontWeight:700,fontSize:13,padding:"8px 18px",cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:6}}>
+              <Trash2 size={13} strokeWidth={2.5}/>Trotzdem löschen
+            </button>
+          </div>
+        </div>
+      </div>}
     </div>
   );
 }
@@ -3240,7 +3330,7 @@ export default function App(){
         {nav==="dashboard"   &&<Dashboard posts={posts} items={items} campaigns={campaigns} user={user} onNav={goNav} onFilterNav={goFilter}/>}
         {nav==="publisher"   &&<PublisherPage posts={posts} items={items} campaigns={campaigns} onEdit={setEdPost} onSched={setSchPost} onDel={del} onApprove={approve} onStatus={chSt} onCampaign={chCamp} onNew={newPost} role={user.role} filt={filt} setFilt={setFilt}/>}
         {nav==="campaigns"   &&<CampaignsPage campaigns={campaigns} setCampaigns={setCampaigns} posts={posts} onEditPost={setEdPost}/>}
-        {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))}/>}
+        {nav==="media"       &&<MediaPage items={items} posts={posts} onUpload={i=>setItems(p=>[...p,i])} onUpdate={u=>setItems(p=>p.map(x=>x.id===u.id?u:x))} onDelete={ids=>setItems(p=>p.filter(x=>!ids.includes(x.id)))}/>}
         {nav==="calendar"    &&<CalendarPage posts={posts} onEdit={setEdPost}/>}
         {nav==="performance" &&<PerformancePage posts={posts}/>}
         {nav==="admin"       &&user.role==="admin"&&<AdminPage me={user}/>}
