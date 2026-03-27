@@ -469,7 +469,7 @@ function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
             <span style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:14,color:"#F9FAFB",letterSpacing:"-.01em",whiteSpace:"nowrap"}}>SocialFlow</span>
             <span style={{fontSize:9,fontWeight:800,color:C.accent,background:"rgba(99,102,241,.18)",padding:"2px 6px",borderRadius:4,letterSpacing:".05em",whiteSpace:"nowrap"}}>PRO</span>
           </div>
-          <button onClick={toggle} title="Einklappen" style={{width:28,height:28,borderRadius:7,border:"none",background:"transparent",color:"#6B7280",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginLeft:8,transition:"color .13s"}}
+          <button onClick={toggle} title="Einklappen" style={{width:28,height:28,borderRadius:7,border:"none",background:"transparent",color:"#6B7280",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginLeft:18,transition:"color .13s"}}
             onMouseEnter={e=>e.currentTarget.style.color="#9CA3AF"} onMouseLeave={e=>e.currentTarget.style.color="#6B7280"}>
             <Menu size={15} strokeWidth={2}/>
           </button>
