@@ -2890,23 +2890,32 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   // Section wrapper with drag & drop
   const Sec=({id,title,right,children})=>(
     <div
-      draggable
-      onDragStart={e=>{e.dataTransfer.effectAllowed='move';setDragId(id);}}
-      onDragOver={e=>{e.preventDefault();setOverId(id);}}
-      onDragLeave={()=>setOverId(v=>v===id?null:v)}
-      onDrop={()=>dropOn(id)}
-      onDragEnd={()=>{setDragId(null);setOverId(null);}}
+      onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect='move';setOverId(id);}}
+      onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOverId(null);}}
+      onDrop={e=>{e.preventDefault();dropOn(id);}}
       style={{
         borderBottom:`1px solid ${C.border}`,
-        opacity:dragId===id?.45:1,
-        background:overId===id&&dragId!==id?`${C.accent}08`:'transparent',
-        transition:'background .15s',
+        opacity:dragId===id?.4:1,
+        background:overId===id&&dragId!==id?`${C.accent}06`:'transparent',
+        transition:'opacity .15s,background .15s',
       }}
     >
-      <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 0 6px',cursor:'grab',userSelect:'none'}}>
-        <div style={{display:'flex',flexDirection:'column',gap:3,opacity:.35,flexShrink:0}}>
+      {/* ── Drag handle – ONLY this row triggers drag ── */}
+      <div
+        draggable
+        onDragStart={e=>{
+          e.dataTransfer.effectAllowed='move';
+          e.dataTransfer.setData('text/plain',id);
+          // slight delay so browser renders ghost before state change
+          setTimeout(()=>setDragId(id),0);
+        }}
+        onDragEnd={()=>{setDragId(null);setOverId(null);}}
+        style={{display:'flex',alignItems:'center',gap:8,padding:'10px 0 6px',cursor:'grab',userSelect:'none',WebkitUserSelect:'none'}}
+      >
+        {/* 2×3 grip dots */}
+        <div style={{display:'flex',flexDirection:'column',gap:3.5,opacity:.4,flexShrink:0,padding:'0 2px'}}>
           {[0,1,2].map(r=>(
-            <div key={r} style={{display:'flex',gap:3}}>
+            <div key={r} style={{display:'flex',gap:3.5}}>
               {[0,1].map(c=><div key={c} style={{width:3,height:3,borderRadius:'50%',background:C.textMid}}/>)}
             </div>
           ))}
@@ -2914,7 +2923,8 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         <span style={{fontSize:10,fontWeight:400,textTransform:'uppercase',letterSpacing:'.1em',color:C.textMute,fontFamily:FONT}}>{title}</span>
         {right&&<div style={{marginLeft:'auto'}}>{right}</div>}
       </div>
-      <div style={{paddingBottom:14}}>{children}</div>
+      {/* ── Content – explicitly not draggable ── */}
+      <div draggable={false} style={{paddingBottom:16}}>{children}</div>
     </div>
   );
 
