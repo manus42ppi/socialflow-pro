@@ -2894,26 +2894,33 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
       onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOverId(null);}}
       onDrop={e=>{e.preventDefault();dropOn(id);}}
       style={{
-        borderBottom:`1px solid ${C.border}`,
+        background:C.surface,
+        borderRadius:14,
+        border:`1px solid ${overId===id&&dragId!==id?C.accent+"50":C.border}`,
+        boxShadow:'0 1px 4px rgba(0,0,0,.04)',
+        marginBottom:8,
+        overflow:'hidden',
         opacity:dragId===id?.4:1,
-        background:overId===id&&dragId!==id?`${C.accent}06`:'transparent',
-        transition:'opacity .15s,background .15s',
+        transition:'opacity .15s,border-color .15s',
       }}
     >
-      {/* ── Drag handle – ONLY this row triggers drag ── */}
+      {/* ── Drag handle ── */}
       <div
         draggable
         onDragStart={e=>{
           e.dataTransfer.effectAllowed='move';
           e.dataTransfer.setData('text/plain',id);
-          // slight delay so browser renders ghost before state change
           setTimeout(()=>setDragId(id),0);
         }}
         onDragEnd={()=>{setDragId(null);setOverId(null);}}
-        style={{display:'flex',alignItems:'center',gap:8,padding:'10px 0 6px',cursor:'grab',userSelect:'none',WebkitUserSelect:'none'}}
+        style={{
+          display:'flex',alignItems:'center',gap:8,
+          padding:'11px 16px 8px',
+          cursor:'grab',userSelect:'none',WebkitUserSelect:'none',
+          borderBottom:`1px solid ${C.borderLight}`,
+        }}
       >
-        {/* 2×3 grip dots */}
-        <div style={{display:'flex',flexDirection:'column',gap:3.5,opacity:.4,flexShrink:0,padding:'0 2px'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:3.5,opacity:.35,flexShrink:0}}>
           {[0,1,2].map(r=>(
             <div key={r} style={{display:'flex',gap:3.5}}>
               {[0,1].map(c=><div key={c} style={{width:3,height:3,borderRadius:'50%',background:C.textMid}}/>)}
@@ -2923,8 +2930,8 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         <span style={{fontSize:10,fontWeight:400,textTransform:'uppercase',letterSpacing:'.1em',color:C.textMute,fontFamily:FONT}}>{title}</span>
         {right&&<div style={{marginLeft:'auto'}}>{right}</div>}
       </div>
-      {/* ── Content – explicitly not draggable ── */}
-      <div draggable={false} style={{paddingBottom:16}}>{children}</div>
+      {/* ── Content ── */}
+      <div draggable={false} style={{padding:'14px 16px 16px'}}>{children}</div>
     </div>
   );
 
@@ -3136,8 +3143,9 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         {label:"Kampagnen",     value:campaigns.length,sub:"Aktiv",          color:"#EC4899", nav:()=>onNav("campaigns")},
       ].map((st,i)=>(
         <div key={i} onClick={st.nav}
-          style={{...card,padding:"16px 18px 14px",cursor:"pointer",transition:"all .15s",borderTop:`2px solid ${st.color}`}}
-          onMouseEnter={lift} onMouseLeave={drop}>
+          style={{padding:"16px 0 14px",cursor:"pointer",transition:"background .15s",borderTop:`2px solid ${st.color}`,paddingTop:14}}
+          onMouseEnter={e=>e.currentTarget.style.background=`${st.color}06`}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
           <div style={{fontSize:9.5,fontWeight:400,textTransform:"uppercase",letterSpacing:".1em",color:C.textMute,marginBottom:8}}>{st.label}</div>
           <div style={{fontFamily:FONT,fontSize:40,fontWeight:600,color:C.text,lineHeight:1,letterSpacing:"-.5px"}}>{st.value}</div>
           <div style={{fontSize:10,fontWeight:300,color:C.textSoft,marginTop:6,letterSpacing:".02em"}}>{st.sub}</div>
@@ -3157,9 +3165,9 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
         {I:Flag,          label:"Kampagnen",       sub:"Projekte",        nav:"campaigns",   color:"#EC4899"},
       ].map((qa,i)=>(
         <div key={i} onClick={()=>onNav(qa.nav)}
-          style={{...card,padding:"11px 13px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"all .15s"}}
-          onMouseEnter={e=>{e.currentTarget.style.borderColor=qa.color+"55";lift(e);}}
-          onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;drop(e);}}>
+          style={{padding:"10px 12px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"background .15s",borderRadius:8}}
+          onMouseEnter={e=>e.currentTarget.style.background=`${qa.color}08`}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
           <div style={{width:32,height:32,borderRadius:8,background:qa.color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <qa.I size={15} color={qa.color} strokeWidth={1.8}/>
           </div>
@@ -3198,7 +3206,7 @@ function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
   };
 
   return(
-    <div style={{flex:1,overflow:"auto",padding:"20px 22px",background:C.bg}}>
+    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:C.bg}}>
       {wOrder.map(id=>{
         const w=widgetMap[id];
         if(!w)return null;
