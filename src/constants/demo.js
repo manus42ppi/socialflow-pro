@@ -36,8 +36,32 @@ export const CAMP_ICONS = [
 ];
 
 export const DEMO_CAMPAIGNS = [
-  { id:"c1", name:"Sommer-Sale",   icon:"Sun",    color:"#F59E0B", description:"Posts für den Sommer Sale" },
-  { id:"c2", name:"Produktlaunch", icon:"Rocket", color:"#6941C6", description:"Launch Q2 2026" },
+  {
+    id:"c1", name:"Sommer-Sale", icon:"Sun", color:"#F59E0B",
+    description:"Sommerkampagne für den Jahresabverkauf mit Fokus auf Rabattaktionen und saisonale Inhalte.",
+    goal:"sales", status:"active",
+    startDate:"2026-06-01", endDate:"2026-08-31",
+    channels:["instagram","facebook"],
+    keyMessage:"Bis zu 40% Rabatt – nur kurze Zeit!",
+    cta:"Jetzt shoppen",
+    audience:{ ageRange:"25-44", gender:"all", locations:"Deutschland, Österreich", interests:"Shopping, Mode, Lifestyle" },
+    budget:{ total:5000, spent:1840, currency:"EUR" },
+    kpis:{ impressions:500000, reach:150000, engagementRate:3.5, clicks:8000 },
+    createdAt:"2026-05-15",
+  },
+  {
+    id:"c2", name:"Produktlaunch", icon:"Rocket", color:"#6941C6",
+    description:"Launch der neuen Produktlinie Q2 2026 auf allen relevanten Kanälen.",
+    goal:"awareness", status:"planned",
+    startDate:"2026-04-15", endDate:"2026-06-30",
+    channels:["instagram","linkedin","twitter"],
+    keyMessage:"Das nächste Level ist da.",
+    cta:"Mehr erfahren",
+    audience:{ ageRange:"18-35", gender:"all", locations:"Deutschland", interests:"Tech, Innovation, Business" },
+    budget:{ total:8000, spent:0, currency:"EUR" },
+    kpis:{ impressions:1000000, reach:300000, engagementRate:4.0, clicks:15000 },
+    createdAt:"2026-03-01",
+  },
 ];
 
 export const DEMO_POSTS = [
