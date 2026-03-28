@@ -15,6 +15,7 @@ import MediaPage from "./pages/MediaPage.jsx";
 import CalendarPage from "./pages/CalendarPage.jsx";
 import PlannerPage from "./pages/PlannerPage.jsx";
 import PerformancePage from "./pages/PerformancePage.jsx";
+import ResearchPage from "./pages/ResearchPage.jsx";
 import StoriesPage from "./pages/StoriesPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 
@@ -65,6 +66,7 @@ function AppShell() {
             {nav === "calendar"                      && <CalendarPage />}
             {nav === "planner"                       && <PlannerPage />}
             {nav === "performance"                   && <PerformancePage />}
+            {nav === "research"                      && <ResearchPage />}
             {nav === "stories"                       && <StoriesPage />}
             {nav === "admin" && user.role === "admin" && <AdminPage />}
           </div>
