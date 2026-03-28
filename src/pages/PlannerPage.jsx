@@ -20,6 +20,16 @@ const STATUS = {
   published: { c:"#7C3AED", l:"Veröffentlicht",  bg:"#F5F3FF" },
 };
 
+// Campaign lifecycle status colours
+const CAMP_STATUS = {
+  draft:     { c:"#B54708", bg:"#FFFAEB", l:"Entwurf"       },
+  planned:   { c:"#175CD3", bg:"#EFF8FF", l:"Geplant"       },
+  active:    { c:"#027A48", bg:"#ECFDF3", l:"Aktiv"         },
+  paused:    { c:"#667085", bg:"#F2F4F7", l:"Pausiert"      },
+  completed: { c:"#6941C6", bg:"#F9F5FF", l:"Abgeschlossen" },
+  archived:  { c:"#667085", bg:"#F2F4F7", l:"Archiviert"    },
+};
+
 function fmt(dateStr, opts = { day:"numeric", month:"short" }) {
   return dateStr ? new Date(dateStr + "T12:00").toLocaleDateString("de-DE", opts) : "–";
 }
@@ -210,10 +220,14 @@ export default function PlannerPage() {
   const campRows = useMemo(() =>
     campaigns.map(c => {
       const all  = schedPosts.filter(p => p.campaignId === c.id);
-      if (!all.length) return null;
       const vis  = all.filter(inView);
-      const dates = all.map(p => p.scheduledDate).sort();
-      return { ...c, allPosts:all, visiblePosts:vis, x1:dateToX(dates[0]), x2:dateToX(dates[dates.length-1]) };
+      // Prefer explicit campaign dates; fall back to post dates
+      const postDates = all.map(p => p.scheduledDate).sort();
+      const barStart  = c.startDate || postDates[0]                    || null;
+      const barEnd    = c.endDate   || postDates[postDates.length - 1] || null;
+      // Only skip campaigns with no date info at all
+      if (!barStart && !barEnd) return null;
+      return { ...c, allPosts:all, visiblePosts:vis, x1:dateToX(barStart), x2:dateToX(barEnd) };
     }).filter(Boolean),
   [campaigns, schedPosts, dateToX]);
 
@@ -444,97 +458,115 @@ export default function PlannerPage() {
   // ── Campaign progress widget ───────────────────────────────────────────────
   const campProgress = useMemo(() =>
     campaigns.map(c => {
-      const cp = posts.filter(p => p.campaignId === c.id);
-      if (!cp.length) return null;
-      const pub    = cp.filter(p => p.status === "published").length;
-      const dates  = cp.filter(p => p.scheduledDate).map(p => p.scheduledDate).sort();
-      const endD   = dates[dates.length-1] ? new Date(dates[dates.length-1]+"T12:00") : null;
+      const cp  = posts.filter(p => p.campaignId === c.id);
+      const pub = cp.filter(p => p.status === "published").length;
+      // Use campaign's own dates; fall back to post dates
+      const postDates = cp.filter(p => p.scheduledDate).map(p => p.scheduledDate).sort();
+      const start    = c.startDate || postDates[0]                       || null;
+      const end      = c.endDate   || postDates[postDates.length - 1]    || null;
+      const endD     = end ? new Date(end + "T12:00") : null;
       const daysLeft = endD ? Math.ceil((endD - today) / 86400000) : null;
+      // Use campaign channels if no posts assigned yet
+      const channels = cp.length
+        ? [...new Set(cp.flatMap(p => p.channels || []))]
+        : (c.channels || []);
       return {
         ...c,
-        total:cp.length, pub, pct:Math.round((pub/cp.length)*100),
-        start:dates[0]||null, end:dates[dates.length-1]||null,
-        daysLeft,
-        channels:[...new Set(cp.flatMap(p => p.channels||[]))],
+        total: cp.length, pub,
+        pct: cp.length ? Math.round((pub / cp.length) * 100) : 0,
+        start, end, daysLeft, channels,
       };
-    }).filter(Boolean),
+    }),
   [campaigns, posts]);
 
   const campaignsContent = campProgress.length === 0 ? (
     <div style={{ padding:"24px 0", textAlign:"center", color:C.textMute }}>
       <LucideIcons.Flag size={28} strokeWidth={1} style={{ margin:"0 auto 8px", display:"block", opacity:.3 }}/>
-      <div style={{ fontSize:12 }}>Keine Kampagnen mit Posts</div>
+      <div style={{ fontSize:12 }}>Keine Kampagnen vorhanden</div>
     </div>
   ) : (
     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))", gap:10 }}>
-      {campProgress.map(c => (
-        <div key={c.id} style={{
-          borderRadius:10, padding:"14px 16px", background:"#fff",
-          border:`1px solid ${C.border}`,
-          borderLeft:`3px solid ${c.color}`,
-          transition:"box-shadow .15s",
-        }}
-          onMouseEnter={e => e.currentTarget.style.boxShadow = `0 4px 16px ${c.color}22`}
-          onMouseLeave={e => e.currentTarget.style.boxShadow = ""}>
+      {campProgress.map(c => {
+        const cs = CAMP_STATUS[c.status] || CAMP_STATUS.draft;
+        return (
+          <div key={c.id} style={{
+            borderRadius:10, padding:"14px 16px", background:"#fff",
+            border:`1px solid ${C.border}`,
+            borderLeft:`3px solid ${c.color}`,
+            transition:"box-shadow .15s",
+          }}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = `0 4px 16px ${c.color}22`}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = ""}>
 
-          {/* Header */}
-          <div style={{ display:"flex", alignItems:"flex-start", gap:10, marginBottom:10 }}>
-            <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
-              background:c.color+"18", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <CampIcon name={c.icon||"Flag"} size={17} color={c.color} strokeWidth={1.8}/>
+            {/* Header */}
+            <div style={{ display:"flex", alignItems:"flex-start", gap:10, marginBottom:10 }}>
+              <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
+                background:c.color+"18", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <CampIcon name={c.icon||"Flag"} size={17} color={c.color} strokeWidth={1.8}/>
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700, fontSize:13, color:C.text,
+                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</div>
+                {/* Status + goal badges */}
+                <div style={{ display:"flex", gap:4, marginTop:3, flexWrap:"wrap" }}>
+                  <span style={{ fontSize:9, fontWeight:700, color:cs.c,
+                    background:cs.bg, borderRadius:4, padding:"1px 6px" }}>
+                    {cs.l}
+                  </span>
+                  {c.goal && (
+                    <span style={{ fontSize:9, fontWeight:600, color:C.textMute,
+                      background:C.borderLight, borderRadius:4, padding:"1px 6px",
+                      textTransform:"capitalize" }}>
+                      {c.goal}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ fontSize:17, fontWeight:800, letterSpacing:"-.5px",
+                color: c.pct === 100 ? "#16A34A" : c.color, flexShrink:0 }}>
+                {c.total > 0 ? `${c.pct}%` : "–"}
+              </div>
             </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontWeight:700, fontSize:13, color:C.text,
-                overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</div>
-              {c.description && (
-                <div style={{ fontSize:10.5, color:C.textSoft, marginTop:1,
-                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {c.description}
+
+            {/* Progress bar */}
+            <div style={{ height:5, borderRadius:5, background:C.borderLight, overflow:"hidden", marginBottom:8 }}>
+              <div style={{ height:"100%", borderRadius:5,
+                background: c.pct === 100 ? "#16A34A" : c.color,
+                width:`${c.pct}%`, transition:"width .5s" }}/>
+            </div>
+
+            {/* Stats row */}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <span style={{ fontSize:10.5, color:C.textSoft }}>
+                {c.total > 0
+                  ? `${c.pub} veröffent. · ${c.total - c.pub} offen`
+                  : "Noch keine Posts"}
+              </span>
+              {c.daysLeft !== null && (
+                <span style={{ fontSize:10, fontWeight:700,
+                  color: c.daysLeft < 0 ? "#DC2626" : c.daysLeft < 7 ? "#D97706" : C.textMute }}>
+                  {c.daysLeft < 0
+                    ? `${Math.abs(c.daysLeft)}T abgelaufen`
+                    : c.daysLeft === 0 ? "Endet heute"
+                    : `${c.daysLeft}T verbleibend`}
+                </span>
+              )}
+            </div>
+
+            {/* Channels + date range */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div style={{ display:"flex", gap:4 }}>
+                {c.channels.slice(0,5).map(ch => <ChIco key={ch} id={ch} size={13}/>)}
+              </div>
+              {c.start && (
+                <div style={{ fontSize:10, color:C.textMute }}>
+                  {fmt(c.start)}{c.end && c.end !== c.start ? ` – ${fmt(c.end)}` : ""}
                 </div>
               )}
             </div>
-            <div style={{ fontSize:17, fontWeight:800, letterSpacing:"-.5px",
-              color: c.pct === 100 ? "#16A34A" : c.color, flexShrink:0 }}>
-              {c.pct}%
-            </div>
           </div>
-
-          {/* Progress bar */}
-          <div style={{ height:5, borderRadius:5, background:C.borderLight, overflow:"hidden", marginBottom:8 }}>
-            <div style={{ height:"100%", borderRadius:5,
-              background: c.pct === 100 ? "#16A34A" : c.color,
-              width:`${c.pct}%`, transition:"width .5s" }}/>
-          </div>
-
-          {/* Stats row */}
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-            <span style={{ fontSize:10.5, color:C.textSoft }}>
-              {c.pub} veröffent. · {c.total - c.pub} offen
-            </span>
-            {c.daysLeft !== null && (
-              <span style={{ fontSize:10, fontWeight:700,
-                color: c.daysLeft < 0 ? "#DC2626" : c.daysLeft < 7 ? "#D97706" : C.textMute }}>
-                {c.daysLeft < 0
-                  ? `${Math.abs(c.daysLeft)}T abgelaufen`
-                  : c.daysLeft === 0 ? "Endet heute"
-                  : `${c.daysLeft}T verbleibend`}
-              </span>
-            )}
-          </div>
-
-          {/* Channels + date range */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-            <div style={{ display:"flex", gap:4 }}>
-              {c.channels.slice(0,5).map(ch => <ChIco key={ch} id={ch} size={13}/>)}
-            </div>
-            {c.start && (
-              <div style={{ fontSize:10, color:C.textMute }}>
-                {fmt(c.start)}{c.end !== c.start ? ` – ${fmt(c.end)}` : ""}
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -653,7 +685,7 @@ export default function PlannerPage() {
 
   const widgetMap = {
     timeline:  { title:"Timeline",              right:timelineRight, content:ganttContent },
-    campaigns: { title:"Kampagnen-Fortschritt", right:<span style={{fontSize:11,color:C.textMute}}>{campProgress.length} Kampagnen</span>, content:campaignsContent },
+    campaigns: { title:"Kampagnen-Fortschritt", right:<span style={{fontSize:11,color:C.textMute}}>{campaigns.length} Kampagnen</span>, content:campaignsContent },
     upcoming:  { title:"Nächste Posts",         right:<span style={{fontSize:11,color:C.textMute}}>{upcoming.length} geplant</span>, content:upcomingContent },
   };
 
