@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, Eye, Heart, MessageCircle, BarChart2, Clock, Trash2, Edit3, Film } from "lucide-react";
+import { Plus, Eye, Heart, MessageCircle, BarChart2, Clock, Trash2, Edit3, Film, BookOpen, Search } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
 import { CHANNELS, DEMO_STORIES } from "../constants/demo.js";
 import { fmtDate, uid } from "../utils/store.js";

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Plus, Trash2, ChevronLeft, ChevronRight, Type, Image, Film, Smile, Sliders, Eye, Save, Clock } from "lucide-react";
+import { X, Plus, Trash2, ChevronLeft, ChevronRight, Type, Image, Film, Smile, Sliders, Eye, Save, Clock, Send, Check, Edit2, FileText, BookOpen } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { uid, fileToDataURL, getMediaType } from "../utils/store.js";
