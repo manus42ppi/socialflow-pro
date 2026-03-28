@@ -6,6 +6,7 @@ import { fmtDate } from "../utils/store.js";
 import { Sp, Badge, Btn, FL, SCrd } from "../components/ui/index.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
 import MiniGantt from "../components/widgets/MiniGantt.jsx";
+import ChIco from "../components/ui/ChIco.jsx";
 
 // ── PLANNER PAGE ────────────────────────────────────────────────────────────
 function PlannerPage({posts,campaigns,items,onEdit}){

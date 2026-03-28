@@ -6,6 +6,7 @@ import { storeGet, storeSet } from "../utils/store.js";
 import { skGet, skSet } from "../components/StockSearch.jsx";
 import { Sp, Badge, Avatar, Btn, Card, FL, TIn, SBadge, SCrd } from "../components/ui/index.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
+import ChIco from "../components/ui/ChIco.jsx";
 
 // ── ADMIN PAGE ─────────────────────────────────────────────────────────────
 function AdminPage({me,onUpdateMe}){
