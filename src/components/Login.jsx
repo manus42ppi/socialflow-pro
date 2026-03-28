@@ -19,7 +19,7 @@ const clerkAppearance = {
     colorSuccess: "#30A46C",
     borderRadius: "10px",
     spacingUnit: "14px",
-    fontFamily: "'Inter', system-ui, sans-serif",
+    fontFamily: FONT,
   },
   elements: {
     rootBox: { width: "100%" },

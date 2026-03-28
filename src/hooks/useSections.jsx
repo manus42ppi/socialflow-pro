@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FONT } from "../constants/colors.js";
 
 // ── SHARED DRAGGABLE SECTION SYSTEM ──────────────────────────────────────
 export function useSections(pageId,userId,defaults){
@@ -48,7 +49,7 @@ export function SecCard({id,title,right,dragId,overId,setDragId,setOverId,drop,c
         <div style={{display:'flex',flexDirection:'column',gap:3.5,opacity:.35,flexShrink:0}}>
           {[0,1,2].map(r=><div key={r} style={{display:'flex',gap:3.5}}>{[0,1].map(c=><div key={c} style={{width:3,height:3,borderRadius:'50%',background:'#6B7280'}}/>)}</div>)}
         </div>
-        <span style={{fontSize:10,fontWeight:400,textTransform:'uppercase',letterSpacing:'.1em',color:'#9CA3AF',fontFamily:"'Inter','DM Sans',system-ui,sans-serif"}}>{title}</span>
+        <span style={{fontSize:10,fontWeight:400,textTransform:'uppercase',letterSpacing:'.1em',color:'#9CA3AF',fontFamily:FONT}}>{title}</span>
         {right&&<div style={{marginLeft:'auto'}}>{right}</div>}
       </div>
       <div draggable={false} style={{padding:'14px 16px 16px'}}>{children}</div>
