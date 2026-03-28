@@ -5,7 +5,10 @@ import { C, FONT, IW } from "../../constants/colors.js";
 // ── UI PRIMITIVES ──────────────────────────────────────────────────────────
 export function Sp({color="#fff"}){return <div style={{width:14,height:14,borderRadius:"50%",border:`2px solid ${color}30`,borderTopColor:color,animation:"spin .7s linear infinite",flexShrink:0}}/>;}
 export function Badge({color,bg,children}){return <span style={{display:"inline-flex",alignItems:"center",gap:3,background:bg||C.borderLight,color:color||C.textSoft,fontSize:10.5,fontWeight:700,padding:"2px 9px",borderRadius:20,whiteSpace:"nowrap",letterSpacing:".01em"}}>{children}</span>;}
-export function Avatar({initials,size=32,color=C.accent}){return <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${color}30,${color}15)`,color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:size*.36,flexShrink:0,border:`1.5px solid ${color}40`,boxShadow:`0 0 0 2px ${color}10`}}>{initials}</div>;}
+export function Avatar({initials,imageUrl,size=32,color=C.accent}){
+  if(imageUrl) return <img src={imageUrl} alt={initials||"Avatar"} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:`1.5px solid ${color}40`,boxShadow:`0 0 0 2px ${color}10`}}/>;
+  return <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${color}30,${color}15)`,color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:size*.36,flexShrink:0,border:`1.5px solid ${color}40`,boxShadow:`0 0 0 2px ${color}10`}}>{initials}</div>;
+}
 
 export function Btn({children,variant="primary",size="md",onClick,disabled=false,style={}}){
   const V={
