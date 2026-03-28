@@ -7,6 +7,8 @@ import { Sp, Badge, Avatar, Btn, Card, FL, TIn, SBadge, SCrd } from "../componen
 import { useSections, SecCard } from "../hooks/useSections.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { PREV } from "../components/previews/index.jsx";
+import MiniGantt from "../components/widgets/MiniGantt.jsx";
+import WeekStrip from "../components/widgets/WeekStrip.jsx";
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────
 function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
