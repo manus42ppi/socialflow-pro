@@ -25,6 +25,7 @@ export default function Editor(){
   const [picker,setPicker]=useState(false);
   const [convOpen,setConvOpen]=useState({}); // which channel konverter sections are open
   const [autoSaved,setAutoSaved]=useState(null); // timestamp of last auto-save
+  const [catOpen,setCatOpen]=useState(false);
   const autoSaveRef=useRef();
   // Research panel state
   const [rQ,setRQ]=useState("");
@@ -84,80 +85,76 @@ export default function Editor(){
       <div style={{background:C.surface,borderRadius:16,width:"100%",maxWidth:1060,maxHeight:"94vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 24px 64px rgba(0,0,0,.2)",border:`1px solid ${C.border}`}}>
 
         {/* Modal top bar */}
-        <div style={{flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 20px",borderBottom:`1px solid ${C.borderLight}`}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
-              <h2 style={{margin:0,fontFamily:FONT_DISPLAY,fontSize:15,fontWeight:700,color:C.text,letterSpacing:"-.01em",flexShrink:0}}>{form.id?"Post bearbeiten":"Neuer Post"}</h2>
-              {/* Category badge */}
-              {form.category&&<span style={{fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:(catColors[form.category]||"#6B7280")+"18",color:catColors[form.category]||"#6B7280",flexShrink:0,textTransform:"uppercase",letterSpacing:".04em"}}>{form.category}</span>}
-              {/* Auto-save indicator */}
-              {autoSaved&&<span style={{fontSize:10,color:C.textMute,fontWeight:500}}>· AUTO-SAVE: {autoSaved}</span>}
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {/* Content stats */}
-              {charLen>0&&<div style={{display:"flex",gap:6,alignItems:"center",background:C.bg,border:`1px solid ${C.border}`,borderRadius:7,padding:"4px 9px",fontSize:10,color:C.textMute,flexShrink:0}}>
-                <span>{wordCount} Wörter</span>
-                <span style={{color:C.borderLight}}>·</span>
-                <span>{charLen} Z.</span>
-                <span style={{color:C.borderLight}}>·</span>
-                <span>{sentenceCount} Sätze</span>
-              </div>}
-              <div style={{display:"flex",gap:3,background:C.bg,borderRadius:9,padding:3,border:`1px solid ${C.border}`}}>
-                {[["preview","Vorschau",Eye],["research","Recherche",BookOpen],["ai","KI-Assistent",Sparkles]].map(([id,label,Ic])=>(
-                  <button key={id} onClick={()=>setRightPane(id)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:7,border:"none",background:rightPane===id?(id==="ai"?`linear-gradient(135deg,${C.ai1},${C.ai2})`:C.surface):"transparent",color:rightPane===id?(id==="ai"?"#fff":C.text):C.textSoft,fontWeight:700,fontSize:11.5,cursor:"pointer",fontFamily:FONT,boxShadow:rightPane===id?"0 1px 4px rgba(0,0,0,.1)":"none",transition:"all .15s"}}>
-                    <Ic size={11} strokeWidth={2}/>{label}
-                    {id==="ai"&&<span style={{fontSize:9,fontWeight:700,padding:"0 5px",borderRadius:8,background:rightPane==="ai"?"rgba(255,255,255,.25)":C.purpleGlow,color:rightPane==="ai"?"#fff":C.purple}}>PRO</span>}
-                  </button>
-                ))}
-              </div>
-              <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:4}}><X size={19} strokeWidth={2}/></button>
-            </div>
+        <div style={{flexShrink:0,padding:"12px 20px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+            <h2 style={{margin:0,fontFamily:FONT_DISPLAY,fontSize:15,fontWeight:700,color:C.text,letterSpacing:"-.01em",flexShrink:0}}>{form.id?"Post bearbeiten":"Neuer Post"}</h2>
+            {form.category&&<span style={{fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:(catColors[form.category]||"#6B7280")+"18",color:catColors[form.category]||"#6B7280",flexShrink:0,textTransform:"uppercase",letterSpacing:".04em"}}>{form.category}</span>}
+            {autoSaved&&<span style={{fontSize:10,color:C.textMute,fontWeight:500}}>· gespeichert {autoSaved}</span>}
           </div>
-          {/* Category selector row */}
-          <div style={{padding:"6px 20px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",gap:4,alignItems:"center",overflowX:"auto",flexShrink:0,background:C.bg}}>
-            <span style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".04em",flexShrink:0,marginRight:2}}>KATEGORIE</span>
-            {CATS.filter(c=>c).map(cat=>(
-              <button key={cat} onClick={()=>setForm(f=>({...f,category:f.category===cat?"":cat}))}
-                style={{padding:"3px 10px",borderRadius:20,border:`1.5px solid ${form.category===cat?(catColors[cat]||"#6B7280"):C.border}`,background:form.category===cat?(catColors[cat]||"#6B7280")+"14":"transparent",color:form.category===cat?(catColors[cat]||"#6B7280"):C.textSoft,fontSize:10.5,fontWeight:700,cursor:"pointer",fontFamily:FONT,flexShrink:0,transition:"all .12s"}}>
-                {cat}
-              </button>
-            ))}
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {charLen>0&&<div style={{display:"flex",gap:6,alignItems:"center",background:C.bg,border:`1px solid ${C.border}`,borderRadius:7,padding:"4px 9px",fontSize:10,color:C.textMute,flexShrink:0}}>
+              <span>{wordCount} Wörter</span>
+              <span style={{color:C.borderLight}}>·</span>
+              <span>{charLen} Z.</span>
+              <span style={{color:C.borderLight}}>·</span>
+              <span>{sentenceCount} Sätze</span>
+            </div>}
+            <div style={{display:"flex",gap:3,background:C.bg,borderRadius:9,padding:3,border:`1px solid ${C.border}`}}>
+              {[["preview","Vorschau",Eye],["research","Recherche",BookOpen],["ai","KI-Assistent",Sparkles]].map(([id,label,Ic])=>(
+                <button key={id} onClick={()=>setRightPane(id)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:7,border:"none",background:rightPane===id?(id==="ai"?`linear-gradient(135deg,${C.ai1},${C.ai2})`:C.surface):"transparent",color:rightPane===id?(id==="ai"?"#fff":C.text):C.textSoft,fontWeight:700,fontSize:11.5,cursor:"pointer",fontFamily:FONT,boxShadow:rightPane===id?"0 1px 4px rgba(0,0,0,.1)":"none",transition:"all .15s"}}>
+                  <Ic size={11} strokeWidth={2}/>{label}
+                  {id==="ai"&&<span style={{fontSize:9,fontWeight:700,padding:"0 5px",borderRadius:8,background:rightPane==="ai"?"rgba(255,255,255,.25)":C.purpleGlow,color:rightPane==="ai"?"#fff":C.purple}}>PRO</span>}
+                </button>
+              ))}
+            </div>
+            <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:4}}><X size={19} strokeWidth={2}/></button>
           </div>
         </div>
 
         <div style={{flex:1,overflow:"hidden",display:"flex"}}>
 
           {/* LEFT: Form */}
-          <div style={{flex:1,overflow:"auto",padding:"16px 20px",borderRight:`1px solid ${C.borderLight}`,display:"flex",flexDirection:"column",gap:11}}>
+          <div style={{flex:1,overflow:"auto",padding:"18px 20px",borderRight:`1px solid ${C.borderLight}`,display:"flex",flexDirection:"column",gap:16}}>
 
-            <div><FL>Kanäle</FL>
+            {/* Kanäle */}
+            <div>
+              <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginBottom:5,letterSpacing:".02em"}}>Kanäle</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                 {CHANNELS.map(c=>(
-                  <button key={c.id} onClick={()=>togCh(c.id)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:8,border:`1.5px solid ${form.channels?.includes(c.id)?c.color:C.border}`,background:form.channels?.includes(c.id)?c.color+"12":"#fff",color:form.channels?.includes(c.id)?c.color:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}}>
+                  <button key={c.id} onClick={()=>togCh(c.id)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:8,border:`1.5px solid ${form.channels?.includes(c.id)?c.color:C.border}`,background:form.channels?.includes(c.id)?c.color+"12":C.bg,color:form.channels?.includes(c.id)?c.color:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}}>
                     <ChIco id={c.id} size={13}/>{c.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {campaigns?.length>0&&<div><FL>Kampagne (optional)</FL>
-              <select value={form.campaignId||""} onChange={e=>setForm(f=>({...f,campaignId:e.target.value||null}))} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,color:C.text}}>
-                <option value="">— Keine Kampagne —</option>
-                {campaigns.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>}
+            {/* Kampagne */}
+            {campaigns?.length>0&&(
+              <div>
+                <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginBottom:5,letterSpacing:".02em"}}>Kampagne (optional)</div>
+                <div style={{position:"relative",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,overflow:"hidden"}}>
+                  <select value={form.campaignId||""} onChange={e=>setForm(f=>({...f,campaignId:e.target.value||null}))} style={{width:"100%",padding:"8px 12px",border:"none",background:"transparent",fontSize:13,fontFamily:FONT,color:C.text,outline:"none",appearance:"none",cursor:"pointer"}}>
+                    <option value="">— Keine Kampagne —</option>
+                    {campaigns.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <ChevronDown size={13} color={C.textMute} strokeWidth={2} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}/>
+                </div>
+              </div>
+            )}
 
+            {/* Titel */}
             <TIn label="Titel (intern)" icon={FileText} placeholder="Kurzer Arbeitstitel…" value={form.title||""} onChange={e=>setForm({...form,title:e.target.value})}/>
 
+            {/* Text */}
             <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <FL style={{margin:0}}>Text</FL>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",letterSpacing:".02em"}}>Text</div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:11,fontWeight:600,color:charColor}}>{charLen}{maxC<9999?`/${maxC}`:""}</span>
                   {maxC<9999&&<div style={{width:36,height:4,borderRadius:2,background:C.borderLight,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(100,charPct)}%`,background:charColor,borderRadius:2,transition:"width .2s"}}/></div>}
                 </div>
               </div>
-              <textarea value={form.content||""} onChange={e=>setForm({...form,content:e.target.value})} placeholder="Was möchtest du teilen?" style={{width:"100%",minHeight:110,padding:"9px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,outline:"none",fontFamily:FONT,resize:"vertical",boxSizing:"border-box",color:C.text,lineHeight:1.6}}/>
+              <textarea value={form.content||""} onChange={e=>setForm({...form,content:e.target.value})} placeholder="Was möchtest du teilen?" style={{width:"100%",minHeight:140,padding:"9px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,fontSize:13,outline:"none",fontFamily:FONT,resize:"vertical",boxSizing:"border-box",color:C.text,lineHeight:1.6}}/>
               {charLen>5&&charLen<40&&rightPane!=="ai"&&(
                 <div onClick={()=>setRightPane("ai")} style={{marginTop:4,fontSize:11,color:C.purple,cursor:"pointer",display:"flex",alignItems:"center",gap:4,opacity:.75}}>
                   <Sparkles size={11} strokeWidth={2}/>KI-Assistent: Text optimieren, Hooks oder Varianten generieren →
@@ -165,7 +162,9 @@ export default function Editor(){
               )}
             </div>
 
-            <div><FL>Mediendatei</FL>
+            {/* Mediendatei */}
+            <div>
+              <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginBottom:5,letterSpacing:".02em"}}>Mediendatei</div>
               {media?(
                 <div style={{display:"flex",gap:10,alignItems:"center",background:C.bg,borderRadius:8,padding:"8px 12px",border:`1px solid ${C.border}`}}>
                   <img src={media.url} alt="" style={{width:44,height:44,objectFit:"cover",objectPosition:fpos(media),borderRadius:6,flexShrink:0}}/>
@@ -185,17 +184,18 @@ export default function Editor(){
               )}
             </div>
 
+            {/* Datum & Uhrzeit */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <TIn label="Datum" type="date" value={form.scheduledDate||""} onChange={e=>setForm({...form,scheduledDate:e.target.value})}/>
               <TIn label="Uhrzeit" type="time" value={form.scheduledTime||"12:00"} onChange={e=>setForm({...form,scheduledTime:e.target.value})}/>
             </div>
 
-            {/* ── Social Konverter: per-channel text adaptation ── */}
+            {/* ── Kanal-Anpassung ── */}
             {(form.channels||[]).length>0&&(
               <div>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                   <div style={{flex:1,height:1,background:C.borderLight}}/>
-                  <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".06em",flexShrink:0}}>KANAL-ANPASSUNG</span>
+                  <span style={{fontSize:10,fontWeight:600,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>Kanal-Anpassung</span>
                   <div style={{flex:1,height:1,background:C.borderLight}}/>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -209,7 +209,6 @@ export default function Editor(){
                     const hasCustom=!!chText;
                     return(
                       <div key={chId} style={{border:`1.5px solid ${isOpen?ch.color+"50":C.border}`,borderRadius:10,overflow:"hidden",transition:"border-color .15s"}}>
-                        {/* Header */}
                         <div onClick={()=>setConvOpen(p=>({...p,[chId]:!p[chId]}))}
                           style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",background:isOpen?ch.color+"08":C.surface,transition:"background .15s"}}>
                           <ChIco id={chId} size={14} color={isOpen?ch.color:C.textSoft}/>
@@ -218,7 +217,6 @@ export default function Editor(){
                           {!hasCustom&&<span style={{fontSize:9.5,color:C.textMute}}>Haupttext</span>}
                           <ChevronDown size={13} color={C.textMute} strokeWidth={2} style={{transform:isOpen?"rotate(180deg)":"none",transition:"transform .15s"}}/>
                         </div>
-                        {/* Body */}
                         {isOpen&&(
                           <div style={{padding:"10px 12px",borderTop:`1px solid ${C.borderLight}`,background:C.bg}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
@@ -235,7 +233,7 @@ export default function Editor(){
                               value={chText}
                               onChange={e=>setForm(f=>({...f,channelTexts:{...f.channelTexts,[chId]:e.target.value}}))}
                               placeholder={`Leer lassen → Haupttext wird verwendet\n(max. ${maxCh<9999?maxCh+"  Zeichen":"unbegrenzt"})`}
-                              style={{width:"100%",minHeight:80,padding:"8px 10px",borderRadius:8,border:`1px solid ${chLen>maxCh?C.red:C.border}`,fontSize:12,outline:"none",fontFamily:FONT,resize:"vertical",boxSizing:"border-box",color:C.text,lineHeight:1.55,background:C.surface}}/>
+                              style={{width:"100%",minHeight:80,padding:"8px 10px",borderRadius:8,border:`1px solid ${chLen>maxCh?C.red:C.border}`,fontSize:12,outline:"none",fontFamily:FONT,resize:"vertical",boxSizing:"border-box",color:C.text,lineHeight:1.55,background:C.bg}}/>
                             {maxCh<9999&&chLen>0&&(
                               <div style={{height:3,borderRadius:99,marginTop:5,background:C.borderLight,overflow:"hidden"}}>
                                 <div style={{height:"100%",width:`${Math.min(100,chLen/maxCh*100)}%`,background:chLen>maxCh?C.red:chLen>maxCh*.8?"#F59E0B":ch.color,borderRadius:99,transition:"width .2s"}}/>
@@ -249,6 +247,29 @@ export default function Editor(){
                 </div>
               </div>
             )}
+
+            {/* Kategorie & Optionen — collapsed by default */}
+            <div>
+              <button onClick={()=>setCatOpen(s=>!s)}
+                style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",padding:0,color:catOpen?C.text:C.textMute,fontSize:11,fontWeight:600,fontFamily:FONT}}>
+                <ChevronDown size={12} strokeWidth={2} style={{transform:catOpen?"rotate(180deg)":"none",transition:"transform .15s"}}/>
+                Kategorie{form.category ? ` · ${form.category}` : ""}
+              </button>
+              {catOpen&&(
+                <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:8}}>
+                  {CATS.filter(c=>c).map(cat=>(
+                    <button key={cat} onClick={()=>setForm(f=>({...f,category:f.category===cat?"":cat}))}
+                      style={{padding:"3px 10px",borderRadius:20,border:`1.5px solid ${form.category===cat?(catColors[cat]||"#6B7280"):C.border}`,
+                        background:form.category===cat?(catColors[cat]||"#6B7280")+"14":"transparent",
+                        color:form.category===cat?(catColors[cat]||"#6B7280"):C.textSoft,
+                        fontSize:10.5,fontWeight:600,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* RIGHT: Preview or AI */}
@@ -294,25 +315,21 @@ export default function Editor(){
               {/* RESEARCH PANEL */}
               {rightPane==="research"&&(
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  {/* Search field */}
                   <div style={{position:"relative"}}>
                     <Search size={12} color={C.textMute} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
                     {rLdg&&<div style={{position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",width:11,height:11,border:`2px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>}
                     <input value={rQ} onChange={e=>setRQ(e.target.value)} placeholder="Bilder suchen…"
                       style={{width:"100%",padding:"7px 32px 7px 28px",borderRadius:8,border:`1.5px solid ${rQ?C.accent:C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box",transition:"border-color .15s"}}/>
                   </div>
-                  {/* State: no keys */}
                   {!rHasKeys&&<div style={{textAlign:"center",padding:"28px 12px",border:`1.5px dashed ${C.border}`,borderRadius:10,color:C.textMute}}>
                     <BookOpen size={28} strokeWidth={1} style={{margin:"0 auto 8px",display:"block",opacity:.4}}/>
                     <div style={{fontWeight:700,fontSize:12,color:C.textMid,marginBottom:4}}>Keine API-Keys konfiguriert</div>
                     <div style={{fontSize:11,lineHeight:1.5}}>Konfiguriere Unsplash, Pexels oder Pixabay in der Medienbibliothek um Bilder zu suchen.</div>
                   </div>}
-                  {/* State: no query */}
                   {rHasKeys&&!rQ&&<div style={{textAlign:"center",padding:"28px 12px",color:C.textMute}}>
                     <Search size={28} strokeWidth={1} style={{margin:"0 auto 8px",display:"block",opacity:.35}}/>
                     <div style={{fontSize:12,color:C.textSoft}}>Suche nach Bildern für deinen Post</div>
                   </div>}
-                  {/* Results grid */}
                   {rHasKeys&&rQ&&!rLdg&&rRes.length===0&&<div style={{textAlign:"center",padding:"20px 0",fontSize:12,color:C.textMute}}>Keine Treffer für „{rQ}"</div>}
                   {rRes.length>0&&(
                     <div style={{columns:"2 120px",columnGap:6}}>
@@ -357,18 +374,14 @@ export default function Editor(){
 
             {/* Footer actions */}
             <div style={{padding:"12px 13px",borderTop:`1px solid ${C.borderLight}`,background:C.surface,display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
-              {/* Row 1: cancel + explicit draft */}
               <div style={{display:"flex",gap:6}}>
                 <Btn variant="secondary" onClick={onClose} style={{flex:1,justifyContent:"center",fontSize:12}}>Abbrechen</Btn>
                 <Btn variant="secondary" onClick={()=>onSave({...form,id:form.id||uid(),status:"draft"})} style={{flex:1,justifyContent:"center",fontSize:12}}><FileText size={12} strokeWidth={IW}/>Als Entwurf</Btn>
               </div>
-              {/* Row 2: primary save (keeps current status) + optional status-changing actions */}
               <div style={{display:"flex",gap:6}}>
-                {/* Primary: save with current status unchanged */}
                 <Btn onClick={()=>onSave({...form,id:form.id||uid()})} style={{flex:2,justifyContent:"center"}}>
                   <Save size={13} strokeWidth={IW}/>Speichern
                 </Btn>
-                {/* Admin extra: plan (sets scheduled) or send for review */}
                 {isAdm && form.scheduledDate && form.status!=="scheduled" && (
                   <Btn variant="secondary" onClick={()=>onSave({...form,id:form.id||uid(),status:"scheduled"})} style={{flex:1,justifyContent:"center",fontSize:12}}>
                     <Calendar size={12} strokeWidth={IW}/>Planen
