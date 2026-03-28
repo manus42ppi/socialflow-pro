@@ -3,6 +3,7 @@ import { Users, Shield, Key, Settings, Bell, Globe, Database, Activity, ChevronR
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
 import { CHANNELS, ROLES, DEMO_USERS } from "../constants/demo.js";
 import { storeGet, storeSet } from "../utils/store.js";
+import { skGet, skSet } from "../components/StockSearch.jsx";
 import { Sp, Badge, Avatar, Btn, Card, FL, TIn, SBadge, SCrd } from "../components/ui/index.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
 
