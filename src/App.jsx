@@ -140,13 +140,7 @@ export default function App(){
   const user = demoUser || (isSignedIn && clerkUser ? mapClerkUser(clerkUser) : null);
 
   // ── Login screen ───────────────────────────────────────────────────────
-  if(!user) return <Login onLogin={u=>{
-    // Merge any persisted team settings (role overrides, display name)
-    storeGet("admin:team").then(team=>{
-      const saved=Array.isArray(team)&&team.find(t=>t.id===u.id);
-      setDemoUser(saved?{...u,...saved}:u);
-    }).catch(()=>setDemoUser(u));
-  }}/>;
+  if(!user) return <Login onLogin={u=>setDemoUser(u)}/>;
 
   // ── Logout ─────────────────────────────────────────────────────────────
   const handleLogout = () => {

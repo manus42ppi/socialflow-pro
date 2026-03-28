@@ -120,9 +120,8 @@ export default function Login({ onLogin }) {
 
         {/* Clerk embedded SignIn */}
         <SignIn
-          routing="hash"
+          routing="virtual"
           appearance={clerkAppearance}
-          forceRedirectUrl={window.location.origin + window.location.pathname}
         />
 
         {/* Demo Credentials (collapsible) */}
