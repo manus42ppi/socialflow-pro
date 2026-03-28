@@ -19,8 +19,38 @@ export async function aiCall(messages, max_tokens=800) {
 export const parseJSON = raw => { try{return JSON.parse(raw.replace(/```json|```/g,"").trim());}catch{return null;} };
 
 // ── KV STORAGE HELPERS ──────────────────────────────────────────────────────
-export async function storeGet(path){try{const r=await fetch("/store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({method:"get",path})});const d=await r.json();return d.ok?d.data:null;}catch{return null;}}
-export async function storeSet(path,value){try{await fetch("/store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({method:"set",path,value})});}catch{}}
+// Clerk-JWT holen (globale Clerk-Instanz, nach ClerkProvider verfügbar)
+// Demo-User haben keine Clerk-Session → token = null → kein Persist
+async function getClerkToken() {
+  try { return await window.Clerk?.session?.getToken() ?? null; }
+  catch { return null; }
+}
+
+export async function storeGet(path) {
+  try {
+    const token = await getClerkToken();
+    if (!token) return null;
+    const r = await fetch("/store", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ method: "get", path }),
+    });
+    const d = await r.json();
+    return d.ok ? d.data : null;
+  } catch { return null; }
+}
+
+export async function storeSet(path, value) {
+  try {
+    const token = await getClerkToken();
+    if (!token) return; // Demo-User → silent no-op
+    await fetch("/store", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ method: "set", path, value }),
+    });
+  } catch {}
+}
 
 // ── AI OBJECT ──────────────────────────────────────────────────────────────
 export const AI = {
