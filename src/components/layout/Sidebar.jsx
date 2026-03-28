@@ -75,15 +75,11 @@ export default function Sidebar(){
         {NAV_GROUPS.map((grp,gi)=>(
           <div key={grp.label} style={{marginBottom:4}}>
             {open
-              ? <div style={{
-                  display:"flex",alignItems:"center",gap:6,
-                  padding:"10px 10px 4px",
-                }}>
-                  {gi>0&&<div style={{height:1,flex:1,background:"rgba(255,255,255,.06)"}}/>}
-                  <span style={{fontSize:9,fontWeight:600,color:"#4A5568",letterSpacing:".13em",textTransform:"uppercase",whiteSpace:"nowrap",flexShrink:0}}>
+              ? <div style={{padding: gi>0 ? "14px 12px 4px" : "2px 12px 4px"}}>
+                  {gi>0&&<div style={{height:1,background:"rgba(255,255,255,.07)",marginBottom:10}}/>}
+                  <span style={{fontSize:9.5,fontWeight:600,color:"#6B7280",letterSpacing:".12em",textTransform:"uppercase"}}>
                     {grp.label}
                   </span>
-                  <div style={{height:1,flex:1,background:"rgba(255,255,255,.06)"}}/>
                 </div>
               : gi>0&&<div style={{height:1,background:"rgba(255,255,255,.06)",margin:"6px 4px 10px"}}/>
             }
