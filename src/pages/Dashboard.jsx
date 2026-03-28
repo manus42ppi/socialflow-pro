@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { BarChart2, TrendingUp, Calendar, Clock, Zap, CheckCircle, AlertCircle, Edit3, Trash2, Plus, Eye, Heart, MessageCircle, Share2, RefreshCw, ChevronRight, Star, Award, Target, Activity, Send, ArrowUp, ArrowDown, FileText } from "lucide-react";
+import { BarChart2, TrendingUp, Calendar, Clock, Zap, CheckCircle, AlertCircle, Edit3, Trash2, Plus, Eye, Heart, MessageCircle, Share2, RefreshCw, ChevronRight, Star, Award, Target, Activity, Send, ArrowUp, ArrowDown, FileText, CalendarRange, Image, Flag } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
 import { CHANNELS, ROLES, DEMO_USERS, STAGES, CAMP_COLORS, DEMO_CAMPAIGNS, DEMO_POSTS } from "../constants/demo.js";
 import { fmtDate, fpos } from "../utils/store.js";
