@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, List, Grid, Filter, MoreHorizontal, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, List, Grid, Filter, MoreHorizontal, Check, X, BarChart2 } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
 import { CHANNELS, DEMO_POSTS } from "../constants/demo.js";
 import { fmtDate } from "../utils/store.js";
