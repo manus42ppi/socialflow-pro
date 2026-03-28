@@ -5,8 +5,12 @@ import { CHANNELS } from "../../constants/demo.js";
 import { NAV_GROUPS } from "../../constants/nav.js";
 import { Avatar } from "../ui/index.jsx";
 import ChIco from "../ui/ChIco.jsx";
+import { useApp } from "../../context/AppContext.jsx";
 
-export default function Sidebar({active,onNav,user,onLogout,pend,posts=[],onChNav,activeCh}){
+export default function Sidebar(){
+  const { nav: active, goNav: onNav, user, handleLogout: onLogout, posts: allPosts, goChNav: onChNav, chFilt: activeCh } = useApp();
+  const posts = allPosts ?? [];
+  const pend = posts.filter(p => p.status === "pending").length;
   const [open,setOpen]=useState(()=>{try{return localStorage.getItem("sb_open")!=="0";}catch{return true;}});
   const toggle=()=>{const n=!open;setOpen(n);try{localStorage.setItem("sb_open",n?"1":"0");}catch{}};
   const W=open?240:64;

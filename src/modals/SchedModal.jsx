@@ -4,8 +4,11 @@ import { C, FONT, IW } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { Btn, Card, FL, TIn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
-export default function SchedModal({post,onSave,onClose}){
+export default function SchedModal(){
+  const { schPost: post, saveSch: onSave, setSchPost } = useApp();
+  const onClose = () => setSchPost(null);
   const [date,setDate]=useState(post.scheduledDate||"");
   const [time,setTime]=useState(post.scheduledTime||"12:00");
   const [chs,setChs]=useState(post.channels?.length?post.channels:["instagram"]);

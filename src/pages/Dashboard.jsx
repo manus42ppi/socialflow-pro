@@ -9,9 +9,12 @@ import ChIco from "../components/ui/ChIco.jsx";
 import { PREV } from "../components/previews/index.jsx";
 import MiniGantt from "../components/widgets/MiniGantt.jsx";
 import WeekStrip from "../components/widgets/WeekStrip.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────
-function Dashboard({posts,items,campaigns,user,onNav,onFilterNav}){
+function Dashboard(){
+  const { posts: allPosts, items, campaigns, user, goNav: onNav, goFilter: onFilterNav } = useApp();
+  const posts = allPosts.filter(p => !p.deleted);
   const sched=useMemo(()=>posts.filter(p=>p.status==="scheduled"),[posts]);
   const drafts=useMemo(()=>posts.filter(p=>p.status==="draft"),[posts]);
   const pend=useMemo(()=>posts.filter(p=>p.status==="pending"),[posts]);

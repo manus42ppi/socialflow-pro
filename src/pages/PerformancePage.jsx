@@ -5,6 +5,7 @@ import { CHANNELS } from "../constants/demo.js";
 import { Card, SCrd } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
 const MOCK={
   instagram:{reach:12400,imp:34200,eng:"5.4%",fol:2340,clk:890},
@@ -13,7 +14,9 @@ const MOCK={
   facebook: {reach:5200, imp:11200,eng:"2.1%",fol:3400,clk:210},
   whatsapp: {reach:3200, imp:3200, eng:"12.4%",fol:890, clk:890},
 };
-function PerformancePage({posts}){
+function PerformancePage(){
+  const { posts: allPosts } = useApp();
+  const posts = allPosts.filter(p => !p.deleted);
   const [per,setPer]=useState("30d");
   const top=useMemo(()=>[...posts].slice(0,5).map(p=>({...p,reach:Math.floor(Math.random()*5000+500),eng:(Math.random()*8+1).toFixed(1)+"%"})),[posts]);
   const {order,dragId,setDragId,overId,setOverId,drop}=useSections("performance","default",['stats','channels','posts']);

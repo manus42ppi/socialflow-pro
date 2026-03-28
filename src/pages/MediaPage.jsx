@@ -6,8 +6,11 @@ import { uid, fileToDataURL, getMediaType, fpos } from "../utils/store.js";
 import { Btn, SBadge } from "../components/ui/index.jsx";
 import MediaDetail from "../components/MediaDetail.jsx";
 import { STOCK_SRCS, skGet, skSet, stockSearch, SrcBadge, FP, Skeletons, StockKeyPanel } from "../components/StockSearch.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
-export default function MediaPage({items,posts=[],onUpload,onUpdate,onDelete}){
+export default function MediaPage(){
+  const { items, posts: allPosts, uploadItem: onUpload, updateItem: onUpdate, deleteItems: onDelete } = useApp();
+  const posts = allPosts ?? [];
   const [q,setQ]=useState(""); const [f,setF]=useState("all");
   const [flt,setFlt]=useState({type:"",orient:"",sort:"relevant"});
   const [drag,setDrag]=useState(false); const [det,setDet]=useState(null);

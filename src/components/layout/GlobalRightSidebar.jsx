@@ -3,8 +3,11 @@ import { ChevronLeft, ChevronRight, Activity } from "lucide-react";
 import { C, FONT } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 import ChIco from "../ui/ChIco.jsx";
+import { useApp } from "../../context/AppContext.jsx";
 
-export default function GlobalRightSidebar({posts,campaigns,onNav}){
+export default function GlobalRightSidebar(){
+  const { posts: allPosts, campaigns, goNav: onNav } = useApp();
+  const posts = allPosts.filter(p => !p.deleted);
   const [sbRight,setSbRight]=useState(()=>{try{return localStorage.getItem("sb_right")!=="0";}catch{return true;}});
   const toggleRight=()=>{const n=!sbRight;setSbRight(n);try{localStorage.setItem("sb_right",n?"1":"0");}catch{}};
 

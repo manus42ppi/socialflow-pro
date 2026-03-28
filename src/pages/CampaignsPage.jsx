@@ -6,8 +6,11 @@ import { uid } from "../utils/store.js";
 import { Btn, Card, FL, TIn, SBadge } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
-export default function CampaignsPage({campaigns,setCampaigns,posts,onEditPost}){
+export default function CampaignsPage(){
+  const { campaigns, setCampaigns, posts: allPosts, setEdPost: onEditPost } = useApp();
+  const posts = allPosts.filter(p => !p.deleted);
   const [showNew,setShowNew]=useState(false);
   const [form,setForm]=useState({name:"",emoji:"🎯",color:C.accent,description:""});
   const [sel,setSel]=useState(null);

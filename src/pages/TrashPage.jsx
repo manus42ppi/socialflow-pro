@@ -1,8 +1,10 @@
 import { Trash2, FileText, RotateCcw } from "lucide-react";
 import { C, FONT } from "../constants/colors.js";
 import ChIco from "../components/ui/ChIco.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
-export default function TrashPage({posts,onRestore,onPurge,onPurgeAll}){
+export default function TrashPage(){
+  const { posts, restore: onRestore, purge: onPurge, purgeAll: onPurgeAll } = useApp();
   const trashed=posts.filter(p=>p.deleted);
   const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12};
   return(

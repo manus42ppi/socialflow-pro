@@ -1,8 +1,10 @@
 import { Bell } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW } from "../../constants/colors.js";
 import { Btn } from "../ui/index.jsx";
+import { useApp } from "../../context/AppContext.jsx";
 
-export default function TopBar({title,user,onNew}){
+export default function TopBar({title}){
+  const { user, newPost: onNew } = useApp();
   return(
     <div style={{height:50,background:C.surface,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",padding:"0 22px",gap:12,flexShrink:0}}>
       <div style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:15,color:C.text,letterSpacing:"-.01em"}}>{title}</div>

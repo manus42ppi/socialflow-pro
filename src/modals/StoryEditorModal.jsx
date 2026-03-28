@@ -4,9 +4,12 @@ import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { uid, fileToDataURL, getMediaType } from "../utils/store.js";
 import { Sp, Badge, Btn, FL, TIn } from "../components/ui/index.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
 // ── STORY EDITOR MODAL ─────────────────────────────────────────────────────
-function StoryEditorModal({story,items,onSave,onClose,onUpload,onConvertSection}){
+function StoryEditorModal(){
+  const { edStory: story, items, saveStory: onSave, setEdStory, uploadItem: onUpload, convertSection: onConvertSection } = useApp();
+  const onClose = () => setEdStory(null);
   const CATS=["","Politik","Wirtschaft","Tech","Sport","Lifestyle","Kultur","Gesundheit","Reise","Bildung","Andere"];
   const catColors={"Politik":"#3B82F6","Wirtschaft":"#10B981","Tech":"#8B5CF6","Sport":"#F59E0B","Lifestyle":"#EC4899","Kultur":"#6366F1","Gesundheit":"#EF4444","Reise":"#14B8A6","Bildung":"#F97316","Andere":"#6B7280"};
   const [form,setForm]=useState({...story,sections:story.sections?.map(s=>({...s}))||[]});

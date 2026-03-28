@@ -6,8 +6,15 @@ import { Btn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import PostCard from "../components/PostCard.jsx";
 import Board from "../components/widgets/Board.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
-export default function PublisherPage({posts,items,campaigns,onEdit,onSched,onDel,onApprove,onStatus,onCampaign,onNew,role,filt,setFilt,chFilt,setChFilt}){
+export default function PublisherPage(){
+  const { posts, items, campaigns, setEdPost: onEdit, setSchPost: onSched, del: onDel, approve: onApprove, chSt: onStatus, chCamp: onCampaign, newPost: onNew, user, filt: filtCtx, setFilt: setFiltCtx, chFilt, setChFilt, nav } = useApp();
+  const role = user?.role;
+  // In drafts view, enforce filt="draft" and ignore setFilt changes
+  const filt = nav === "drafts" ? "draft" : filtCtx;
+  const setFilt = nav === "drafts" ? () => {} : setFiltCtx;
+
   const [view,setView]=useState("grid");
   const [sort,setSort]=useState("date_asc");
   const can=p=>ROLES[role]?.can.includes(p);

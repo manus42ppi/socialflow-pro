@@ -7,9 +7,12 @@ import { Sp, Badge, Btn, FL, SCrd } from "../components/ui/index.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
 import MiniGantt from "../components/widgets/MiniGantt.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
 // ── PLANNER PAGE ────────────────────────────────────────────────────────────
-function PlannerPage({posts,campaigns,items,onEdit}){
+function PlannerPage(){
+  const { posts: allPosts, campaigns, items, setEdPost: onEdit } = useApp();
+  const posts = allPosts.filter(p => !p.deleted);
   const {order,dragId:pDragId,setDragId:pSetDragId,overId:pOverId,setOverId:pSetOverId,drop:pDrop}=useSections("planner","planner",['timeline','campaigns','upcoming']);
   const today=new Date();
   const todayStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;

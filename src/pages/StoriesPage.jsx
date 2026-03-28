@@ -6,10 +6,11 @@ import { fmtDate, uid } from "../utils/store.js";
 import { Sp, Badge, Btn, FL, SBadge, SCrd } from "../components/ui/index.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
-import StoryEditorModal from "../modals/StoryEditorModal.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
 // ── STORIES PAGE ────────────────────────────────────────────────────────────
-function StoriesPage({stories,items,onEdit,onNew,onDelete}){
+function StoriesPage(){
+  const { stories, items, setEdStory: onEdit, newStory: onNew, delStory: onDelete } = useApp();
   const {order,dragId:sDragId,setDragId:sSetDragId,overId:sOverId,setOverId:sSetOverId,drop:sDrop}=useSections("stories","default",['stories']);
   const [filt,setFilt]=useState("all");
   const [q,setQ]=useState("");

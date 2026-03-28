@@ -6,6 +6,7 @@ import { fmtDate } from "../utils/store.js";
 import { Sp, Badge, Btn, FL } from "../components/ui/index.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
 // ── CALENDAR PAGE (Kordiam-inspired) ──────────────────────────────────────
 const WEEKDAYS_FULL=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
@@ -45,7 +46,9 @@ function KTag({label,colorIdx=0}){
   return <span style={{display:"inline-flex",alignItems:"center",padding:"2px 8px",borderRadius:5,background:t.bg,color:t.color,border:`1px solid ${t.border}`,fontSize:10.5,fontWeight:700,whiteSpace:"nowrap",letterSpacing:".01em"}}>{label}</span>;
 }
 
-function CalendarPage({posts,onEdit}){
+function CalendarPage(){
+  const { posts: allPosts, setEdPost: onEdit } = useApp();
+  const posts = allPosts.filter(p => !p.deleted);
   const {order,dragId:cDragId,setDragId:cSetDragId,overId:cOverId,setOverId:cSetOverId,drop:cDrop}=useSections("calendar","default",['calendar','list']);
   const today=new Date();
   const [cur,setCur]=useState({y:today.getFullYear(),m:today.getMonth()});

@@ -9,8 +9,12 @@ import ChIco from "../components/ui/ChIco.jsx";
 import { PREV } from "../components/previews/index.jsx";
 import AIPanel from "../components/AIPanel.jsx";
 import MediaPicker, { STOCK_SRCS, skGet, stockSearch } from "../components/StockSearch.jsx";
+import { useApp } from "../context/AppContext.jsx";
 
-export default function Editor({post,items,posts=[],campaigns,onSave,onClose,onUpload,onUpdate,user}){
+export default function Editor(){
+  const { edPost: post, items, posts: allPosts, campaigns, save: onSave, setEdPost, uploadItem: onUpload, updateItem: onUpdate, user } = useApp();
+  const posts = allPosts ?? [];
+  const onClose = () => setEdPost(null);
   // Migrate: merge legacy hashtags field into content
   const initContent = post.hashtags
     ? (post.content+(post.content?"\n\n":"")+post.hashtags).trim()
