@@ -47,52 +47,59 @@ export function AppProvider({ children }) {
   const [edStory, setEdStory] = useState(null);
 
   // ── KV load-guard refs ────────────────────────────────────────────────────
+  // Guards prevent writing demo/empty data back to KV before real data is loaded
   const mediaLoaded = useRef(false);
   const postsLoaded = useRef(false);
   const campsLoaded = useRef(false);
   const storiesLoaded = useRef(false);
 
-  // ── KV Persistence: Posts ─────────────────────────────────────────────────
+  // ── KV Persistence: Load when Clerk signs in, reset when signed out ───────
+  //
+  // BUG FIX: The old code used useEffect(fn, []) – running once on mount.
+  // At mount time Clerk has not yet established the session, so getToken()
+  // returns null → storeGet returns null → guards flip to true with no data.
+  // After login the load never re-runs. Fix: depend on isSignedIn + isLoaded.
+  //
   useEffect(() => {
+    if (!isLoaded) return; // Wait for Clerk to finish initialising
+
+    if (!isSignedIn) {
+      // Signed out (or demo mode): reset guards + restore demo data.
+      // This also runs on initial page load before any login happens.
+      postsLoaded.current   = false;
+      campsLoaded.current   = false;
+      storiesLoaded.current = false;
+      mediaLoaded.current   = false;
+      setPosts(DEMO_POSTS);
+      setCampaigns(DEMO_CAMPAIGNS);
+      setStories(DEMO_STORIES);
+      setItems([]);
+      return;
+    }
+
+    // ── Signed in: load all user data from Cloudflare KV ──────────────────
+    postsLoaded.current = false;
     storeGet("posts").then(data => {
       postsLoaded.current = true;
       if (data?.length) setPosts(data);
+      else setPosts(DEMO_POSTS); // First login: start with demo posts
     });
-  }, []);
 
-  useEffect(() => {
-    if (!postsLoaded.current) return;
-    storeSet("posts", posts);
-  }, [posts]);
-
-  // ── KV Persistence: Campaigns ─────────────────────────────────────────────
-  useEffect(() => {
+    campsLoaded.current = false;
     storeGet("campaigns").then(data => {
       campsLoaded.current = true;
       if (data?.length) setCampaigns(data);
+      else setCampaigns(DEMO_CAMPAIGNS);
     });
-  }, []);
 
-  useEffect(() => {
-    if (!campsLoaded.current) return;
-    storeSet("campaigns", campaigns);
-  }, [campaigns]);
-
-  // ── KV Persistence: Stories ───────────────────────────────────────────────
-  useEffect(() => {
+    storiesLoaded.current = false;
     storeGet("stories").then(data => {
       storiesLoaded.current = true;
       if (data?.length) setStories(data);
+      else setStories(DEMO_STORIES);
     });
-  }, []);
 
-  useEffect(() => {
-    if (!storiesLoaded.current) return;
-    storeSet("stories", stories);
-  }, [stories]);
-
-  // ── KV Persistence: Media ─────────────────────────────────────────────────
-  useEffect(() => {
+    mediaLoaded.current = false;
     storeGet("media:index").then(async index => {
       if (index?.length) {
         const loaded = await Promise.all(index.map(async meta => {
@@ -103,9 +110,26 @@ export function AppProvider({ children }) {
         setItems(loaded);
       } else {
         mediaLoaded.current = true;
+        setItems([]);
       }
     });
-  }, []);
+  }, [isSignedIn, isLoaded]); // ← re-runs on login AND logout
+
+  // ── KV Persistence: Save on state changes (guarded by loadedRef) ─────────
+  useEffect(() => {
+    if (!postsLoaded.current) return;
+    storeSet("posts", posts);
+  }, [posts]);
+
+  useEffect(() => {
+    if (!campsLoaded.current) return;
+    storeSet("campaigns", campaigns);
+  }, [campaigns]);
+
+  useEffect(() => {
+    if (!storiesLoaded.current) return;
+    storeSet("stories", stories);
+  }, [stories]);
 
   useEffect(() => {
     if (!mediaLoaded.current) return;
