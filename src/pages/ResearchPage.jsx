@@ -22,7 +22,10 @@ const NEWS_SOURCES = [
 const ALL_SOURCE_IDS = ["tagesschau","dw","ntv","heise"];
 
 // ── Fetch strategies ──────────────────────────────────────────────────────────
-const RSS2JSON = "https://api.rss2json.com/v1/api.json?count=25&rss_url=";
+// Primary: own Cloudflare Pages Function at /rss?url= (server-side, no CORS issues)
+// Fallback: rss2json.com then allorigins.win
+const RSS_PROXY  = "/rss?url=";
+const RSS2JSON   = "https://api.rss2json.com/v1/api.json?count=25&rss_url=";
 
 function withTimeout(ms) {
   const ctrl = new AbortController();
@@ -61,7 +64,19 @@ function parseRssXml(xml, src) {
 }
 
 async function fetchFeed(src) {
-  // Strategy 1: rss2json.com
+  // Strategy 1: own CF Pages Function /rss?url= (server-side, always works)
+  try {
+    const { signal, clear } = withTimeout(10000);
+    const res  = await fetch(`${RSS_PROXY}${encodeURIComponent(src.url)}`, { signal });
+    clear();
+    if (res.ok) {
+      const xml   = await res.text();
+      const items = parseRssXml(xml, src);
+      if (items.length) return items;
+    }
+  } catch { /* fall through */ }
+
+  // Strategy 2: rss2json.com (structured JSON)
   try {
     const { signal, clear } = withTimeout(8000);
     const res  = await fetch(`${RSS2JSON}${encodeURIComponent(src.url)}`, { signal });
@@ -81,7 +96,7 @@ async function fetchFeed(src) {
     }
   } catch { /* fall through */ }
 
-  // Strategy 2: allorigins.win JSON
+  // Strategy 3: allorigins.win JSON
   try {
     const { signal, clear } = withTimeout(10000);
     const res  = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(src.url)}`, { signal });
@@ -91,16 +106,6 @@ async function fetchFeed(src) {
       const items = parseRssXml(json.contents, src);
       if (items.length) return items;
     }
-  } catch { /* fall through */ }
-
-  // Strategy 3: corsproxy.io
-  try {
-    const { signal, clear } = withTimeout(10000);
-    const res  = await fetch(`https://corsproxy.io/?${encodeURIComponent(src.url)}`, { signal });
-    clear();
-    const xml  = await res.text();
-    const items = parseRssXml(xml, src);
-    if (items.length) return items;
   } catch { /* fall through */ }
 
   return [];
