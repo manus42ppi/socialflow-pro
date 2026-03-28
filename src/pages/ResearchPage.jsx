@@ -7,22 +7,23 @@ import {
 import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
 
 // ── RSS fetch strategy ────────────────────────────────────────────────────────
-// 1st try: rss2json.com (JSON, structured) – free tier, no key needed
-// 2nd try: allorigins.win raw proxy + DOMParser fallback
-const RSS2JSON  = "https://api.rss2json.com/v1/api.json?count=25&rss_url=";
-const ALLORIGINS = "https://api.allorigins.win/raw?url=";
+// Strategy 1: rss2json.com (structured JSON, no key needed for public feeds)
+// Strategy 2: allorigins.win /get  → returns { contents: "<xml>..." }
+// Strategy 3: corsproxy.io         → raw XML passthrough
+const RSS2JSON = "https://api.rss2json.com/v1/api.json?count=25&rss_url=";
 
 const NEWS_SOURCES = [
   { id:"all",        label:"Alle Quellen", color:"#6B7280",  url:null },
   { id:"tagesschau", label:"Tagesschau",   color:"#003399",  url:"https://www.tagesschau.de/xml/rss2/" },
   { id:"spiegel",    label:"Spiegel",      color:"#CC0000",  url:"https://www.spiegel.de/schlagzeilen/index.rss" },
+  { id:"dw",         label:"DW",           color:"#0066B3",  url:"https://rss.dw.com/xml/rss-de-all" },
+  { id:"ntv",        label:"n-tv",         color:"#E2001A",  url:"https://www.n-tv.de/rss" },
   { id:"zeit",       label:"Zeit",         color:"#1a1a1a",  url:"https://newsfeed.zeit.de/all" },
   { id:"sz",         label:"SZ",           color:"#B0001E",  url:"https://rss.sueddeutsche.de/alles" },
   { id:"faz",        label:"FAZ",          color:"#004B87",  url:"https://www.faz.net/rss/aktuell/" },
-  { id:"focus",      label:"Focus",        color:"#E6A100",  url:"https://rss.focus.de/fol/XML/rss_folnews.xml" },
 ];
 
-const ALL_SOURCE_IDS = ["tagesschau","spiegel","zeit","sz"];
+const ALL_SOURCE_IDS = ["tagesschau","dw","ntv","sz"];
 
 // Parse raw RSS/Atom XML to article list
 function parseRssXml(xml, src) {
@@ -60,13 +61,18 @@ function parseRssXml(xml, src) {
   }
 }
 
+function withTimeout(ms) {
+  const ctrl = new AbortController();
+  const id   = setTimeout(() => ctrl.abort(), ms);
+  return { signal: ctrl.signal, clear: () => clearTimeout(id) };
+}
+
 async function fetchFeed(src) {
   // ── Strategy 1: rss2json.com ──────────────────────────────────────────────
   try {
-    const ctrl = new AbortController();
-    const id   = setTimeout(() => ctrl.abort(), 7000);
-    const res  = await fetch(`${RSS2JSON}${encodeURIComponent(src.url)}`, { signal: ctrl.signal });
-    clearTimeout(id);
+    const { signal, clear } = withTimeout(8000);
+    const res  = await fetch(`${RSS2JSON}${encodeURIComponent(src.url)}`, { signal });
+    clear();
     const data = await res.json();
     if (data.status === "ok" && data.items?.length) {
       return data.items.map(item => ({
@@ -82,12 +88,23 @@ async function fetchFeed(src) {
     }
   } catch { /* fall through */ }
 
-  // ── Strategy 2: allorigins.win + DOMParser ────────────────────────────────
+  // ── Strategy 2: allorigins.win JSON endpoint ──────────────────────────────
   try {
-    const ctrl = new AbortController();
-    const id   = setTimeout(() => ctrl.abort(), 10000);
-    const res  = await fetch(`${ALLORIGINS}${encodeURIComponent(src.url)}`, { signal: ctrl.signal });
-    clearTimeout(id);
+    const { signal, clear } = withTimeout(10000);
+    const res  = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(src.url)}`, { signal });
+    clear();
+    const json = await res.json();
+    if (json?.contents) {
+      const items = parseRssXml(json.contents, src);
+      if (items.length) return items;
+    }
+  } catch { /* fall through */ }
+
+  // ── Strategy 3: corsproxy.io ──────────────────────────────────────────────
+  try {
+    const { signal, clear } = withTimeout(10000);
+    const res  = await fetch(`https://corsproxy.io/?${encodeURIComponent(src.url)}`, { signal });
+    clear();
     const xml  = await res.text();
     const items = parseRssXml(xml, src);
     if (items.length) return items;
@@ -216,8 +233,9 @@ export default function ResearchPage() {
       }
 
       setArticles(items);
+      setLastUpdate(new Date());
+      setSeed(s => s + 1);
       if (items.length === 0) setError(true);
-      else { setLastUpdate(new Date()); setSeed(s => s + 1); }
     } catch {
       setError(true);
     } finally {
