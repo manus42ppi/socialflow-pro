@@ -27,11 +27,17 @@ export const STAGES = [
 ];
 
 export const CAMP_COLORS = ["#E53E3E","#0077B5","#027A48","#B54708","#6941C6","#E1306C","#25D366","#F59E0B","#06B6D4","#EC4899"];
-export const CAMP_EMOJIS = ["🎯","🏆","🎪","🌸","🎄","🏖","🎃","❤️","🚀","🌟","🎁","🔥","💡","☀️","⚡","🌈"];
+
+// Monochrome Lucide-Icon-Namen – werden in CampaignsPage als <LucideIcon> gerendert
+// Kein Emoji mehr, alles passend zum App-Designsystem (stroke, color von Kampagnenfarbe)
+export const CAMP_ICONS = [
+  "Target","Trophy","Star","Rocket","Gift","Flame","Zap","Sun",
+  "Heart","Globe","Tag","Megaphone","TrendingUp","Sparkles","Crown","Layers",
+];
 
 export const DEMO_CAMPAIGNS = [
-  { id:"c1", name:"Sommer-Sale",   emoji:"☀️", color:"#F59E0B", description:"Posts für den Sommer Sale" },
-  { id:"c2", name:"Produktlaunch", emoji:"🚀", color:"#6941C6", description:"Launch Q2 2026" },
+  { id:"c1", name:"Sommer-Sale",   icon:"Sun",    color:"#F59E0B", description:"Posts für den Sommer Sale" },
+  { id:"c2", name:"Produktlaunch", icon:"Rocket", color:"#6941C6", description:"Launch Q2 2026" },
 ];
 
 export const DEMO_POSTS = [
