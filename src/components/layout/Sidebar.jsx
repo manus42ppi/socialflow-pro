@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Settings, LogOut, Layers, Menu } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
-import { NAV_GROUPS } from "../../constants/nav.js";
+import { NAV_GROUPS, NAV_UTILITY } from "../../constants/nav.js";
 import { Avatar } from "../ui/index.jsx";
 import ChIco from "../ui/ChIco.jsx";
 import { useApp } from "../../context/AppContext.jsx";
@@ -73,14 +73,23 @@ export default function Sidebar(){
       {/* ── Nav groups ── */}
       <div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"10px 8px 0"}}>
         {NAV_GROUPS.map((grp,gi)=>(
-          <div key={grp.label} style={{marginBottom:8}}>
+          <div key={grp.label} style={{marginBottom:4}}>
             {open
-              ?<div style={{fontSize:9.5,fontWeight:400,color:"#5B6473",letterSpacing:".12em",padding:"2px 12px 6px",textTransform:"uppercase"}}>{grp.label}</div>
-              :gi>0&&<div style={{height:1,background:"rgba(255,255,255,.06)",margin:"6px 4px 10px"}}/>
+              ? <div style={{
+                  display:"flex",alignItems:"center",gap:6,
+                  padding:"10px 10px 4px",
+                }}>
+                  {gi>0&&<div style={{height:1,flex:1,background:"rgba(255,255,255,.06)"}}/>}
+                  <span style={{fontSize:9,fontWeight:600,color:"#4A5568",letterSpacing:".13em",textTransform:"uppercase",whiteSpace:"nowrap",flexShrink:0}}>
+                    {grp.label}
+                  </span>
+                  <div style={{height:1,flex:1,background:"rgba(255,255,255,.06)"}}/>
+                </div>
+              : gi>0&&<div style={{height:1,background:"rgba(255,255,255,.06)",margin:"6px 4px 10px"}}/>
             }
             {grp.items.map(({id,label,I})=>(
               <div key={id}>
-                <BtnSB id={id} label={label} I={I} badge={id==="publisher"?pend:id==="drafts"?draftsCount:id==="trash"?trashCount:0} />
+                <BtnSB id={id} label={label} I={I} badge={id==="publisher"?pend:id==="drafts"?draftsCount:0} />
                 {/* Channel quick-links under Publisher */}
                 {id==="publisher"&&open&&chCounts.length>0&&(
                   <div style={{marginLeft:22,marginBottom:2,marginTop:1}}>
@@ -109,8 +118,12 @@ export default function Sidebar(){
         ))}
       </div>
 
-      {/* ── Bottom: admin + user ── */}
+      {/* ── Bottom: utility + admin + user ── */}
       <div style={{padding:"8px",borderTop:"1px solid rgba(255,255,255,.06)",flexShrink:0,display:"flex",flexDirection:"column",gap:2}}>
+        {NAV_UTILITY.map(({id,label,I})=>(
+          <BtnSB key={id} id={id} label={label} I={I}
+            badge={id==="trash"?trashCount:0}/>
+        ))}
         {user.role==="admin"&&<BtnSB id="admin" label="Admin" I={Settings} badge={0}/>}
         <div style={{height:4}}/>
         <div style={{display:"flex",alignItems:"center",gap:8,padding:open?"6px 10px":"6px 0",justifyContent:open?"flex-start":"center",borderRadius:9,transition:"all .13s"}}>
