@@ -2,12 +2,15 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   RefreshCw, ExternalLink, TrendingUp, Flame, Clock,
   Newspaper, Instagram, Facebook, MessageCircle, Wifi, WifiOff,
-  ChevronRight, AlertCircle,
+  AlertCircle,
 } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
 
-// ── RSS via rss2json (free, no key needed for public feeds) ──────────────────
-const RSS2JSON = "https://api.rss2json.com/v1/api.json?count=25&rss_url=";
+// ── RSS fetch strategy ────────────────────────────────────────────────────────
+// 1st try: rss2json.com (JSON, structured) – free tier, no key needed
+// 2nd try: allorigins.win raw proxy + DOMParser fallback
+const RSS2JSON  = "https://api.rss2json.com/v1/api.json?count=25&rss_url=";
+const ALLORIGINS = "https://api.allorigins.win/raw?url=";
 
 const NEWS_SOURCES = [
   { id:"all",        label:"Alle Quellen", color:"#6B7280",  url:null },
@@ -19,41 +22,92 @@ const NEWS_SOURCES = [
   { id:"focus",      label:"Focus",        color:"#E6A100",  url:"https://rss.focus.de/fol/XML/rss_folnews.xml" },
 ];
 
-// Multiple source URLs for "Alle" mode
-const ALL_SOURCE_URLS = NEWS_SOURCES.filter(s => s.url).slice(0, 4);
+const ALL_SOURCE_IDS = ["tagesschau","spiegel","zeit","sz"];
 
-async function fetchFeed(src) {
+// Parse raw RSS/Atom XML to article list
+function parseRssXml(xml, src) {
   try {
-    const res  = await fetch(`${RSS2JSON}${encodeURIComponent(src.url)}`);
-    const data = await res.json();
-    if (data.status !== "ok") return [];
-    return (data.items || []).map(item => ({
-      id:          item.link || item.guid,
-      title:       item.title?.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"'),
-      link:        item.link,
-      pubDate:     item.pubDate,
-      description: item.description?.replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim().slice(0,140),
-      thumbnail:   item.thumbnail || item.enclosure?.link || null,
-      sourceLabel: src.label,
-      sourceColor: src.color,
-    }));
+    const doc   = new DOMParser().parseFromString(xml, "text/xml");
+    const items = [...doc.querySelectorAll("item, entry")];
+    return items.slice(0, 25).map(item => {
+      const txt  = tag => item.querySelector(tag)?.textContent?.trim() || "";
+      // <link> can be text content or href attribute (Atom)
+      const linkEl  = item.querySelector("link");
+      const link    = linkEl?.textContent?.trim() || linkEl?.getAttribute("href") || "";
+      // Thumbnail: enclosure, media:content, media:thumbnail
+      const thumb   =
+        item.querySelector("enclosure[type^='image']")?.getAttribute("url") ||
+        item.querySelector("enclosure")?.getAttribute("url") ||
+        item.getElementsByTagNameNS("http://search.yahoo.com/mrss/","thumbnail")[0]?.getAttribute("url") ||
+        item.getElementsByTagNameNS("http://search.yahoo.com/mrss/","content")[0]?.getAttribute("url") ||
+        null;
+      const raw = txt("description") || txt("summary") || txt("content");
+      const desc = raw.replace(/<[^>]+>/g,"").replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/\s+/g," ").trim().slice(0,140);
+      const title = (txt("title") || "").replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"');
+      return {
+        id:          link || txt("guid") || txt("id"),
+        title,
+        link,
+        pubDate:     txt("pubDate") || txt("published") || txt("updated"),
+        description: desc,
+        thumbnail:   thumb,
+        sourceLabel: src.label,
+        sourceColor: src.color,
+      };
+    }).filter(a => a.title && a.link);
   } catch {
     return [];
   }
 }
 
+async function fetchFeed(src) {
+  // ── Strategy 1: rss2json.com ──────────────────────────────────────────────
+  try {
+    const ctrl = new AbortController();
+    const id   = setTimeout(() => ctrl.abort(), 7000);
+    const res  = await fetch(`${RSS2JSON}${encodeURIComponent(src.url)}`, { signal: ctrl.signal });
+    clearTimeout(id);
+    const data = await res.json();
+    if (data.status === "ok" && data.items?.length) {
+      return data.items.map(item => ({
+        id:          item.link || item.guid,
+        title:       (item.title||"").replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"'),
+        link:        item.link,
+        pubDate:     item.pubDate,
+        description: (item.description||"").replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim().slice(0,140),
+        thumbnail:   item.thumbnail || item.enclosure?.link || null,
+        sourceLabel: src.label,
+        sourceColor: src.color,
+      })).filter(a => a.title && a.link);
+    }
+  } catch { /* fall through */ }
+
+  // ── Strategy 2: allorigins.win + DOMParser ────────────────────────────────
+  try {
+    const ctrl = new AbortController();
+    const id   = setTimeout(() => ctrl.abort(), 10000);
+    const res  = await fetch(`${ALLORIGINS}${encodeURIComponent(src.url)}`, { signal: ctrl.signal });
+    clearTimeout(id);
+    const xml  = await res.text();
+    const items = parseRssXml(xml, src);
+    if (items.length) return items;
+  } catch { /* fall through */ }
+
+  return [];
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return "";
   const d    = new Date(dateStr);
+  if (isNaN(d)) return "";
   const diff = (Date.now() - d) / 1000;
-  if (diff < 60)   return "gerade eben";
-  if (diff < 3600) return `vor ${Math.round(diff/60)} Min.`;
-  if (diff < 86400)return `vor ${Math.round(diff/3600)} Std.`;
+  if (diff < 60)    return "gerade eben";
+  if (diff < 3600)  return `vor ${Math.round(diff/60)} Min.`;
+  if (diff < 86400) return `vor ${Math.round(diff/3600)} Std.`;
   return `vor ${Math.round(diff/86400)} Tagen`;
 }
 
-// ── Mock social trends (keine öffentliche API verfügbar ohne OAuth) ───────────
-// Rotation: every refresh some items swap to simulate live updates
+// ── Mock social trends ────────────────────────────────────────────────────────
 function buildInstaTrends(seed = 0) {
   const base = [
     { tag:"#sustainability",   posts:"14.2M", d:"+21%", hot:true },
@@ -69,14 +123,13 @@ function buildInstaTrends(seed = 0) {
     { tag:"#fashion",          posts:"2.6M",  d:"+4%"  },
     { tag:"#foodie",           posts:"2.1M",  d:"+3%"  },
   ];
-  // Slightly vary post counts on each refresh
   return base.map((item, i) => ({
     ...item,
     posts: (parseFloat(item.posts) + ((seed + i) % 3) * 0.1).toFixed(1) + "M",
   }));
 }
 
-function buildFbTrends(seed = 0) {
+function buildFbTrends() {
   return [
     { topic:"KI & Technologie",        engagement:"Sehr hoch", change:"+34%" },
     { topic:"Wirtschaft & Finanzen",   engagement:"Sehr hoch", change:"+18%" },
@@ -104,50 +157,36 @@ function buildWaTrends() {
 const ENGAGEMENT_COLOR = {
   "Sehr hoch":"#16A34A", "Hoch":"#2563EB", "Mittel":"#D97706",
 };
-const FREQ_COLOR = {
-  "Sehr hoch":"#16A34A", "Hoch":"#2563EB", "Mittel":"#D97706",
-};
 
-// ── Skeleton loader ───────────────────────────────────────────────────────────
-function Skeleton({ h = 16, w = "100%", r = 6, mb = 6 }) {
-  return (
-    <div style={{
-      height:h, width:w, borderRadius:r, marginBottom:mb,
-      background:"linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)",
-      backgroundSize:"200% 100%",
-      animation:"shimmer 1.4s infinite",
-    }}/>
-  );
-}
-
+// ── Skeleton ──────────────────────────────────────────────────────────────────
 function ArticleSkeleton() {
   return (
     <div style={{ padding:"12px 0", borderBottom:`1px solid ${C.borderLight}` }}>
-      <Skeleton h={13} w="15%" mb={8}/>
-      <Skeleton h={16} w="90%" mb={6}/>
-      <Skeleton h={12} w="60%"/>
+      <div style={{ height:11, width:"14%", borderRadius:4, marginBottom:8, background:"#E9EAEC" }}/>
+      <div style={{ height:15, width:"88%", borderRadius:4, marginBottom:5, background:"#E9EAEC" }}/>
+      <div style={{ height:11, width:"55%", borderRadius:4, background:"#F3F4F6" }}/>
     </div>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+// ── Page ──────────────────────────────────────────────────────────────────────
+const REFRESH_INTERVAL = 5 * 60 * 1000;
 
 export default function ResearchPage() {
-  const [activeSrc,  setActiveSrc]  = useState("all");
-  const [articles,   setArticles]   = useState([]);
-  const [loading,    setLoading]    = useState(false);
-  const [error,      setError]      = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(null);
-  const [socialTab,  setSocialTab]  = useState("instagram");
-  const [seed,       setSeed]       = useState(0);
-  const [autoRefresh,setAutoRefresh]= useState(true);
-  const [nextIn,     setNextIn]     = useState(REFRESH_INTERVAL / 1000);
-  const timerRef   = useRef();
+  const [activeSrc,   setActiveSrc]   = useState("all");
+  const [articles,    setArticles]    = useState([]);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState(false);
+  const [lastUpdate,  setLastUpdate]  = useState(null);
+  const [socialTab,   setSocialTab]   = useState("instagram");
+  const [seed,        setSeed]        = useState(0);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [nextIn,      setNextIn]      = useState(REFRESH_INTERVAL / 1000);
+  const timerRef    = useRef();
   const countdownRef = useRef();
 
   const instaTrends = buildInstaTrends(seed);
-  const fbTrends    = buildFbTrends(seed);
+  const fbTrends    = buildFbTrends();
   const waTrends    = buildWaTrends();
 
   const doFetch = useCallback(async () => {
@@ -156,25 +195,29 @@ export default function ResearchPage() {
     try {
       const src = NEWS_SOURCES.find(s => s.id === activeSrc);
       let items = [];
+
       if (src?.url) {
+        // Single source
         items = await fetchFeed(src);
       } else {
-        // "Alle" — fetch first 4 sources in parallel, mix + sort by date
-        const all = await Promise.all(ALL_SOURCE_URLS.map(fetchFeed));
-        const flat = all.flat();
-        flat.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
-        // Deduplicate by similar title
+        // "Alle" — fetch multiple sources in parallel
+        const sources = NEWS_SOURCES.filter(s => ALL_SOURCE_IDS.includes(s.id));
+        const results = await Promise.allSettled(sources.map(fetchFeed));
+        const flat = results.flatMap(r => r.status === "fulfilled" ? r.value : []);
+        flat.sort((a,b) => new Date(b.pubDate||0) - new Date(a.pubDate||0));
+        // Deduplicate by title prefix
         const seen = new Set();
         items = flat.filter(a => {
-          const key = a.title?.slice(0,40);
-          if (seen.has(key)) return false;
+          const key = a.title?.slice(0,50).toLowerCase();
+          if (!key || seen.has(key)) return false;
           seen.add(key);
           return true;
         }).slice(0, 30);
       }
+
       setArticles(items);
-      setLastUpdate(new Date());
-      setSeed(s => s + 1);
+      if (items.length === 0) setError(true);
+      else { setLastUpdate(new Date()); setSeed(s => s + 1); }
     } catch {
       setError(true);
     } finally {
@@ -182,28 +225,30 @@ export default function ResearchPage() {
     }
   }, [activeSrc]);
 
-  // Fetch on source change
   useEffect(() => { doFetch(); }, [doFetch]);
 
-  // Auto-refresh countdown + trigger
   useEffect(() => {
-    if (!autoRefresh) { clearInterval(timerRef.current); clearInterval(countdownRef.current); return; }
+    if (!autoRefresh) {
+      clearInterval(timerRef.current);
+      clearInterval(countdownRef.current);
+      return;
+    }
     setNextIn(REFRESH_INTERVAL / 1000);
-    timerRef.current    = setInterval(() => { doFetch(); setNextIn(REFRESH_INTERVAL / 1000); }, REFRESH_INTERVAL);
+    timerRef.current     = setInterval(() => { doFetch(); setNextIn(REFRESH_INTERVAL / 1000); }, REFRESH_INTERVAL);
     countdownRef.current = setInterval(() => setNextIn(n => Math.max(0, n - 1)), 1000);
     return () => { clearInterval(timerRef.current); clearInterval(countdownRef.current); };
   }, [autoRefresh, doFetch]);
 
   const fmtCountdown = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 
-  // ── Left: Pressespiegel ────────────────────────────────────────────────────
+  // ── Pressespiegel ───────────────────────────────────────────────────────────
   const pressPanel = (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
 
       {/* Source tabs */}
       <div style={{
-        display:"flex", gap:4, flexWrap:"wrap", padding:"0 0 12px",
-        borderBottom:`1px solid ${C.borderLight}`, marginBottom:0, flexShrink:0,
+        display:"flex", gap:4, flexWrap:"wrap", paddingBottom:12,
+        borderBottom:`1px solid ${C.borderLight}`, flexShrink:0,
       }}>
         {NEWS_SOURCES.map(s => {
           const on = activeSrc === s.id;
@@ -224,67 +269,77 @@ export default function ResearchPage() {
 
       {/* Article list */}
       <div style={{ flex:1, overflowY:"auto", paddingTop:4 }}>
-        {error && (
-          <div style={{ padding:"32px 0", textAlign:"center", color:C.textMute }}>
-            <AlertCircle size={28} strokeWidth={1} style={{ margin:"0 auto 10px", display:"block", opacity:.4 }}/>
-            <div style={{ fontSize:12, fontWeight:600, color:C.textSoft, marginBottom:4 }}>Feeds konnten nicht geladen werden</div>
-            <div style={{ fontSize:11 }}>Prüfe die Internetverbindung oder versuche es erneut.</div>
-          </div>
-        )}
 
         {loading && !articles.length && (
           Array.from({length:8}).map((_,i) => <ArticleSkeleton key={i}/>)
         )}
 
+        {error && !loading && (
+          <div style={{ padding:"40px 0", textAlign:"center", color:C.textMute }}>
+            <AlertCircle size={28} strokeWidth={1} style={{ margin:"0 auto 10px", display:"block", opacity:.4 }}/>
+            <div style={{ fontSize:13, fontWeight:600, color:C.textSoft, marginBottom:6 }}>
+              Feeds konnten nicht geladen werden
+            </div>
+            <div style={{ fontSize:11.5, marginBottom:16 }}>
+              Prüfe die Internetverbindung oder versuche es erneut.
+            </div>
+            <button onClick={doFetch}
+              style={{
+                padding:"7px 16px", borderRadius:8, border:`1px solid ${C.border}`,
+                background:C.surface, color:C.text, cursor:"pointer",
+                fontFamily:FONT, fontSize:12, fontWeight:600,
+              }}>
+              Erneut versuchen
+            </button>
+          </div>
+        )}
+
         {!error && articles.map((art, i) => {
-          const src = NEWS_SOURCES.find(s => s.label === art.sourceLabel);
+          const srcObj = NEWS_SOURCES.find(s => s.label === art.sourceLabel);
           return (
-            <a key={art.id} href={art.link} target="_blank" rel="noopener noreferrer"
+            <a key={art.id || i} href={art.link} target="_blank" rel="noopener noreferrer"
               style={{
                 display:"flex", gap:12, alignItems:"flex-start",
-                padding:"11px 0",
+                padding:"11px 2px",
                 borderBottom: i < articles.length-1 ? `1px solid ${C.borderLight}` : "none",
                 textDecoration:"none", color:"inherit",
                 borderRadius:6, transition:"background .1s",
               }}
-              onMouseEnter={e => e.currentTarget.style.background = "#F8F9FB"}
+              onMouseEnter={e => e.currentTarget.style.background = C.bg}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
 
               {/* Rank */}
               <div style={{
                 minWidth:22, fontSize:12, fontWeight:800,
                 color: i < 3 ? C.accent : C.textMute,
-                fontFamily:FONT_DISPLAY, paddingTop:1, flexShrink:0,
+                fontFamily:FONT_DISPLAY, paddingTop:2, flexShrink:0, textAlign:"right",
               }}>
                 {i+1}
               </div>
 
               {/* Content */}
               <div style={{ flex:1, minWidth:0 }}>
-                {/* Source + time */}
                 <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
                   <span style={{
                     fontSize:10, fontWeight:700,
-                    color: src?.color || C.textMute,
-                    background: (src?.color || "#6B7280") + "14",
+                    color: srcObj?.color || C.textMute,
+                    background: (srcObj?.color || "#6B7280") + "18",
                     borderRadius:4, padding:"1px 6px",
                   }}>
                     {art.sourceLabel}
                   </span>
-                  <span style={{ fontSize:10, color:C.textMute, display:"flex", alignItems:"center", gap:3 }}>
-                    <Clock size={9} strokeWidth={2}/>{timeAgo(art.pubDate)}
-                  </span>
+                  {art.pubDate && (
+                    <span style={{ fontSize:10, color:C.textMute, display:"flex", alignItems:"center", gap:3 }}>
+                      <Clock size={9} strokeWidth={2}/>{timeAgo(art.pubDate)}
+                    </span>
+                  )}
                 </div>
-
-                {/* Title */}
                 <div style={{
-                  fontSize:13, fontWeight:600, color:C.text,
-                  lineHeight:1.4, marginBottom: art.description ? 4 : 0,
+                  fontSize:13, fontWeight:600, color:C.text, lineHeight:1.4,
+                  marginBottom: art.description ? 4 : 0,
                 }}>
                   {art.title}
                 </div>
-
-                {/* Description */}
                 {art.description && (
                   <div style={{
                     fontSize:11.5, color:C.textSoft, lineHeight:1.5,
@@ -300,10 +355,9 @@ export default function ResearchPage() {
               {art.thumbnail && (
                 <img src={art.thumbnail} alt="" loading="lazy"
                   style={{ width:56, height:44, objectFit:"cover", borderRadius:7, flexShrink:0 }}
-                  onError={e => e.currentTarget.style.display="none"}/>
+                  onError={e => { e.currentTarget.style.display="none"; }}/>
               )}
 
-              {/* Arrow */}
               <div style={{ color:C.textMute, paddingTop:2, flexShrink:0 }}>
                 <ExternalLink size={12} strokeWidth={1.5}/>
               </div>
@@ -321,7 +375,7 @@ export default function ResearchPage() {
     </div>
   );
 
-  // ── Right: Social Trends ───────────────────────────────────────────────────
+  // ── Social Trends ───────────────────────────────────────────────────────────
   const socialTabs = [
     { id:"instagram", label:"Instagram", I:Instagram,     color:"#E1306C" },
     { id:"facebook",  label:"Facebook",  I:Facebook,      color:"#1877F2" },
@@ -330,11 +384,9 @@ export default function ResearchPage() {
 
   const socialPanel = (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
-
       {/* Platform tabs */}
       <div style={{
-        display:"flex", borderBottom:`1px solid ${C.borderLight}`,
-        marginBottom:0, flexShrink:0, gap:0,
+        display:"flex", borderBottom:`1px solid ${C.borderLight}`, flexShrink:0,
       }}>
         {socialTabs.map(t => {
           const on = socialTab === t.id;
@@ -357,8 +409,6 @@ export default function ResearchPage() {
       </div>
 
       <div style={{ flex:1, overflowY:"auto", paddingTop:12 }}>
-
-        {/* API note */}
         <div style={{
           fontSize:10, color:C.textMute, background:C.borderLight,
           borderRadius:6, padding:"5px 8px", marginBottom:12,
@@ -368,7 +418,7 @@ export default function ResearchPage() {
           Trending-Indikatoren basierend auf öffentlich verfügbaren Signalen
         </div>
 
-        {/* ── Instagram ── */}
+        {/* Instagram */}
         {socialTab === "instagram" && (
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
             {instaTrends.map((item, i) => (
@@ -377,12 +427,10 @@ export default function ResearchPage() {
                 padding:"8px 10px", borderRadius:8,
                 background: i < 3 ? "#FFF0F6" : C.surface,
                 border:`1px solid ${i < 3 ? "#FCB8D4" : C.border}`,
-                transition:"background .12s",
               }}>
                 <div style={{
                   minWidth:20, fontSize:11, fontWeight:800,
-                  color: i < 3 ? "#E1306C" : C.textMute,
-                  fontFamily:FONT_DISPLAY,
+                  color: i < 3 ? "#E1306C" : C.textMute, fontFamily:FONT_DISPLAY,
                 }}>
                   {i+1}
                 </div>
@@ -407,15 +455,14 @@ export default function ResearchPage() {
           </div>
         )}
 
-        {/* ── Facebook ── */}
+        {/* Facebook */}
         {socialTab === "facebook" && (
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
             {fbTrends.map((item, i) => (
               <div key={item.topic} style={{
                 display:"flex", alignItems:"center", gap:10,
                 padding:"9px 10px", borderRadius:8,
-                background: C.surface,
-                border:`1px solid ${C.border}`,
+                background:C.surface, border:`1px solid ${C.border}`,
                 borderLeft:`3px solid ${i < 3 ? "#1877F2" : C.border}`,
               }}>
                 <div style={{ flex:1, minWidth:0 }}>
@@ -437,21 +484,20 @@ export default function ResearchPage() {
           </div>
         )}
 
-        {/* ── WhatsApp ── */}
+        {/* WhatsApp */}
         {socialTab === "whatsapp" && (<>
           <div style={{
-            fontSize:10.5, color:C.textSoft, lineHeight:1.5,
-            marginBottom:12, padding:"8px 10px",
-            background:"#F0FDF4", borderRadius:8, border:"1px solid #A7F3D0",
+            fontSize:10.5, color:C.textSoft, lineHeight:1.5, marginBottom:12,
+            padding:"8px 10px", background:"#F0FDF4", borderRadius:8, border:"1px solid #A7F3D0",
           }}>
             WhatsApp-Viralität basiert auf Korrelation mit News-Shares und öffentlichen Trend-Signalen.
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            {waTrends.map((item, i) => (
+            {waTrends.map(item => (
               <div key={item.title} style={{
                 display:"flex", alignItems:"center", gap:10,
                 padding:"9px 10px", borderRadius:8,
-                background: C.surface, border:`1px solid ${C.border}`,
+                background:C.surface, border:`1px solid ${C.border}`,
               }}>
                 <div style={{ fontSize:18, flexShrink:0 }}>{item.icon}</div>
                 <div style={{ flex:1, minWidth:0 }}>
@@ -460,8 +506,8 @@ export default function ResearchPage() {
                 </div>
                 <span style={{
                   fontSize:9.5, fontWeight:700, flexShrink:0,
-                  color: FREQ_COLOR[item.freq] || C.textMute,
-                  background: (FREQ_COLOR[item.freq] || C.textMute) + "14",
+                  color: ENGAGEMENT_COLOR[item.freq] || C.textMute,
+                  background: (ENGAGEMENT_COLOR[item.freq] || C.textMute) + "14",
                   borderRadius:4, padding:"2px 7px",
                 }}>
                   {item.freq}
@@ -474,18 +520,15 @@ export default function ResearchPage() {
     </div>
   );
 
-  // ── Page layout ────────────────────────────────────────────────────────────
-  const activeSrcObj = NEWS_SOURCES.find(s => s.id === activeSrc);
-
+  // ── Layout ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", background:"#F9FAFB", fontFamily:FONT }}>
 
-      {/* Page header */}
+      {/* Header */}
       <div style={{
         display:"flex", alignItems:"center", justifyContent:"space-between",
         padding:"14px 20px 10px", flexShrink:0,
-        borderBottom:`1px solid ${C.borderLight}`,
-        background:"#fff",
+        borderBottom:`1px solid ${C.borderLight}`, background:"#fff",
       }}>
         <div>
           <div style={{ fontFamily:FONT_DISPLAY, fontSize:20, fontWeight:700, color:C.text, letterSpacing:"-.3px" }}>
@@ -499,19 +542,16 @@ export default function ResearchPage() {
                   Zuletzt: {lastUpdate.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}
                 </span>
                 {autoRefresh && (
-                  <span style={{ color:C.textMute }}>
-                    · Nächste Aktualisierung in {fmtCountdown(nextIn)}
-                  </span>
+                  <span>· Nächste Aktualisierung in {fmtCountdown(nextIn)}</span>
                 )}
               </>
-            ) : (
+            ) : loading ? (
               <span>Lade Daten…</span>
-            )}
+            ) : null}
           </div>
         </div>
 
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          {/* Auto-refresh toggle */}
           <button onClick={() => setAutoRefresh(s => !s)}
             style={{
               display:"flex", alignItems:"center", gap:5,
@@ -525,7 +565,6 @@ export default function ResearchPage() {
             Auto-Refresh {autoRefresh ? "an" : "aus"}
           </button>
 
-          {/* Manual refresh */}
           <button onClick={() => { doFetch(); setNextIn(REFRESH_INTERVAL/1000); }}
             disabled={loading}
             style={{
@@ -541,8 +580,8 @@ export default function ResearchPage() {
         </div>
       </div>
 
-      {/* Two-column content */}
-      <div style={{ flex:1, overflow:"hidden", display:"flex", gap:0 }}>
+      {/* Two columns */}
+      <div style={{ flex:1, overflow:"hidden", display:"flex" }}>
 
         {/* LEFT: Pressespiegel */}
         <div style={{
@@ -569,7 +608,11 @@ export default function ResearchPage() {
               )}
             </div>
             {loading && articles.length > 0 && (
-              <div style={{ width:14, height:14, border:`2px solid ${C.accent}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }}/>
+              <div style={{
+                width:14, height:14, border:`2px solid ${C.accent}`,
+                borderTopColor:"transparent", borderRadius:"50%",
+                animation:"spin .8s linear infinite",
+              }}/>
             )}
           </div>
           <div style={{ flex:1, overflow:"hidden" }}>
@@ -580,12 +623,10 @@ export default function ResearchPage() {
         {/* RIGHT: Social Trends */}
         <div style={{
           flex:"0 0 38%", display:"flex", flexDirection:"column",
-          overflow:"hidden", padding:"16px 20px",
-          background:"#fff",
+          overflow:"hidden", padding:"16px 20px", background:"#fff",
         }}>
           <div style={{
-            display:"flex", alignItems:"center", gap:8,
-            marginBottom:12, flexShrink:0,
+            display:"flex", alignItems:"center", gap:8, marginBottom:12, flexShrink:0,
           }}>
             <TrendingUp size={16} strokeWidth={IW} color={C.textMid}/>
             <span style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:14, color:C.text }}>
