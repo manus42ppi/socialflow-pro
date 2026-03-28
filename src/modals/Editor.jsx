@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Eye, BookOpen, Sparkles, Search, Calendar, Image, FileText, Send, ChevronDown, X, Check, Upload, Edit2 } from "lucide-react";
+import { Eye, BookOpen, Sparkles, Search, Calendar, Image, FileText, Send, ChevronDown, X, Check, Upload, Edit2, Save } from "lucide-react";
 import { C, CSS, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { uid, fpos } from "../utils/store.js";
@@ -143,7 +143,7 @@ export default function Editor(){
             {campaigns?.length>0&&<div><FL>Kampagne (optional)</FL>
               <select value={form.campaignId||""} onChange={e=>setForm(f=>({...f,campaignId:e.target.value||null}))} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,color:C.text}}>
                 <option value="">— Keine Kampagne —</option>
-                {campaigns.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+                {campaigns.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>}
 
@@ -357,14 +357,29 @@ export default function Editor(){
 
             {/* Footer actions */}
             <div style={{padding:"12px 13px",borderTop:`1px solid ${C.borderLight}`,background:C.surface,display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+              {/* Row 1: cancel + explicit draft */}
               <div style={{display:"flex",gap:6}}>
                 <Btn variant="secondary" onClick={onClose} style={{flex:1,justifyContent:"center",fontSize:12}}>Abbrechen</Btn>
-                <Btn variant="secondary" onClick={()=>onSave({...form,id:form.id||uid(),status:"draft"})} style={{flex:1,justifyContent:"center",fontSize:12}}><FileText size={12} strokeWidth={IW}/>Entwurf</Btn>
+                <Btn variant="secondary" onClick={()=>onSave({...form,id:form.id||uid(),status:"draft"})} style={{flex:1,justifyContent:"center",fontSize:12}}><FileText size={12} strokeWidth={IW}/>Als Entwurf</Btn>
               </div>
-              {isAdm
-                ?<Btn onClick={()=>onSave({...form,id:form.id||uid(),status:form.scheduledDate?"scheduled":"draft"})} style={{width:"100%",justifyContent:"center"}}><Calendar size={13} strokeWidth={IW}/>{form.scheduledDate?"Planen":"Speichern"}</Btn>
-                :<Btn onClick={()=>onSave({...form,id:form.id||uid(),status:"pending"})} style={{width:"100%",justifyContent:"center"}}><Send size={13} strokeWidth={IW}/>Zur Freigabe senden</Btn>
-              }
+              {/* Row 2: primary save (keeps current status) + optional status-changing actions */}
+              <div style={{display:"flex",gap:6}}>
+                {/* Primary: save with current status unchanged */}
+                <Btn onClick={()=>onSave({...form,id:form.id||uid()})} style={{flex:2,justifyContent:"center"}}>
+                  <Save size={13} strokeWidth={IW}/>Speichern
+                </Btn>
+                {/* Admin extra: plan (sets scheduled) or send for review */}
+                {isAdm && form.scheduledDate && form.status!=="scheduled" && (
+                  <Btn variant="secondary" onClick={()=>onSave({...form,id:form.id||uid(),status:"scheduled"})} style={{flex:1,justifyContent:"center",fontSize:12}}>
+                    <Calendar size={12} strokeWidth={IW}/>Planen
+                  </Btn>
+                )}
+                {!isAdm && form.status!=="pending" && form.status!=="published" && (
+                  <Btn variant="secondary" onClick={()=>onSave({...form,id:form.id||uid(),status:"pending"})} style={{flex:1,justifyContent:"center",fontSize:11}}>
+                    <Send size={11} strokeWidth={IW}/>Freigabe
+                  </Btn>
+                )}
+              </div>
             </div>
           </div>
         </div>
