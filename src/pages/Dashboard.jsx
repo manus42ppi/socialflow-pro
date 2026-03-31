@@ -161,7 +161,7 @@ function Dashboard(){
           background:cover?"#111":C.surface}}>
         {cover?(
           <>
-            <img src={cover} alt={post.title||""} style={{width:"100%",display:"block",objectFit:"cover",maxHeight:200,minHeight:90}} loading="lazy"/>
+            <img src={cover} alt={post.title||""} style={{width:"100%",display:"block",objectFit:"cover",objectPosition:"top center",height:180}} loading="lazy"/>
             <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.05) 0%,transparent 35%,rgba(0,0,0,.72) 100%)"}}/>
             <div style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.58)",borderRadius:5,padding:"2px 7px",backdropFilter:"blur(6px)"}}>
               <span style={{fontSize:9.5,fontWeight:700,color:sc.c}}>{sc.l}</span>
