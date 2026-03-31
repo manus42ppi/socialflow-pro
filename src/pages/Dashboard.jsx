@@ -165,7 +165,7 @@ function Dashboard(){
             <div style={{position:"absolute",inset:0,overflow:"hidden"}}>
               <img src={cover} aria-hidden="true" style={{width:"100%",height:"100%",objectFit:"cover",filter:"blur(14px)",transform:"scale(1.15)",opacity:.55}} loading="lazy"/>
             </div>
-            <img src={cover} alt={post.title||""} style={{width:"100%",display:"block",objectFit:"contain",height:180,position:"relative",zIndex:1}} loading="lazy"/>
+            <img src={cover} alt={post.title||""} style={{width:"100%",display:"block",objectFit:"contain",height:140,position:"relative",zIndex:1}} loading="lazy"/>
             <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.05) 0%,transparent 35%,rgba(0,0,0,.72) 100%)"}}/>
             <div style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.58)",borderRadius:5,padding:"2px 7px",backdropFilter:"blur(6px)"}}>
               <span style={{fontSize:9.5,fontWeight:700,color:sc.c}}>{sc.l}</span>
@@ -284,7 +284,7 @@ function Dashboard(){
         <Btn onClick={()=>onNav("publisher")}><Plus size={13}/>Post erstellen</Btn>
       </div>
     ):(
-      <div style={{columns:"3 180px",columnGap:10}}>
+      <div style={{columns:"5 140px",columnGap:8}}>
         {recent.map(p=><PostCard key={p.id} post={p}/>)}
       </div>
     )
