@@ -147,7 +147,7 @@ function Dashboard(){
   const lift=e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.09)";};
   const drop=e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.04)";};
 
-  // ── Image-forward post card ──
+  // ── Unified post card — image on top, info below, fixed height ──
   const PostCard=({post})=>{
     const cover=getCover(post);
     const camp=campaigns.find(c=>c.id===post.campaignId);
@@ -155,44 +155,59 @@ function Dashboard(){
     const sc={scheduled:{c:C.accent,l:"Geplant"},draft:{c:C.warning,l:"Entwurf"},pending:{c:"#818CF8",l:"Freigabe"},published:{c:C.success,l:"Live"}}[post.status]||{c:C.textSoft,l:"–"};
     return(
       <div onClick={()=>onNav("publisher")} onMouseEnter={()=>setHovCard(post.id)} onMouseLeave={()=>setHovCard(null)}
-        style={{borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:10,
+        style={{borderRadius:10,overflow:"hidden",cursor:"pointer",
           border:`1.5px solid ${isHov?C.accent+"55":C.border}`,transition:"all .18s",
-          transform:isHov?"translateY(-2px)":"none",boxShadow:isHov?"0 8px 22px rgba(0,0,0,.1)":"0 1px 3px rgba(0,0,0,.04)",
-          background:cover?"#000":C.surface,position:"relative"}}>
-        {cover?(
-          <>
-            {/* Blurred background — fills letterbox gaps with the image's own colours */}
-            <div style={{position:"absolute",inset:0,overflow:"hidden"}}>
-              <img src={cover} aria-hidden="true" style={{width:"100%",height:"100%",objectFit:"cover",filter:"blur(14px)",transform:"scale(1.15)",opacity:.55}} loading="lazy"/>
-            </div>
-            <img src={cover} alt={post.title||""} style={{width:"100%",display:"block",objectFit:"contain",height:140,position:"relative",zIndex:1}} loading="lazy"/>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.05) 0%,transparent 35%,rgba(0,0,0,.72) 100%)"}}/>
-            <div style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.58)",borderRadius:5,padding:"2px 7px",backdropFilter:"blur(6px)"}}>
-              <span style={{fontSize:9.5,fontWeight:700,color:sc.c}}>{sc.l}</span>
-            </div>
-            {camp&&<div style={{position:"absolute",top:8,left:8,fontSize:14,filter:"drop-shadow(0 1px 2px rgba(0,0,0,.5))"}}>{camp.emoji}</div>}
-            <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"8px 10px"}}>
-              <div style={{fontWeight:700,fontSize:12,color:"#fff",lineHeight:1.3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{post.title||"Kein Titel"}</div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:5}}>
-                <div style={{display:"flex",gap:3}}>{post.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={11}/>)}</div>
-                {post.scheduledDate&&<span style={{fontSize:9,color:"rgba(255,255,255,.55)"}}>{post.scheduledDate}</span>}
-              </div>
-            </div>
-          </>
-        ):(
-          <div style={{padding:"13px 13px 11px",background:`linear-gradient(135deg,${C.surface} 60%,${camp?camp.color+"0a":C.bg})`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-              <div style={{display:"flex",gap:3}}>{post.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={13}/>)}</div>
-              <span style={{fontSize:9.5,fontWeight:700,padding:"2px 7px",borderRadius:5,background:sc.c+"15",color:sc.c}}>{sc.l}</span>
-            </div>
-            <div style={{fontWeight:700,fontSize:12.5,color:C.text,lineHeight:1.35,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical"}}>{post.title||"Kein Titel"}</div>
-            {post.content&&<div style={{fontSize:11,color:C.textSoft,marginTop:5,lineHeight:1.45,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{post.content}</div>}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:9,paddingTop:7,borderTop:`1px solid ${C.borderLight}`}}>
-              <span style={{fontSize:10,color:C.textMute}}>{camp?`${camp.emoji} ${camp.name}`:"Kein Projekt"}</span>
-              <span style={{fontSize:10,color:C.textMute}}>{post.scheduledDate||"–"}</span>
+          transform:isHov?"translateY(-2px)":"none",
+          boxShadow:isHov?"0 8px 22px rgba(0,0,0,.1)":"0 1px 3px rgba(0,0,0,.04)",
+          background:C.surface,
+          display:"flex",flexDirection:"column",height:190}}>
+
+        {/* ── Image area (only when cover exists) ── */}
+        {cover&&(
+          <div style={{height:112,flexShrink:0,position:"relative",overflow:"hidden",background:"#000"}}>
+            {/* Blurred fill for letterbox gaps */}
+            <img src={cover} aria-hidden="true" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",filter:"blur(14px)",transform:"scale(1.15)",opacity:.5}} loading="lazy"/>
+            {/* Main image – contained, full visible */}
+            <img src={cover} alt="" style={{position:"relative",zIndex:1,width:"100%",height:"100%",objectFit:"contain",display:"block"}} loading="lazy"/>
+            {/* Status pill */}
+            <div style={{position:"absolute",top:6,right:6,zIndex:2,background:"rgba(0,0,0,.58)",borderRadius:5,padding:"2px 7px",backdropFilter:"blur(6px)"}}>
+              <span style={{fontSize:9,fontWeight:700,color:sc.c}}>{sc.l}</span>
             </div>
           </div>
         )}
+
+        {/* ── Info area ── */}
+        <div style={{flex:1,padding:"9px 11px 8px",display:"flex",flexDirection:"column",
+          justifyContent:"space-between",minHeight:0,
+          background:`linear-gradient(135deg,${C.surface} 60%,${camp?camp.color+"09":C.bg})`}}>
+          <div style={{minHeight:0}}>
+            {/* Channels + status (only for text cards — image cards have status on the image) */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+              <div style={{display:"flex",gap:3}}>{post.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={11}/>)}</div>
+              {!cover&&<span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:5,background:sc.c+"15",color:sc.c}}>{sc.l}</span>}
+            </div>
+            {/* Title */}
+            <div style={{fontWeight:700,fontSize:11.5,color:C.text,lineHeight:1.3,overflow:"hidden",
+              display:"-webkit-box",WebkitLineClamp:cover?2:3,WebkitBoxOrient:"vertical"}}>
+              {post.title||"Kein Titel"}
+            </div>
+            {/* Content snippet — text cards only */}
+            {!cover&&post.content&&(
+              <div style={{fontSize:10.5,color:C.textSoft,marginTop:3,lineHeight:1.4,overflow:"hidden",
+                display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>
+                {post.content}
+              </div>
+            )}
+          </div>
+          {/* Footer: campaign + date */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+            marginTop:6,paddingTop:5,borderTop:`1px solid ${C.borderLight}`}}>
+            <span style={{fontSize:9.5,color:C.textMute,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"60%"}}>
+              {camp?`${camp.name}`:"Kein Projekt"}
+            </span>
+            <span style={{fontSize:9.5,color:C.textMute,flexShrink:0}}>{post.scheduledDate||"–"}</span>
+          </div>
+        </div>
       </div>
     );
   };
@@ -284,7 +299,7 @@ function Dashboard(){
         <Btn onClick={()=>onNav("publisher")}><Plus size={13}/>Post erstellen</Btn>
       </div>
     ):(
-      <div style={{columns:"5 140px",columnGap:8}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
         {recent.map(p=><PostCard key={p.id} post={p}/>)}
       </div>
     )
