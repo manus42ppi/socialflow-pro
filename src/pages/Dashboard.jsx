@@ -158,10 +158,14 @@ function Dashboard(){
         style={{borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:10,
           border:`1.5px solid ${isHov?C.accent+"55":C.border}`,transition:"all .18s",
           transform:isHov?"translateY(-2px)":"none",boxShadow:isHov?"0 8px 22px rgba(0,0,0,.1)":"0 1px 3px rgba(0,0,0,.04)",
-          background:cover?"#111":C.surface}}>
+          background:cover?"#000":C.surface,position:"relative"}}>
         {cover?(
           <>
-            <img src={cover} alt={post.title||""} style={{width:"100%",display:"block",objectFit:"contain",height:180,background:"#111"}} loading="lazy"/>
+            {/* Blurred background — fills letterbox gaps with the image's own colours */}
+            <div style={{position:"absolute",inset:0,overflow:"hidden"}}>
+              <img src={cover} aria-hidden="true" style={{width:"100%",height:"100%",objectFit:"cover",filter:"blur(14px)",transform:"scale(1.15)",opacity:.55}} loading="lazy"/>
+            </div>
+            <img src={cover} alt={post.title||""} style={{width:"100%",display:"block",objectFit:"contain",height:180,position:"relative",zIndex:1}} loading="lazy"/>
             <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.05) 0%,transparent 35%,rgba(0,0,0,.72) 100%)"}}/>
             <div style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.58)",borderRadius:5,padding:"2px 7px",backdropFilter:"blur(6px)"}}>
               <span style={{fontSize:9.5,fontWeight:700,color:sc.c}}>{sc.l}</span>
