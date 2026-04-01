@@ -26,7 +26,13 @@ function AdminPage(){
   const [editForm,setEditForm]=useState({name:"",email:""});
   const [invE,setInvE]=useState("");const [invR,setInvR]=useState("editor");const [invOk,setInvOk]=useState(false);
   const [expandedCh,setExpandedCh]=useState(null);
+  const [expandedMyCh,setExpandedMyCh]=useState(null);
   const [flash,setFlash]=useState("");
+  // Personal channel credentials (per user, independent of workspace)
+  const emptyChState={instagram:{},twitter:{},linkedin:{},facebook:{},whatsapp:{}};
+  const [myChCreds,setMyChCreds]=useState(emptyChState);
+  const [myLocalCreds,setMyLocalCreds]=useState(emptyChState);
+  const [usageType,setUsageType]=useState("creator"); // "creator" | "business" | "agency"
 
   // ── KV persistence ──
   useEffect(()=>{
@@ -37,12 +43,17 @@ function AdminPage(){
     storeGet("admin:notif").then(d=>{if(d)setNotif(p=>({...p,...d}));});
     storeGet("admin:apikeys").then(d=>{if(d){setApiKeys(p=>({...p,...d}));Object.entries(d).forEach(([k,v])=>{if(v)skSet(k,v);});}});
     storeGet("admin:team").then(d=>{if(d&&Array.isArray(d))setUsers(d);});
+    // Personal channels (per user)
+    storeGet("channels:"+me.id).then(d=>{if(d){setMyChCreds(p=>({...p,...d}));setMyLocalCreds(p=>({...p,...d}));}});
+    storeGet("usagetype:"+me.id).then(d=>{if(d)setUsageType(d);});
   },[]);
 
   const showFlash=(s)=>{setFlash(s);setTimeout(()=>setFlash(""),2200);};
   const saveProfile=()=>{storeSet("admin:profile",profile);storeSet("admin:company",company);showFlash("profile");};
   const saveWorkspace=()=>{storeSet("admin:workspace",workspace);storeSet("admin:notif",notif);showFlash("workspace");};
   const saveChCred=(id,val)=>{const n={...chCreds,[id]:val};setChCreds(n);storeSet("admin:channels",n);showFlash("ch_"+id);};
+  const saveMyChCred=(id,val)=>{const n={...myChCreds,[id]:val};setMyChCreds(n);storeSet("channels:"+me.id,n);showFlash("mych_"+id);};
+  const saveUsageType=(t)=>{setUsageType(t);storeSet("usagetype:"+me.id,t);};
   const saveApiKey=(id,v)=>{const n={...apiKeys,[id]:v};setApiKeys(n);skSet(id,v);storeSet("admin:apikeys",n);};
   const saveTeam=(next)=>{setUsers(next);storeSet("admin:team",next);};
   const startEdit=(u)=>{setEditingId(u.id);setEditForm({name:u.name,email:u.email});};
@@ -60,26 +71,35 @@ function AdminPage(){
     if(updated&&updated.id===me.id)onUpdateMe?.(updated);
     setEditingId(null);showFlash("team_"+id);
   };
-  const isConn=(id)=>{const c=chCreds[id];if(!c)return false;if(id==="instagram")return !!(c.accountId&&c.accessToken);if(id==="twitter")return !!(c.apiKey&&c.apiSecret&&c.accessToken&&c.accessTokenSecret);if(id==="linkedin")return !!c.accessToken;if(id==="facebook")return !!(c.pageId&&c.accessToken);if(id==="whatsapp")return !!(c.phoneNumberId&&c.accessToken);return false;};
+  const connCheck=(c,id)=>{if(!c)return false;if(id==="instagram")return !!(c.accountId&&c.accessToken);if(id==="twitter")return !!(c.apiKey&&c.apiSecret&&c.accessToken&&c.accessTokenSecret);if(id==="linkedin")return !!c.accessToken;if(id==="facebook")return !!(c.pageId&&c.accessToken);if(id==="whatsapp")return !!(c.phoneNumberId&&c.accessToken);return false;};
+  const isConn=(id)=>connCheck(chCreds[id],id);
+  const isMyConn=(id)=>connCheck(myChCreds[id],id);
 
   // Channel credential field definitions
   const CH_FIELDS={
-    instagram:[{k:"accountId",l:"Business Account ID",h:"Instagram Business → Einstellungen → Konto"},{k:"accessToken",l:"Access Token",pw:true,h:"Meta for Developers → Deine App → Tools → Access Token"}],
-    twitter:[{k:"apiKey",l:"API Key",pw:true},{k:"apiSecret",l:"API Secret",pw:true},{k:"accessToken",l:"Access Token",pw:true},{k:"accessTokenSecret",l:"Access Token Secret",pw:true}],
-    linkedin:[{k:"accessToken",l:"OAuth Access Token",pw:true,h:"LinkedIn Developer Portal → OAuth 2.0 Tools"}],
-    facebook:[{k:"pageId",l:"Page ID",h:"Facebook Seite → Über → Seiten-ID"},{k:"accessToken",l:"Page Access Token",pw:true,h:"Meta for Developers → Graph API Explorer"}],
-    whatsapp:[{k:"phoneNumberId",l:"Phone Number ID",h:"Meta Business Suite → WhatsApp → Telefonnummer"},{k:"bizAccountId",l:"Business Account ID"},{k:"accessToken",l:"System Access Token",pw:true}],
+    instagram:[{k:"accountId",l:"Business/Creator Account ID",h:"Instagram → Einstellungen → Konto → Zu Business/Creator wechseln → Konto-ID"},{k:"accessToken",l:"Access Token",pw:true,h:"Meta for Developers → Deine App → Tools → Graph API Explorer"}],
+    twitter:[{k:"apiKey",l:"API Key (Consumer Key)",pw:true,h:"developer.twitter.com → Deine App → Keys and Tokens"},{k:"apiSecret",l:"API Secret",pw:true},{k:"accessToken",l:"Access Token",pw:true},{k:"accessTokenSecret",l:"Access Token Secret",pw:true}],
+    linkedin:[{k:"accessToken",l:"OAuth 2.0 Access Token",pw:true,h:"LinkedIn Developer Portal → Deine App → Auth → OAuth 2.0 Tools"}],
+    facebook:[{k:"pageId",l:"Page ID",h:"Facebook Seite → Über → Seiteninfo → Seiten-ID (lange Zahl)"},{k:"accessToken",l:"Page Access Token",pw:true,h:"Meta for Developers → Graph API Explorer → Seite auswählen"}],
+    whatsapp:[{k:"phoneNumberId",l:"Phone Number ID",h:"Meta Business Suite → WhatsApp → API Setup → Phone Number ID"},{k:"bizAccountId",l:"WhatsApp Business Account ID",h:"Meta Business Manager → WhatsApp Accounts"},{k:"accessToken",l:"System Access Token",pw:true,h:"Meta Business Manager → System Users → Token generieren"}],
   };
-  const CH_LINKS={instagram:"https://developers.facebook.com/",twitter:"https://developer.twitter.com/",linkedin:"https://developer.linkedin.com/",facebook:"https://developers.facebook.com/",whatsapp:"https://developers.facebook.com/docs/whatsapp/"};
+  const CH_LINKS={instagram:"https://developers.facebook.com/docs/instagram-api/getting-started",twitter:"https://developer.twitter.com/en/portal/dashboard",linkedin:"https://developer.linkedin.com/",facebook:"https://developers.facebook.com/docs/pages/getting-started",whatsapp:"https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"};
+  const CH_DESC={
+    instagram:{steps:3,note:"Benötigt ein Instagram Business- oder Creator-Konto (kostenlos umstellbar in der Instagram App unter Einstellungen → Konto)."},
+    twitter:{steps:4,note:"Benötigt einen Twitter Developer Account (Free Tier reicht für Posting). Erstelle eine App im Developer Portal."},
+    linkedin:{steps:2,note:"Benötigt eine LinkedIn Developer App mit den Rechten 'w_member_social' und 'r_liteprofile'."},
+    facebook:{steps:3,note:"Benötigt eine Facebook Seite (keine Privatprofile). Erstelle eine App im Meta Developer Portal."},
+    whatsapp:{steps:4,note:"Benötigt ein WhatsApp Business-Konto und Zugang zur Cloud API über Meta Business Manager."},
+  };
 
   // Small helpers
   const Toggle=({val,onChange})=><div onClick={()=>onChange(!val)} style={{width:36,height:20,borderRadius:10,background:val?C.accent:C.border,display:"flex",alignItems:"center",padding:"0 2px",cursor:"pointer",transition:"all .2s",justifyContent:val?"flex-end":"flex-start"}}><div style={{width:16,height:16,borderRadius:"50%",background:"#fff"}}/></div>;
   const SavedBadge=({id})=>flash===id?<span style={{fontSize:11,color:C.success,fontWeight:700,display:"flex",alignItems:"center",gap:4}}><Check size={11} strokeWidth={2.5}/>Gespeichert</span>:null;
   const SH=({label,children,action})=><div style={{marginBottom:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontWeight:700,fontSize:12,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em"}}>{label}</div>{action}</div>{children}</div>;
 
-  // Tabs by role: admins see everything, editors get profile+apikeys+notifs, viewers just profile+notifs
-  const ALL_TABS=[["profile","Profil",User],["channels","Kanäle",Globe],["apikeys","API-Keys",Key],["team","Team",Users],["settings","Einstellungen",Settings]];
-  const ROLE_TABS={admin:["profile","channels","apikeys","team","settings"],editor:["profile","apikeys","settings"],viewer:["profile","settings"]};
+  // Tabs by role: admins see everything; editors + viewers also get channels (their own accounts)
+  const ALL_TABS=[["profile","Profil",User],["channels","Meine Kanäle",Globe],["apikeys","API-Keys",Key],["team","Team",Users],["settings","Einstellungen",Settings]];
+  const ROLE_TABS={admin:["profile","channels","apikeys","team","settings"],editor:["profile","channels","apikeys","settings"],viewer:["profile","channels","settings"]};
   const visibleTabs=ALL_TABS.filter(([id])=>(ROLE_TABS[me.role]||ROLE_TABS.viewer).includes(id));
 
   return(
@@ -129,51 +149,134 @@ function AdminPage(){
       </div>}
 
       {/* ── KANÄLE ── */}
-      {tab==="channels"&&<div style={{display:"flex",flexDirection:"column",gap:10,maxWidth:680}}>
-        {CHANNELS.map(info=>{
-          const conn=isConn(info.id);
-          const open=expandedCh===info.id;
-          const fields=CH_FIELDS[info.id]||[];
-          const lc=localCreds[info.id]||{};
-          const setLC=(k,v)=>setLocalCreds(p=>({...p,[info.id]:{...p[info.id],[k]:v}}));
-          return <Card key={info.id} style={{padding:0,overflow:"hidden"}}>
-            {/* Header */}
-            <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",cursor:"pointer"}} onClick={()=>setExpandedCh(open?null:info.id)}>
-              <div style={{width:36,height:36,borderRadius:9,background:info.color+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><ChIco id={info.id} size={18}/></div>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:700,fontSize:14,color:C.text}}>{info.label}</div>
-                <div style={{fontSize:11,color:conn?C.success:C.textMute,marginTop:1,display:"flex",alignItems:"center",gap:4}}>
-                  {conn?<><Wifi size={10} strokeWidth={2}/>Verbunden – Zugangsdaten hinterlegt</>:<><WifiOff size={10} strokeWidth={2}/>Nicht verbunden</>}
-                </div>
+      {tab==="channels"&&<div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:720}}>
+
+        {/* ── Nutzungskontext ── */}
+        <Card style={{padding:"16px 20px"}}>
+          <div style={{fontWeight:700,fontSize:12,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",marginBottom:12}}>Wie nutzt du SocialFlow?</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {[["creator","🎨","Content Creator","Persönliche Accounts, Solo-Projekte"],["business","🏢","Unternehmen","Firmenseiten & Business-Accounts"],["agency","🚀","Agentur","Mehrere Kunden & Marken"]].map(([id,emoji,label,desc])=>(
+              <div key={id} onClick={()=>saveUsageType(id)} style={{flex:1,minWidth:140,padding:"12px 14px",borderRadius:10,border:`2px solid ${usageType===id?C.accent:C.border}`,background:usageType===id?C.accentLight:"transparent",cursor:"pointer",transition:"all .15s"}}>
+                <div style={{fontSize:20,marginBottom:4}}>{emoji}</div>
+                <div style={{fontWeight:700,fontSize:13,color:usageType===id?C.accent:C.text}}>{label}</div>
+                <div style={{fontSize:11,color:C.textMute,marginTop:2}}>{desc}</div>
               </div>
-              <Badge color={conn?C.success:C.textMute} bg={conn?C.successBg:C.borderLight}>{conn?<><Check size={10} strokeWidth={2.5}/>Aktiv</>:"Einrichten"}</Badge>
-              {open?<ChevronUp size={16} color={C.textSoft} strokeWidth={2}/>:<ChevronDown size={16} color={C.textSoft} strokeWidth={2}/>}
-            </div>
-            {/* Credential form */}
-            {open&&<div style={{padding:"14px 18px 16px",borderTop:`1px solid ${C.borderLight}`}}>
-              <div style={{fontSize:12,color:C.textSoft,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
-                <Shield size={12} strokeWidth={2}/>Zugangsdaten werden verschlüsselt gespeichert.
-                <a href={CH_LINKS[info.id]} target="_blank" rel="noreferrer" style={{color:C.accent,textDecoration:"none",display:"flex",alignItems:"center",gap:3,marginLeft:4}}>
-                  Developer Portal <ExternalLink size={10} strokeWidth={2}/>
-                </a>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:9}}>
-                {fields.map(f=>(
-                  <div key={f.k}>
-                    <FL>{f.l}</FL>
-                    <input type={f.pw?"password":"text"} value={lc[f.k]||""} onChange={e=>setLC(f.k,e.target.value)} placeholder={f.pw?"••••••••••••":f.l} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
-                    {f.h&&<div style={{fontSize:10.5,color:C.textMute,marginTop:3}}>{f.h}</div>}
+            ))}
+          </div>
+        </Card>
+
+        {/* ── Meine persönlichen Accounts ── */}
+        <div>
+          <div style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+            <User size={15} strokeWidth={IW} color={C.accent}/>
+            Meine Accounts
+            <span style={{fontSize:11,color:C.textMute,fontWeight:400}}>— nur für dich sichtbar</span>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {CHANNELS.map(info=>{
+              const conn=isMyConn(info.id);
+              const isOpen=expandedMyCh===info.id;
+              const fields=CH_FIELDS[info.id]||[];
+              const lc=myLocalCreds[info.id]||{};
+              const setLC=(k,v)=>setMyLocalCreds(p=>({...p,[info.id]:{...p[info.id],[k]:v}}));
+              const desc=CH_DESC[info.id];
+              return <Card key={info.id} style={{padding:0,overflow:"hidden"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,padding:"13px 18px",cursor:"pointer"}} onClick={()=>setExpandedMyCh(isOpen?null:info.id)}>
+                  <div style={{width:36,height:36,borderRadius:9,background:info.color+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><ChIco id={info.id} size={18}/></div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:14,color:C.text}}>{info.label}</div>
+                    <div style={{fontSize:11,color:conn?C.success:C.textMute,marginTop:1,display:"flex",alignItems:"center",gap:4}}>
+                      {conn?<><Wifi size={10} strokeWidth={2}/>Verbunden</>:<><WifiOff size={10} strokeWidth={2}/>Nicht eingerichtet · {desc?.steps} Schritte</>}
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginTop:14}}>
-                <Btn onClick={()=>saveChCred(info.id,lc)}><Save size={13} strokeWidth={2}/>Speichern</Btn>
-                {conn&&<Btn variant="danger" size="sm" onClick={()=>{const empty=Object.fromEntries(fields.map(f=>[f.k,""]));saveChCred(info.id,empty);setLocalCreds(p=>({...p,[info.id]:empty}));}}><X size={12} strokeWidth={2}/>Trennen</Btn>}
-                <SavedBadge id={"ch_"+info.id}/>
-              </div>
-            </div>}
-          </Card>;
-        })}
+                  <Badge color={conn?C.success:C.textMute} bg={conn?"#ECFDF3":C.borderLight}>{conn?<><Check size={10} strokeWidth={2.5}/>Aktiv</>:"Einrichten"}</Badge>
+                  {isOpen?<ChevronUp size={16} color={C.textSoft} strokeWidth={2}/>:<ChevronDown size={16} color={C.textSoft} strokeWidth={2}/>}
+                </div>
+                {isOpen&&<div style={{padding:"14px 18px 16px",borderTop:`1px solid ${C.borderLight}`,background:C.bg}}>
+                  {/* Platform note */}
+                  {desc?.note&&<div style={{padding:"9px 12px",borderRadius:8,background:C.accentLight,border:`1px solid ${C.accent}22`,fontSize:12,color:C.textMid,marginBottom:12,display:"flex",gap:8,alignItems:"flex-start"}}>
+                    <Info size={13} color={C.accent} strokeWidth={2} style={{flexShrink:0,marginTop:1}}/>
+                    <span>{desc.note}</span>
+                  </div>}
+                  <div style={{fontSize:12,color:C.textSoft,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+                    <Shield size={12} strokeWidth={2}/>Zugangsdaten werden verschlüsselt gespeichert.
+                    <a href={CH_LINKS[info.id]} target="_blank" rel="noreferrer" style={{color:C.accent,textDecoration:"none",display:"flex",alignItems:"center",gap:3,marginLeft:4,fontWeight:600}}>
+                      Anleitung & Developer Portal <ExternalLink size={10} strokeWidth={2}/>
+                    </a>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                    {fields.map(f=>(
+                      <div key={f.k}>
+                        <FL>{f.l}</FL>
+                        <input type={f.pw?"password":"text"} value={lc[f.k]||""} onChange={e=>setLC(f.k,e.target.value)} placeholder={f.pw?"••••••••••••":f.l} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
+                        {f.h&&<div style={{fontSize:10.5,color:C.textMute,marginTop:3}}>{f.h}</div>}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginTop:14}}>
+                    <Btn onClick={()=>saveMyChCred(info.id,lc)}><Save size={13} strokeWidth={2}/>Speichern</Btn>
+                    {conn&&<Btn variant="danger" size="sm" onClick={()=>{const empty=Object.fromEntries(fields.map(f=>[f.k,""]));saveMyChCred(info.id,empty);setMyLocalCreds(p=>({...p,[info.id]:empty}));}}><X size={12} strokeWidth={2}/>Trennen</Btn>}
+                    <SavedBadge id={"mych_"+info.id}/>
+                  </div>
+                </div>}
+              </Card>;
+            })}
+          </div>
+        </div>
+
+        {/* ── Team/Workspace-Accounts (admin only) ── */}
+        {me.role==="admin"&&<div>
+          <div style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+            <Users size={15} strokeWidth={IW} color={C.textMid}/>
+            Team-Accounts (Workspace)
+            <span style={{fontSize:11,color:C.textMute,fontWeight:400}}>— geteilt mit allen Teammitgliedern</span>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {CHANNELS.map(info=>{
+              const conn=isConn(info.id);
+              const isOpen=expandedCh===info.id;
+              const fields=CH_FIELDS[info.id]||[];
+              const lc=localCreds[info.id]||{};
+              const setLC=(k,v)=>setLocalCreds(p=>({...p,[info.id]:{...p[info.id],[k]:v}}));
+              return <Card key={info.id} style={{padding:0,overflow:"hidden"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,padding:"13px 18px",cursor:"pointer"}} onClick={()=>setExpandedCh(isOpen?null:info.id)}>
+                  <div style={{width:36,height:36,borderRadius:9,background:info.color+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><ChIco id={info.id} size={18}/></div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:14,color:C.text}}>{info.label}</div>
+                    <div style={{fontSize:11,color:conn?C.success:C.textMute,marginTop:1,display:"flex",alignItems:"center",gap:4}}>
+                      {conn?<><Wifi size={10} strokeWidth={2}/>Verbunden – Workspace-Zugangsdaten hinterlegt</>:<><WifiOff size={10} strokeWidth={2}/>Nicht verbunden</>}
+                    </div>
+                  </div>
+                  <Badge color={conn?C.success:C.textMute} bg={conn?"#ECFDF3":C.borderLight}>{conn?<><Check size={10} strokeWidth={2.5}/>Aktiv</>:"Einrichten"}</Badge>
+                  {isOpen?<ChevronUp size={16} color={C.textSoft} strokeWidth={2}/>:<ChevronDown size={16} color={C.textSoft} strokeWidth={2}/>}
+                </div>
+                {isOpen&&<div style={{padding:"14px 18px 16px",borderTop:`1px solid ${C.borderLight}`}}>
+                  <div style={{fontSize:12,color:C.textSoft,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+                    <Shield size={12} strokeWidth={2}/>Zugangsdaten werden verschlüsselt gespeichert.
+                    <a href={CH_LINKS[info.id]} target="_blank" rel="noreferrer" style={{color:C.accent,textDecoration:"none",display:"flex",alignItems:"center",gap:3,marginLeft:4,fontWeight:600}}>
+                      Anleitung & Developer Portal <ExternalLink size={10} strokeWidth={2}/>
+                    </a>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                    {fields.map(f=>(
+                      <div key={f.k}>
+                        <FL>{f.l}</FL>
+                        <input type={f.pw?"password":"text"} value={lc[f.k]||""} onChange={e=>setLC(f.k,e.target.value)} placeholder={f.pw?"••••••••••••":f.l} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}/>
+                        {f.h&&<div style={{fontSize:10.5,color:C.textMute,marginTop:3}}>{f.h}</div>}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginTop:14}}>
+                    <Btn onClick={()=>saveChCred(info.id,lc)}><Save size={13} strokeWidth={2}/>Speichern</Btn>
+                    {conn&&<Btn variant="danger" size="sm" onClick={()=>{const empty=Object.fromEntries(fields.map(f=>[f.k,""]));saveChCred(info.id,empty);setLocalCreds(p=>({...p,[info.id]:empty}));}}><X size={12} strokeWidth={2}/>Trennen</Btn>}
+                    <SavedBadge id={"ch_"+info.id}/>
+                  </div>
+                </div>}
+              </Card>;
+            })}
+          </div>
+        </div>}
+
       </div>}
 
       {/* ── API-KEYS ── */}
