@@ -52,6 +52,21 @@ export async function storeSet(path, value) {
   } catch {}
 }
 
+// ── INSTAGRAM SYNC ─────────────────────────────────────────────────────────
+// Ruft /instagram auf (Cloudflare Function) und gibt normalisierte Posts zurück
+export async function igSync(accessToken, instagramUserId) {
+  const token = await getClerkToken();
+  if (!token) throw new Error("Kein Clerk-Account. Bitte mit echtem Account einloggen, nicht Demo-Modus.");
+  const r = await fetch("/instagram", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    body: JSON.stringify({ accessToken, instagramUserId }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+  return d; // { posts: [...], count: N }
+}
+
 // ── AI OBJECT ──────────────────────────────────────────────────────────────
 export const AI = {
   optimize:(text,ch,tone)=>aiCall([{role:"user",content:`Du bist Social-Media-Experte. Optimiere fuer ${ch} im Ton "${tone}". NUR der optimierte Text:\n\n${text}`}]),

@@ -54,14 +54,16 @@ export default function PostDetailDrawer() {
 
   if (!post) return null;
 
-  // ── Seeded metrics ─────────────────────────────────────────────────────────
-  const reach       = seeded(post.id + "reach",  1200, 18000);
-  const impressions = seeded(post.id + "imp",    2000, 45000);
-  const likes       = seeded(post.id + "likes",   120,  3200);
-  const comments    = seeded(post.id + "cmts",     10,   420);
-  const shares      = seeded(post.id + "shr",      30,   850);
-  const clicks      = seeded(post.id + "clk",      40,  1200);
-  const engPct      = ((likes / reach) * 100).toFixed(1);
+  // ── Metrics: real (from Instagram API) or seeded mock ─────────────────────
+  const m = post.metrics; // set when post was synced from Instagram
+  const hasReal = m && (m.reach != null || m.likes != null);
+  const reach       = hasReal && m.reach       != null ? m.reach       : seeded(post.id + "reach",  1200, 18000);
+  const impressions = hasReal && m.impressions != null ? m.impressions : seeded(post.id + "imp",    2000, 45000);
+  const likes       = hasReal && m.likes       != null ? m.likes       : seeded(post.id + "likes",   120,  3200);
+  const comments    = hasReal && m.comments    != null ? m.comments    : seeded(post.id + "cmts",     10,   420);
+  const shares      = hasReal && m.saved       != null ? m.saved       : seeded(post.id + "shr",      30,   850);
+  const clicks      = seeded(post.id + "clk", 40, 1200); // Instagram API doesn't expose link clicks directly
+  const engPct      = reach > 0 ? ((likes / reach) * 100).toFixed(1) : "0.0";
 
   // ── Campaign ──────────────────────────────────────────────────────────────
   const camp = campaigns?.find(c => c.id === post.campaignId);
@@ -173,6 +175,10 @@ export default function PostDetailDrawer() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
               <Activity size={14} color={C.accent} strokeWidth={IW} />
               <div style={{ fontSize: 10, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".08em" }}>Performance</div>
+              {hasReal
+                ? <span style={{ fontSize: 10, fontWeight: 700, color: C.success, background: "#ECFDF3", padding: "2px 7px", borderRadius: 5 }}>📊 Live-Daten</span>
+                : <span style={{ fontSize: 10, color: C.textMute, background: C.borderLight, padding: "2px 7px", borderRadius: 5 }}>~ Geschätzt</span>
+              }
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.success, fontWeight: 700 }}>
                 <TrendingUp size={11} strokeWidth={2.5} />
                 {engPct}% Engagement

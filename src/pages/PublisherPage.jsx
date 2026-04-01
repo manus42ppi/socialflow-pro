@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Send, Plus, ArrowUpDown, Clock } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Send, Plus, ArrowUpDown, Clock, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
 import { CHANNELS, ROLES } from "../constants/demo.js";
 import { Btn, SBadge } from "../components/ui/index.jsx";
@@ -7,6 +7,7 @@ import ChIco from "../components/ui/ChIco.jsx";
 import PostCard from "../components/PostCard.jsx";
 import Board from "../components/widgets/Board.jsx";
 import { useApp } from "../context/AppContext.jsx";
+import { storeGet, igSync } from "../utils/store.js";
 
 // ── Seeded hash (same logic as PostDetailDrawer so numbers match) ──────────
 function hashId(id) {
@@ -142,7 +143,43 @@ export default function PublisherPage() {
 
   const [view, setView] = useState("grid");
   const [sort, setSort] = useState("date_asc");
+  const [syncState, setSyncState] = useState(null); // null | "loading" | "ok" | "error"
+  const [syncMsg, setSyncMsg] = useState("");
   const can = p => ROLES[role]?.can.includes(p);
+
+  // ── Instagram Sync ─────────────────────────────────────────────────────────
+  const { setPosts } = useApp();
+  const handleIgSync = useCallback(async () => {
+    setSyncState("loading");
+    setSyncMsg("");
+    try {
+      // Load credentials from KV
+      const creds = await storeGet("channels:" + user?.id);
+      const ig = creds?.instagram;
+      if (!ig?.accessToken || !ig?.accountId) {
+        throw new Error("Keine Instagram-Zugangsdaten. Bitte in Einstellungen → Meine Kanäle → Instagram konfigurieren.");
+      }
+      const { posts: igPosts, count } = await igSync(ig.accessToken, ig.accountId);
+      // Merge: add/update Instagram posts, keep existing non-Instagram posts
+      setPosts(prev => {
+        const existing = prev.filter(p => !p.instagramId); // non-Instagram posts
+        const existingIgIds = new Set(prev.filter(p => p.instagramId).map(p => p.instagramId));
+        const newPosts = igPosts.filter(p => !existingIgIds.has(p.instagramId));
+        const updatedPosts = prev.map(p => {
+          const fresh = igPosts.find(ig => ig.instagramId === p.instagramId);
+          return fresh ? { ...p, ...fresh } : p; // update metrics of existing
+        });
+        const merged = [...updatedPosts.filter(p => !p.instagramId), ...updatedPosts.filter(p => p.instagramId), ...newPosts];
+        return merged;
+      });
+      setSyncState("ok");
+      setSyncMsg(`${count} Posts geladen`);
+      setTimeout(() => setSyncState(null), 4000);
+    } catch (e) {
+      setSyncState("error");
+      setSyncMsg(e.message);
+    }
+  }, [user?.id, setPosts]);
 
   const livePosts = posts.filter(p => !p.deleted);
   const usedChs = [...new Set(livePosts.flatMap(p => p.channels || []))];
@@ -238,10 +275,43 @@ export default function PublisherPage() {
         // Timeline view for published posts
         <div style={{ flex: 1, overflow: "auto", padding: "24px 28px" }}>
           <div style={{ maxWidth: 720, margin: "0 auto" }}>
-            <div style={{ marginBottom: 20, display: "flex", alignItems: "baseline", gap: 10 }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 800, color: C.text }}>Veröffentlicht</div>
-              <div style={{ fontSize: 12, color: C.textMute }}>{shown.length} Posts · Klick für Details & Performance</div>
+
+            {/* Header + Sync button */}
+            <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 800, color: C.text }}>Veröffentlicht</div>
+                <div style={{ fontSize: 12, color: C.textMute }}>{shown.length} Posts · Klick für Details & Performance</div>
+              </div>
+              <div style={{ flex: 1 }} />
+              {/* Sync status message */}
+              {syncState === "ok" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: C.success, fontWeight: 700 }}>
+                  <CheckCircle size={13} strokeWidth={2.5} />{syncMsg}
+                </div>
+              )}
+              {syncState === "error" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#E53E3E", fontWeight: 600, maxWidth: 280, textAlign: "right" }}>
+                  <AlertCircle size={13} strokeWidth={2} style={{ flexShrink: 0 }} />{syncMsg}
+                </div>
+              )}
+              {/* Instagram sync button */}
+              <button
+                onClick={handleIgSync}
+                disabled={syncState === "loading"}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 9,
+                  border: `1.5px solid #E1306C44`, background: syncState === "loading" ? C.borderLight : "#FFF0F6",
+                  color: "#E1306C", fontWeight: 700, fontSize: 12.5, cursor: syncState === "loading" ? "wait" : "pointer",
+                  fontFamily: FONT, transition: "all .15s",
+                }}
+                onMouseEnter={e => { if (syncState !== "loading") e.currentTarget.style.background = "#FFD6E7"; }}
+                onMouseLeave={e => { if (syncState !== "loading") e.currentTarget.style.background = "#FFF0F6"; }}
+              >
+                <RefreshCw size={13} strokeWidth={2.5} style={{ animation: syncState === "loading" ? "spin .8s linear infinite" : "none" }} />
+                {syncState === "loading" ? "Lade von Instagram…" : "Von Instagram laden"}
+              </button>
             </div>
+
             <TimelineView posts={shown} campaigns={campaigns} onOpen={setDetailPost} />
           </div>
         </div>
