@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
-  Flag, Trash2, BookOpen, CalendarRange, PenLine, TrendingUp,
+  Flag, Trash2, BookOpen, CalendarRange, PenLine, TrendingUp, Eye,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -52,8 +52,9 @@ export const NAV_GROUPS = [
   {
     label: "ANALYSE",
     items: [
-      { id:"performance", label:"Performance",       I:BarChart2    },
-      { id:"research",    label:"Research",          I:TrendingUp   },
+      { id:"performance",  label:"Performance",       I:BarChart2    },
+      { id:"research",     label:"Research",          I:TrendingUp   },
+      { id:"monitoring",   label:"Monitoring",        I:Eye          },
     ],
   },
 ];
@@ -82,5 +83,6 @@ export const TITLE = {
   planner:      "Planner",
   performance:  "Performance",
   research:     "Research",
+  monitoring:   "Instagram Monitoring",
   admin:        "Admin",
 };

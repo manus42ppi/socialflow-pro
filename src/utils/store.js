@@ -67,6 +67,21 @@ export async function igSync(accessToken, instagramUserId) {
   return d; // { posts: [...], count: N }
 }
 
+// ── INSTAGRAM MONITORING (Business Discovery API) ──────────────────────────
+// Ruft /ig-monitor auf und gibt Profil + Posts eines öffentlichen Accounts zurück
+export async function igMonitor(accessToken, igUserId, targetUsername) {
+  const token = await getClerkToken();
+  if (!token) throw new Error("Kein Clerk-Account. Bitte mit echtem Account einloggen.");
+  const r = await fetch("/ig-monitor", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    body: JSON.stringify({ accessToken, igUserId, targetUsername }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+  return d; // { profile: {...}, posts: [...] }
+}
+
 // ── AI OBJECT ──────────────────────────────────────────────────────────────
 export const AI = {
   optimize:(text,ch,tone)=>aiCall([{role:"user",content:`Du bist Social-Media-Experte. Optimiere fuer ${ch} im Ton "${tone}". NUR der optimierte Text:\n\n${text}`}]),

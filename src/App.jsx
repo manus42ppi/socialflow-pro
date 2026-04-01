@@ -17,6 +17,7 @@ import CalendarPage from "./pages/CalendarPage.jsx";
 import PlannerPage from "./pages/PlannerPage.jsx";
 import PerformancePage from "./pages/PerformancePage.jsx";
 import ResearchPage from "./pages/ResearchPage.jsx";
+import MonitoringPage from "./pages/MonitoringPage.jsx";
 import StoriesPage from "./pages/StoriesPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 
@@ -68,6 +69,7 @@ function AppShell() {
             {nav === "planner"                       && <PlannerPage />}
             {nav === "performance"                   && <PerformancePage />}
             {nav === "research"                      && <ResearchPage />}
+            {nav === "monitoring"                    && <MonitoringPage />}
             {nav === "stories"                       && <StoriesPage />}
             {nav === "admin" && <AdminPage />}
           </div>
