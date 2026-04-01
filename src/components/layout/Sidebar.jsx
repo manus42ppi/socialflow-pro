@@ -3,6 +3,7 @@ import { Settings, LogOut, Layers, Menu } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 import { NAV_GROUPS, NAV_UTILITY } from "../../constants/nav.js";
+import { ROLES } from "../../constants/demo.js";
 import { Avatar } from "../ui/index.jsx";
 import ChIco from "../ui/ChIco.jsx";
 import { useApp } from "../../context/AppContext.jsx";
@@ -123,10 +124,13 @@ export default function Sidebar(){
         <BtnSB id="admin" label={user.role==="admin"?"Admin":"Einstellungen"} I={Settings} badge={0}/>
         <div style={{height:4}}/>
         <div style={{display:"flex",alignItems:"center",gap:8,padding:open?"6px 10px":"6px 0",justifyContent:open?"flex-start":"center",borderRadius:9,transition:"all .13s"}}>
-          <Avatar initials={user.avatar} size={26} color={C.accent}/>
+          <Avatar initials={user.avatar} size={26} color={ROLES[user.role]?.color||C.accent}/>
           {open&&<>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#D1D5DB",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#D1D5DB",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
+                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
+                <span style={{fontSize:9,fontWeight:700,color:ROLES[user.role]?.color||C.accent,background:(ROLES[user.role]?.color||C.accent)+"22",padding:"1px 5px",borderRadius:4,letterSpacing:".04em",flexShrink:0,textTransform:"uppercase"}}>{ROLES[user.role]?.label||user.role}</span>
+              </div>
               <div style={{fontSize:10,color:"#6B7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
             </div>
             <button onClick={onLogout} title="Abmelden" style={{width:26,height:26,borderRadius:6,border:"none",background:"transparent",color:"#4A5568",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"color .13s"}}
