@@ -68,7 +68,7 @@ function AppShell() {
             {nav === "performance"                   && <PerformancePage />}
             {nav === "research"                      && <ResearchPage />}
             {nav === "stories"                       && <StoriesPage />}
-            {nav === "admin" && user.role === "admin" && <AdminPage />}
+            {nav === "admin" && <AdminPage />}
           </div>
           <GlobalRightSidebar />
         </div>

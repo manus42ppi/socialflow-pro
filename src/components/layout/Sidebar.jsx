@@ -120,7 +120,7 @@ export default function Sidebar(){
           <BtnSB key={id} id={id} label={label} I={I}
             badge={id==="trash"?trashCount:0}/>
         ))}
-        {user.role==="admin"&&<BtnSB id="admin" label="Admin" I={Settings} badge={0}/>}
+        <BtnSB id="admin" label={user.role==="admin"?"Admin":"Einstellungen"} I={Settings} badge={0}/>
         <div style={{height:4}}/>
         <div style={{display:"flex",alignItems:"center",gap:8,padding:open?"6px 10px":"6px 0",justifyContent:open?"flex-start":"center",borderRadius:9,transition:"all .13s"}}>
           <Avatar initials={user.avatar} size={26} color={C.accent}/>

@@ -77,11 +77,18 @@ function AdminPage(){
   const SavedBadge=({id})=>flash===id?<span style={{fontSize:11,color:C.success,fontWeight:700,display:"flex",alignItems:"center",gap:4}}><Check size={11} strokeWidth={2.5}/>Gespeichert</span>:null;
   const SH=({label,children,action})=><div style={{marginBottom:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontWeight:700,fontSize:12,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em"}}>{label}</div>{action}</div>{children}</div>;
 
+  // Tabs by role: admins see everything, editors get profile+apikeys+notifs, viewers just profile+notifs
+  const ALL_TABS=[["profile","Profil",User],["channels","Kanäle",Globe],["apikeys","API-Keys",Key],["team","Team",Users],["settings","Einstellungen",Settings]];
+  const ROLE_TABS={admin:["profile","channels","apikeys","team","settings"],editor:["profile","apikeys","settings"],viewer:["profile","settings"]};
+  const visibleTabs=ALL_TABS.filter(([id])=>(ROLE_TABS[me.role]||ROLE_TABS.viewer).includes(id));
+
   return(
     <div style={{flex:1,overflow:"auto",padding:22,display:"flex",flexDirection:"column",gap:16}}>
+      {/* Page title for non-admins */}
+      {me.role!=="admin"&&<div style={{fontSize:20,fontWeight:800,fontFamily:FONT_DISPLAY,color:C.text,letterSpacing:"-.02em"}}>Einstellungen</div>}
       {/* Tab bar */}
       <div style={{display:"flex",gap:3,background:C.borderLight,borderRadius:9,padding:4,alignSelf:"flex-start",flexWrap:"wrap"}}>
-        {[["profile","Profil",User],["channels","Kanäle",Globe],["apikeys","API-Keys",Key],["team","Team",Users],["settings","Einstellungen",Settings]].map(([id,l,Ic])=>(
+        {visibleTabs.map(([id,l,Ic])=>(
           <button key={id} onClick={()=>setTab(id)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 15px",borderRadius:7,border:"none",background:tab===id?C.surface:"transparent",color:tab===id?C.text:C.textSoft,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:FONT,boxShadow:tab===id?"0 1px 3px rgba(0,0,0,.07)":"none"}}>
             <Ic size={14} strokeWidth={IW}/>{l}
           </button>
@@ -293,14 +300,15 @@ function AdminPage(){
 
       {/* ── EINSTELLUNGEN ── */}
       {tab==="settings"&&<div style={{maxWidth:520,display:"flex",flexDirection:"column",gap:14}}>
-        <Card style={{padding:"14px 18px",display:"flex",flexDirection:"column",gap:12}}>
+        {/* Workspace section only for admins */}
+        {me.role==="admin"&&<Card style={{padding:"14px 18px",display:"flex",flexDirection:"column",gap:12}}>
           <SH label="Workspace"/>
           <TIn label="Workspace-Name" value={workspace.name} onChange={e=>setWorkspace(p=>({...p,name:e.target.value}))}/>
           <TIn label="Zeitzone" value={workspace.timezone} onChange={e=>setWorkspace(p=>({...p,timezone:e.target.value}))}/>
           <div><FL>Sprache</FL><select value={workspace.language} onChange={e=>setWorkspace(p=>({...p,language:e.target.value}))} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,outline:"none"}}>
             <option value="de">Deutsch</option><option value="en">English</option>
           </select></div>
-        </Card>
+        </Card>}
         <Card style={{padding:"14px 18px"}}>
           <div style={{fontWeight:500,fontSize:12,marginBottom:12}}>E-Mail Benachrichtigungen</div>
           {[["onSched","Post geplant"],["onAppr","Freigabe angefordert"],["onPub","Post veröffentlicht"],["onErr","Fehler beim Posten"]].map(([key,label])=>(
