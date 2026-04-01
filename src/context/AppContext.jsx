@@ -82,15 +82,26 @@ export function AppProvider({ children }) {
     postsLoaded.current = false;
     storeGet("posts").then(data => {
       postsLoaded.current = true;
-      if (data?.length) setPosts(data);
-      else setPosts(DEMO_POSTS); // First login: start with demo posts
+      if (data?.length) {
+        // Merge in any new demo posts not yet in KV (added in later releases)
+        const kvIds = new Set(data.map(p => p.id));
+        const newDemoPosts = DEMO_POSTS.filter(p => !kvIds.has(p.id));
+        setPosts(newDemoPosts.length ? [...data, ...newDemoPosts] : data);
+      } else {
+        setPosts(DEMO_POSTS); // First login: start with demo posts
+      }
     });
 
     campsLoaded.current = false;
     storeGet("campaigns").then(data => {
       campsLoaded.current = true;
-      if (data?.length) setCampaigns(data);
-      else setCampaigns(DEMO_CAMPAIGNS);
+      if (data?.length) {
+        const kvIds = new Set(data.map(c => c.id));
+        const newDemoCamps = DEMO_CAMPAIGNS.filter(c => !kvIds.has(c.id));
+        setCampaigns(newDemoCamps.length ? [...data, ...newDemoCamps] : data);
+      } else {
+        setCampaigns(DEMO_CAMPAIGNS);
+      }
     });
 
     storiesLoaded.current = false;
