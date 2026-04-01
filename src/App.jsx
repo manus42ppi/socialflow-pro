@@ -7,6 +7,7 @@ import GlobalRightSidebar from "./components/layout/GlobalRightSidebar.jsx";
 import Editor from "./modals/Editor.jsx";
 import SchedModal from "./modals/SchedModal.jsx";
 import StoryEditorModal from "./modals/StoryEditorModal.jsx";
+import PostDetailDrawer from "./modals/PostDetailDrawer.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import PublisherPage from "./pages/PublisherPage.jsx";
 import TrashPage from "./pages/TrashPage.jsx";
@@ -30,7 +31,7 @@ export default function App() {
 
 // ── APP SHELL (uses context) ───────────────────────────────────────────────
 function AppShell() {
-  const { isLoaded, user, setDemoUser, nav, edPost, schPost, edStory } = useApp();
+  const { isLoaded, user, setDemoUser, nav, edPost, schPost, edStory, detailPost } = useApp();
 
   // Loading spinner while Clerk initialises
   if (!isLoaded) return (
@@ -76,6 +77,7 @@ function AppShell() {
       {edPost  && <Editor />}
       {edStory && <StoryEditorModal />}
       {schPost && <SchedModal />}
+      {detailPost && <PostDetailDrawer />}
     </div>
   );
 }

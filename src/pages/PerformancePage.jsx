@@ -7,6 +7,17 @@ import ChIco from "../components/ui/ChIco.jsx";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
+// ── Seeded hash (same as PostDetailDrawer so numbers always match) ──────────
+function hashId(id) {
+  let h = 5381;
+  for (let i = 0; i < String(id).length; i++) {
+    h = ((h << 5) + h) ^ String(id).charCodeAt(i);
+    h = h >>> 0;
+  }
+  return h;
+}
+function seeded(id, min, max) { return min + (hashId(id) % (max - min + 1)); }
+
 const MOCK={
   instagram:{reach:12400,imp:34200,eng:"5.4%",fol:2340,clk:890},
   twitter:  {reach:8900, imp:21000,eng:"3.2%",fol:1120,clk:340},
@@ -15,10 +26,21 @@ const MOCK={
   whatsapp: {reach:3200, imp:3200, eng:"12.4%",fol:890, clk:890},
 };
 function PerformancePage(){
-  const { posts: allPosts } = useApp();
+  const { posts: allPosts, setDetailPost } = useApp();
   const posts = allPosts.filter(p => !p.deleted);
   const [per,setPer]=useState("30d");
-  const top=useMemo(()=>[...posts].slice(0,5).map(p=>({...p,reach:Math.floor(Math.random()*5000+500),eng:(Math.random()*8+1).toFixed(1)+"%"})),[posts]);
+  // Top posts: only published, sorted by seeded reach (consistent, not random)
+  const publishedPosts = posts.filter(p => p.status === "published");
+  const top=useMemo(()=>
+    [...publishedPosts]
+      .map(p=>({
+        ...p,
+        reach: seeded(p.id+"reach", 1200, 18000),
+        eng: ((seeded(p.id+"likes",120,3200)/seeded(p.id+"reach",1200,18000))*100).toFixed(1)+"%",
+      }))
+      .sort((a,b)=>b.reach-a.reach)
+      .slice(0,5),
+  [posts]);
   const {order,dragId,setDragId,overId,setOverId,drop}=useSections("performance","default",['stats','channels','posts']);
 
   const perRight=<div style={{display:"flex",gap:3,background:"#F3F4F6",borderRadius:8,padding:3}}>
@@ -52,17 +74,27 @@ function PerformancePage(){
 
   const topPostsContent=(
     top.length===0?(
-      <div style={{padding:"20px 0",textAlign:"center",fontSize:12,color:C.textMute}}>Keine Posts vorhanden.</div>
+      <div style={{padding:"20px 0",textAlign:"center",fontSize:12,color:C.textMute}}>Keine veröffentlichten Posts vorhanden.</div>
     ):(
       <div>
-        {top.map((p,i)=><div key={p.id} style={{display:"flex",alignItems:"center",gap:14,padding:"10px 0",borderBottom:i<top.length-1?`1px solid ${C.borderLight}`:"none"}}>
-          <div style={{width:26,height:26,borderRadius:7,background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,color:i===0?C.accent:C.textMute}}>{i+1}</div>
-          <div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div><div style={{display:"flex",gap:3,marginTop:2}}>{p.channels?.map(c=><ChIco key={c} id={c} size={11}/>)}</div></div>
-          <div style={{display:"flex",gap:14,fontSize:12}}>
-            <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{(p.reach/1000).toFixed(1)}K</div><div style={{color:C.textMute,fontSize:10}}>Reach</div></div>
-            <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{p.eng}</div><div style={{color:C.textMute,fontSize:10}}>Eng.</div></div>
+        {top.map((p,i)=>(
+          <div key={p.id}
+            onClick={()=>setDetailPost(p)}
+            style={{display:"flex",alignItems:"center",gap:14,padding:"10px 6px",borderBottom:i<top.length-1?`1px solid ${C.borderLight}`:"none",cursor:"pointer",borderRadius:8,transition:"background .12s"}}
+            onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+          >
+            <div style={{width:26,height:26,borderRadius:7,background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,color:i===0?C.accent:C.textMute,flexShrink:0}}>{i+1}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||p.content?.slice(0,40)||"–"}</div>
+              <div style={{display:"flex",gap:3,marginTop:2}}>{p.channels?.map(c=><ChIco key={c} id={c} size={11}/>)}</div>
+            </div>
+            <div style={{display:"flex",gap:14,fontSize:12,flexShrink:0}}>
+              <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{(p.reach/1000).toFixed(1)}K</div><div style={{color:C.textMute,fontSize:10}}>Reach</div></div>
+              <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{p.eng}</div><div style={{color:C.textMute,fontSize:10}}>Eng.</div></div>
+            </div>
           </div>
-        </div>)}
+        ))}
       </div>
     )
   );

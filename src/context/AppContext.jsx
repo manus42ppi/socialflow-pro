@@ -45,6 +45,7 @@ export function AppProvider({ children }) {
   const [filt, setFilt] = useState("all");
   const [chFilt, setChFilt] = useState("all");
   const [edStory, setEdStory] = useState(null);
+  const [detailPost, setDetailPost] = useState(null);
 
   // ── KV load-guard refs ────────────────────────────────────────────────────
   // Guards prevent writing demo/empty data back to KV before real data is loaded
@@ -262,6 +263,8 @@ export function AppProvider({ children }) {
     delStory,
     newStory,
     convertSection,
+    detailPost,
+    setDetailPost,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
