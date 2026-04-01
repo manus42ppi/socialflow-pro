@@ -9,6 +9,164 @@ import { useSections, SecCard } from "../hooks/useSections.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
+// ── INSTAGRAM TOKEN GUIDE ─────────────────────────────────────────────────
+function IgTokenGuide() {
+  const [open, setOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const copy = (text, id) => {
+    navigator.clipboard?.writeText(text).catch(() => {});
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1800);
+  };
+
+  const CopyBtn = ({ text, id }) => (
+    <button
+      onClick={() => copy(text, id)}
+      style={{
+        border: `1px solid ${C.border}`, borderRadius: 5,
+        background: copiedId === id ? C.success : C.bg,
+        color: copiedId === id ? "#fff" : C.textMid,
+        cursor: "pointer", padding: "2px 8px",
+        fontSize: 10.5, fontFamily: FONT,
+        display: "inline-flex", alignItems: "center", gap: 3,
+        transition: "all .15s", flexShrink: 0,
+      }}
+    >
+      {copiedId === id ? <><Check size={10} strokeWidth={2.5} />Kopiert</> : "Kopieren"}
+    </button>
+  );
+
+  const Link = ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer"
+      style={{ color: C.accent, textDecoration: "none", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
+      {children} <ExternalLink size={10} strokeWidth={2} />
+    </a>
+  );
+
+  const Step = ({ n, title, children }) => (
+    <div style={{ display: "flex", gap: 12 }}>
+      <div style={{
+        width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+        background: C.accent, color: "#fff",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 12, fontWeight: 700, fontFamily: FONT, marginTop: 1,
+      }}>{n}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 4 }}>{title}</div>
+        <div style={{ fontSize: 12, color: C.textMid, lineHeight: 1.6 }}>{children}</div>
+      </div>
+    </div>
+  );
+
+  const Code = ({ text, id }) => (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+      background: C.bg, border: `1px solid ${C.border}`,
+      borderRadius: 6, padding: "6px 10px", margin: "6px 0",
+    }}>
+      <code style={{ fontSize: 11, color: C.text, fontFamily: "monospace", wordBreak: "break-all" }}>{text}</code>
+      {id && <CopyBtn text={text} id={id} />}
+    </div>
+  );
+
+  return (
+    <div style={{
+      borderRadius: 9, border: `1px solid ${C.accent}33`,
+      background: C.accentLight, marginBottom: 14, overflow: "hidden",
+    }}>
+      {/* Toggle button */}
+      <button
+        onClick={() => setOpen(p => !p)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "10px 14px", background: "transparent", border: "none",
+          cursor: "pointer", color: C.accent, fontFamily: FONT,
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 7, fontWeight: 700, fontSize: 13 }}>
+          <Info size={14} strokeWidth={2} />
+          Schritt-für-Schritt: Wie bekomme ich meinen Token?
+        </span>
+        {open
+          ? <ChevronUp size={14} strokeWidth={2} />
+          : <ChevronDown size={14} strokeWidth={2} />
+        }
+      </button>
+
+      {/* Steps */}
+      {open && (
+        <div style={{ padding: "4px 14px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+          <Step n={1} title="Zu Creator-Konto wechseln (Instagram App)">
+            In der Instagram App: <strong>Profil → ☰ → Einstellungen → Konto → „Zu Creator-Konto wechseln"</strong><br />
+            Kategorie wählen (z.B. Creator, Blogger). Ist kostenlos und dauert 2 Minuten.
+          </Step>
+
+          <Step n={2} title="Meta Developer Account erstellen (einmalig)">
+            Öffne <Link href="https://developers.facebook.com/">developers.facebook.com</Link> →
+            oben rechts <strong>„Anmelden"</strong> → mit deinem Facebook-Account einloggen →
+            Developer-Account bestätigen (kurzes Formular).
+          </Step>
+
+          <Step n={3} title="Neue App anlegen">
+            Geh zu <Link href="https://developers.facebook.com/apps/create/">App erstellen</Link> →
+            App-Typ: <strong>„Sonstiges"</strong> → Weiter → <strong>„Consumer"</strong> → Weiter →
+            beliebigen App-Namen eingeben → <strong>App erstellen</strong>.
+          </Step>
+
+          <Step n={4} title="Token im Graph API Explorer generieren">
+            Öffne den <Link href="https://developers.facebook.com/tools/explorer/">Graph API Explorer</Link>:
+            <ol style={{ margin: "6px 0 0 4px", paddingLeft: 16, lineHeight: 2 }}>
+              <li>Oben in der Dropdown <strong>deine neue App</strong> auswählen</li>
+              <li>Klick auf <strong>„Berechtigungen hinzufügen"</strong> → suche und wähle:<br />
+                <code style={{ fontSize: 11, background: C.bg, padding: "1px 5px", borderRadius: 4, border: `1px solid ${C.border}` }}>instagram_basic</code>{" "}
+                <code style={{ fontSize: 11, background: C.bg, padding: "1px 5px", borderRadius: 4, border: `1px solid ${C.border}` }}>instagram_manage_insights</code>{" "}
+                <code style={{ fontSize: 11, background: C.bg, padding: "1px 5px", borderRadius: 4, border: `1px solid ${C.border}` }}>pages_show_list</code>
+              </li>
+              <li>Klick auf <strong>„Access Token generieren"</strong> → einloggen → alle Rechte bestätigen</li>
+              <li>Den generierten Token <strong>kopieren</strong> (fängt mit „EAA…" an)</li>
+            </ol>
+          </Step>
+
+          <Step n={5} title="Deine Instagram Account-ID herausfinden">
+            Bleib im Graph API Explorer. Gib oben im URL-Feld ein:
+            <Code text="/me/accounts" id="step5a" />
+            Klick <strong>„Absenden"</strong> → du siehst deine Facebook-Seiten. Kopiere die <code>id</code> einer Seite, dann gib ein:
+            <Code text="/{DEINE-PAGE-ID}?fields=instagram_business_account" id="step5b" />
+            Die <code>id</code> unter <code>instagram_business_account</code> → das ist deine <strong>Instagram Account-ID</strong>! 🎉
+          </Step>
+
+          <Step n={6} title="Token langlebig machen (empfohlen)">
+            Der Explorer-Token läuft nach 1 Stunde ab. Um einen 60-Tage-Token zu erhalten,
+            gib im Explorer ein:
+            <Code
+              text="/oauth/access_token?grant_type=fb_exchange_token&client_id={APP-ID}&client_secret={APP-SECRET}&fb_exchange_token={DEIN-TOKEN}"
+              id="step6"
+            />
+            App-ID und App-Secret findest du unter <Link href="https://developers.facebook.com/apps/">Meine Apps</Link> →
+            Einstellungen → Allgemeines.
+          </Step>
+
+          <div style={{
+            marginTop: 4, padding: "10px 12px",
+            background: "#fffbeb", border: "1px solid #f6e05e",
+            borderRadius: 8, fontSize: 12, color: "#744210",
+            display: "flex", gap: 8,
+          }}>
+            <AlertCircle size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>
+              <strong>Tipp:</strong> Wenn du keine Facebook-Seite hast, erstelle eine kostenlose unter{" "}
+              <Link href="https://www.facebook.com/pages/create">facebook.com/pages/create</Link>.
+              Eine Seite ist Pflicht für die Business Discovery API.
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── ADMIN PAGE ─────────────────────────────────────────────────────────────
 function AdminPage(){
   const { user: me, handleUpdateMe: onUpdateMe } = useApp();
@@ -198,6 +356,8 @@ function AdminPage(){
                     <Info size={13} color={C.accent} strokeWidth={2} style={{flexShrink:0,marginTop:1}}/>
                     <span>{desc.note}</span>
                   </div>}
+                  {/* Step-by-step token guide for Instagram */}
+                  {info.id==="instagram"&&<IgTokenGuide/>}
                   <div style={{fontSize:12,color:C.textSoft,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
                     <Shield size={12} strokeWidth={2}/>Zugangsdaten werden verschlüsselt gespeichert.
                     <a href={CH_LINKS[info.id]} target="_blank" rel="noreferrer" style={{color:C.accent,textDecoration:"none",display:"flex",alignItems:"center",gap:3,marginLeft:4,fontWeight:600}}>
