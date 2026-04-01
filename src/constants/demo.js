@@ -65,11 +65,14 @@ export const DEMO_CAMPAIGNS = [
 ];
 
 export const DEMO_POSTS = [
-  { id:"p1", title:"Produktlaunch Q2",  content:"Unser neues Produkt ist da! 🚀\n\n#launch #neu",     channels:["instagram","linkedin"], scheduledDate:"2026-03-15", scheduledTime:"09:00", status:"scheduled", mediaId:null, campaignId:"c2" },
-  { id:"p2", title:"Tipp der Woche",    content:"Regelmäßiges Posting steigert deine Reichweite um 40%.\n\n#marketing", channels:["twitter","facebook"],  scheduledDate:"",          scheduledTime:"",      status:"draft",     mediaId:null, campaignId:null },
-  { id:"p3", title:"Behind the Scenes", content:"Blick hinter die Kulissen! 💪\n\n#team #bts",       channels:["instagram","whatsapp"],  scheduledDate:"2026-03-20", scheduledTime:"18:00", status:"scheduled", mediaId:null, campaignId:null },
-  { id:"p4", title:"Kundenreview",      content:"Was unsere Kunden sagen. Danke! ❤️\n\n#review",    channels:["instagram","linkedin"],  scheduledDate:"",          scheduledTime:"",      status:"pending",   mediaId:null, campaignId:null },
-  { id:"p5", title:"Sommer Sale",       content:"☀️ Bis zu 40% Rabatt – nur kurze Zeit!\n\n#sale", channels:["instagram","facebook"], scheduledDate:"2026-06-01", scheduledTime:"10:00", status:"draft", mediaId:null, campaignId:"c1" },
+  { id:"p1", title:"Produktlaunch Q2",     content:"Unser neues Produkt ist da! 🚀\n\n#launch #neu",                 channels:["instagram","linkedin"], scheduledDate:"2026-03-15", scheduledTime:"09:00", status:"scheduled",  mediaId:null, campaignId:"c2" },
+  { id:"p2", title:"Tipp der Woche",       content:"Regelmäßiges Posting steigert deine Reichweite um 40%.\n\n#marketing", channels:["twitter","facebook"],  scheduledDate:"",          scheduledTime:"",      status:"draft",      mediaId:null, campaignId:null },
+  { id:"p3", title:"Behind the Scenes",    content:"Blick hinter die Kulissen! 💪\n\n#team #bts",                     channels:["instagram","whatsapp"], scheduledDate:"2026-03-20", scheduledTime:"18:00", status:"scheduled",  mediaId:null, campaignId:null },
+  { id:"p4", title:"Kundenreview",         content:"Was unsere Kunden sagen. Danke! ❤️\n\n#review",                 channels:["instagram","linkedin"], scheduledDate:"",          scheduledTime:"",      status:"pending",    mediaId:null, campaignId:null },
+  { id:"p5", title:"Sommer Sale",          content:"☀️ Bis zu 40% Rabatt – nur kurze Zeit!\n\n#sale",              channels:["instagram","facebook"], scheduledDate:"2026-06-01", scheduledTime:"10:00", status:"draft",      mediaId:null, campaignId:"c1" },
+  { id:"p6", title:"Frühjahrs-Kampagne",   content:"Der Frühling ist da – und wir feiern ihn mit euch! 🌸\n\n#spring #sale", channels:["instagram","facebook"], scheduledDate:"2026-02-14", scheduledTime:"11:00", status:"published", mediaId:null, campaignId:"c1" },
+  { id:"p7", title:"Workshop Einladung",   content:"Kommt zu unserem kostenlosen LinkedIn-Workshop! 🎓\n\n#workshop #linkedin", channels:["linkedin","twitter"],  scheduledDate:"2026-01-28", scheduledTime:"09:00", status:"published", mediaId:null, campaignId:null },
+  { id:"p8", title:"Jahresrückblick 2025", content:"Was für ein Jahr! Danke an unsere Community. ❤️\n\n#2025 #danke",  channels:["instagram","linkedin","facebook"], scheduledDate:"2025-12-31", scheduledTime:"12:00", status:"published", mediaId:null, campaignId:null },
 ];
 
 export const DEMO_STORIES = [
