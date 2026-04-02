@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CHANNELS, ROLES, DEMO_CAMPAIGNS, DEMO_POSTS, STAGES } from '../constants/demo.js';
+import { CHANNELS, STORY_CHANNELS, ROLES, DEMO_CAMPAIGNS, DEMO_POSTS, DEMO_STORIES, STAGES } from '../constants/demo.js';
 
 // ── CHANNELS ─────────────────────────────────────────────────────────────────
 describe('CHANNELS', () => {
@@ -149,6 +149,110 @@ describe('DEMO_POSTS', () => {
     DEMO_POSTS.forEach(p => {
       p.channels.forEach(ch => {
         expect(knownIds.has(ch)).toBe(true);
+      });
+    });
+  });
+});
+
+// ── STORY_CHANNELS ────────────────────────────────────────────────────────────
+describe('STORY_CHANNELS', () => {
+  it('contains all social CHANNELS plus website and print', () => {
+    const ids = STORY_CHANNELS.map(ch => ch.id);
+    CHANNELS.forEach(ch => expect(ids).toContain(ch.id));
+    expect(ids).toContain('website');
+    expect(ids).toContain('print');
+  });
+
+  it('has more entries than CHANNELS', () => {
+    expect(STORY_CHANNELS.length).toBeGreaterThan(CHANNELS.length);
+  });
+
+  it('website and print have very high maxChars', () => {
+    const website = STORY_CHANNELS.find(ch => ch.id === 'website');
+    const print   = STORY_CHANNELS.find(ch => ch.id === 'print');
+    expect(website.maxChars).toBeGreaterThan(10000);
+    expect(print.maxChars).toBeGreaterThan(10000);
+  });
+
+  it('all channels have id, label, color', () => {
+    STORY_CHANNELS.forEach(ch => {
+      expect(ch).toHaveProperty('id');
+      expect(ch).toHaveProperty('label');
+      expect(ch).toHaveProperty('color');
+    });
+  });
+
+  it('channel IDs are unique', () => {
+    const ids = STORY_CHANNELS.map(ch => ch.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+// ── DEMO_STORIES ──────────────────────────────────────────────────────────────
+describe('DEMO_STORIES', () => {
+  const validStatuses = ['idea', 'draft', 'ready', 'published'];
+
+  it('is a non-empty array', () => {
+    expect(Array.isArray(DEMO_STORIES)).toBe(true);
+    expect(DEMO_STORIES.length).toBeGreaterThan(0);
+  });
+
+  it('every story has required fields', () => {
+    DEMO_STORIES.forEach(s => {
+      expect(s).toHaveProperty('id');
+      expect(s).toHaveProperty('title');
+      expect(s).toHaveProperty('status');
+      expect(s).toHaveProperty('blocks');
+      expect(s).toHaveProperty('materials');
+      expect(s).toHaveProperty('derivatives');
+      expect(s).toHaveProperty('targetChannels');
+    });
+  });
+
+  it('story IDs are unique', () => {
+    const ids = DEMO_STORIES.map(s => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('every story has a valid status', () => {
+    DEMO_STORIES.forEach(s => {
+      expect(validStatuses).toContain(s.status);
+    });
+  });
+
+  it('blocks is an array', () => {
+    DEMO_STORIES.forEach(s => {
+      expect(Array.isArray(s.blocks)).toBe(true);
+    });
+  });
+
+  it('materials is an array with valid types', () => {
+    const validTypes = ['link', 'note', 'image'];
+    DEMO_STORIES.forEach(s => {
+      expect(Array.isArray(s.materials)).toBe(true);
+      s.materials.forEach(m => {
+        expect(m).toHaveProperty('id');
+        expect(validTypes).toContain(m.type);
+      });
+    });
+  });
+
+  it('targetChannels only reference known STORY_CHANNELS ids', () => {
+    const knownIds = new Set(STORY_CHANNELS.map(ch => ch.id));
+    DEMO_STORIES.forEach(s => {
+      s.targetChannels.forEach(chId => {
+        expect(knownIds.has(chId)).toBe(true);
+      });
+    });
+  });
+
+  it('derivatives reference valid channel ids', () => {
+    const knownIds = new Set(STORY_CHANNELS.map(ch => ch.id));
+    DEMO_STORIES.forEach(s => {
+      s.derivatives.forEach(d => {
+        expect(d).toHaveProperty('id');
+        expect(d).toHaveProperty('channel');
+        expect(knownIds.has(d.channel)).toBe(true);
       });
     });
   });
