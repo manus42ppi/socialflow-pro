@@ -3,14 +3,13 @@ import "@blocknote/react/style.css";
 import { BlockNoteViewRaw, BlockNoteDefaultUI, useCreateBlockNote } from "@blocknote/react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
-  X, Save, Check, BookOpen, FileText, Link as LinkIcon, StickyNote,
-  Plus, Trash2, ChevronDown, ExternalLink, Eye, Send, Printer,
-  Clock, Hash, Lightbulb, PenLine, Layers, Globe, Image as ImageIcon,
+  X, Save, Check, BookOpen, Link as LinkIcon, StickyNote,
+  Trash2, Wand2, Loader, Hash, PenLine, Image as ImageIcon,
 } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
-import { uid } from "../utils/store.js";
-import { Btn, FL } from "../components/ui/index.jsx";
+import { uid, aiCall } from "../utils/store.js";
+import { Btn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
@@ -25,9 +24,7 @@ const STATUSES = [
   { id:"published", label:"Veröffentlicht", color:"#0EA5E9", icon:"🚀", desc:"Story ist publiziert" },
 ];
 
-// Channel-specific char limits for post derivation
 const CH_LIMITS = { instagram:2200, twitter:280, linkedin:1300, facebook:500, whatsapp:800, website:100000, print:100000 };
-// Suggested post angles per channel
 const CH_ANGLE = {
   instagram: "Visueller Hook + kurze, emotionale Caption + Hashtags",
   twitter:   "Kernaussage als prägnanter Tweet, unter 280 Zeichen",
@@ -65,19 +62,97 @@ function sectionsToBlocks(sections) {
   return blocks;
 }
 
-function truncate(text, channel) {
-  const limit = CH_LIMITS[channel] || 500;
-  if (text.length <= limit) return text;
-  return text.slice(0, limit - 3).trimEnd() + "…";
-}
-
 function getDomain(url) {
   try { return new URL(url).hostname.replace("www.", ""); }
   catch { return url; }
 }
 
+// ── IMAGE PICKER MODAL ─────────────────────────────────────────────────────
+function ImagePicker({ items, onSelect, onClose }) {
+  const images = items.filter(i => i.type === "image" && i.url);
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1200,
+        background: "rgba(0,0,0,.55)", display: "flex",
+        alignItems: "center", justifyContent: "center",
+      }}>
+      <div style={{
+        background: C.surface, border: `1px solid ${C.border}`,
+        borderRadius: 12, width: 520, maxHeight: 480,
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 18px", borderBottom: `1px solid ${C.border}`,
+        }}>
+          <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: C.text }}>
+            Bild aus Medienbibliothek wählen
+          </span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMute }}>
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
+        <div style={{ overflowY: "auto", padding: 16 }}>
+          {images.length === 0 ? (
+            <p style={{ textAlign: "center", color: C.textMute, fontFamily: FONT, fontSize: 13, padding: "24px 0" }}>
+              Keine Bilder in der Medienbibliothek.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+              {images.map(img => (
+                <div
+                  key={img.id}
+                  onClick={() => onSelect(img)}
+                  style={{
+                    aspectRatio: "1/1", borderRadius: 8, overflow: "hidden",
+                    cursor: "pointer", border: `2px solid transparent`,
+                    transition: "border-color .12s",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = C.accent}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "transparent"}
+                >
+                  <img
+                    src={img.url} alt={img.name || ""}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── MATERIAL CARD ───────────────────────────────────────────────────────────
 function MaterialCard({ mat, onRemove }) {
+  if (mat.type === "image") {
+    return (
+      <div style={{
+        background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+        overflow: "hidden", position: "relative",
+      }}>
+        {mat.url && (
+          <img src={mat.url} alt={mat.title || ""}
+            style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
+        )}
+        <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+          <ImageIcon size={11} strokeWidth={IW} color={C.textMute} />
+          <span style={{ fontSize: 11, color: C.textMid, fontFamily: FONT, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {mat.title || "Bild"}
+          </span>
+          <button onClick={() => onRemove(mat.id)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: C.textMute, padding: 2 }}>
+            <X size={12} strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const isLink = mat.type === "link";
   return (
     <div style={{
@@ -118,7 +193,7 @@ function MaterialCard({ mat, onRemove }) {
 }
 
 // ── DERIVATIVE ROW ──────────────────────────────────────────────────────────
-function DerivativeRow({ channel, derivative, onCreate, hasContent }) {
+function DerivativeRow({ channel, derivative, onCreate, hasContent, loading }) {
   const [hover, setHover] = useState(false);
   return (
     <div
@@ -135,7 +210,7 @@ function DerivativeRow({ channel, derivative, onCreate, hasContent }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: FONT }}>{channel.label}</div>
         {!derivative && (
-          <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>{CH_ANGLE[channel.id]}</div>
+          <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT, lineHeight: 1.3 }}>{CH_ANGLE[channel.id]}</div>
         )}
       </div>
       {derivative ? (
@@ -145,11 +220,19 @@ function DerivativeRow({ channel, derivative, onCreate, hasContent }) {
         }}>
           <Check size={9} strokeWidth={3} /> Entwurf erstellt
         </span>
+      ) : loading ? (
+        <span style={{
+          fontSize: 10, color: C.textMute, fontFamily: FONT,
+          display: "flex", alignItems: "center", gap: 4,
+        }}>
+          <Loader size={11} strokeWidth={IW} style={{ animation: "spin 1s linear infinite" }} />
+          KI schreibt…
+        </span>
       ) : (
         <button
           onClick={() => onCreate(channel.id)}
           disabled={!hasContent}
-          title={!hasContent ? "Schreibe zuerst etwas im Editor" : "Entwurf für diesen Kanal erstellen"}
+          title={!hasContent ? "Schreibe zuerst etwas im Editor" : `KI schreibt ${channel.label}-Entwurf`}
           style={{
             padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.accent}`,
             background: "transparent", color: C.accent, cursor: hasContent ? "pointer" : "default",
@@ -157,7 +240,7 @@ function DerivativeRow({ channel, derivative, onCreate, hasContent }) {
             opacity: hasContent ? 1 : 0.4,
             display: "flex", alignItems: "center", gap: 4,
           }}>
-          <PenLine size={11} strokeWidth={IW} /> Entwurf
+          <Wand2 size={11} strokeWidth={IW} /> KI-Entwurf
         </button>
       )}
     </div>
@@ -169,7 +252,6 @@ export default function StoryEditorModal() {
   const { edStory: story, items, saveStory: onSave, setEdStory, setPosts } = useApp();
   const onClose = () => setEdStory(null);
 
-  // Migrate old sections format → blocks
   const initialBlocks = useMemo(() => {
     if (story.blocks?.length) return story.blocks;
     if (story.sections?.length) return sectionsToBlocks(story.sections);
@@ -193,7 +275,9 @@ export default function StoryEditorModal() {
   const [noteInput, setNoteInput] = useState("");
   const [addingLink, setAddingLink] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
+  const [showImagePicker, setShowImagePicker] = useState(false);
   const [autoSaved, setAutoSaved] = useState(null);
+  const [deriving, setDeriving] = useState({}); // { [chId]: boolean }
 
   const asRef = useRef();
   const formRef = useRef(form);
@@ -202,12 +286,11 @@ export default function StoryEditorModal() {
   // ── BlockNote editor ──────────────────────────────────────────────────────
   const editor = useCreateBlockNote({ initialContent: initialBlocks });
 
-  // ── Computed stats ────────────────────────────────────────────────────────
-  const [wordCount, setWordCount] = useState(0);
-  useEffect(() => {
-    const text = blocksToText(editor.document || []);
-    setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
-  }, []); // updated on save
+  // ── Live word count ───────────────────────────────────────────────────────
+  const [wordCount, setWordCount] = useState(() => {
+    const text = blocksToText(initialBlocks || []);
+    return text.trim().split(/\s+/).filter(Boolean).length;
+  });
 
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
   const hasContent = wordCount > 5;
@@ -269,6 +352,18 @@ export default function StoryEditorModal() {
     setNoteInput(""); setAddingNote(false);
   };
 
+  const addImage = (img) => {
+    setForm(f => ({
+      ...f,
+      materials: [...f.materials, {
+        id: uid(), type: "image",
+        url: img.url, title: img.name || img.description || "Bild",
+        mediaId: img.id, addedAt: new Date().toISOString(),
+      }],
+    }));
+    setShowImagePicker(false);
+  };
+
   const removeMaterial = useCallback((id) => {
     setForm(f => ({ ...f, materials: f.materials.filter(m => m.id !== id) }));
   }, []);
@@ -282,23 +377,55 @@ export default function StoryEditorModal() {
     }));
   };
 
-  const createDerivative = useCallback((chId) => {
-    const text = blocksToText(editor.document || []);
-    const shortened = truncate(text, chId);
+  // ── AI-powered derivation ─────────────────────────────────────────────────
+  const createDerivative = useCallback(async (chId) => {
+    const channel = STORY_CHANNELS.find(c => c.id === chId);
+    const storyText = blocksToText(editor.document || []);
+    const f = formRef.current;
+
+    setDeriving(prev => ({ ...prev, [chId]: true }));
+    setRightTab("derivatives");
+
+    let content = storyText;
+    try {
+      const prompt = `Du bist Social-Media-Experte. Erstelle einen ${channel.label}-Post auf Basis dieses Artikels.
+
+Kanal: ${channel.label}
+Stil: ${CH_ANGLE[chId] || "Passend zur Plattform"}
+Max. Zeichen: ${CH_LIMITS[chId] || 500}
+Artikel-Titel: ${f.title || ""}
+
+Artikel-Inhalt:
+${storyText}
+
+Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
+
+      content = await aiCall([{ role: "user", content: prompt }], 1200);
+      content = content.trim();
+    } catch {
+      // Fallback: truncate story text
+      const limit = CH_LIMITS[chId] || 500;
+      content = storyText.length > limit ? storyText.slice(0, limit - 3).trimEnd() + "…" : storyText;
+    } finally {
+      setDeriving(prev => ({ ...prev, [chId]: false }));
+    }
+
     const postId = uid();
     const post = {
-      id: postId, title: form.title || "Story-Ableitung",
-      content: shortened, channels: chId === "website" || chId === "print" ? [] : [chId],
-      status: "draft", scheduledDate: "", scheduledTime: "",
-      mediaId: form.coverMediaId || null, campaignId: null, deleted: false, storyId: form.id || null,
+      id: postId,
+      title: f.title || "Story-Ableitung",
+      content,
+      channels: chId === "website" || chId === "print" ? [] : [chId],
+      status: "draft",
+      scheduledDate: "", scheduledTime: "",
+      mediaId: f.coverMediaId || null, campaignId: null, deleted: false, storyId: f.id || null,
     };
     setPosts(prev => [...prev, post]);
-    setForm(f => ({
-      ...f,
-      derivatives: [...f.derivatives, { id: uid(), channel: chId, postId, createdAt: new Date().toISOString() }],
+    setForm(f2 => ({
+      ...f2,
+      derivatives: [...f2.derivatives, { id: uid(), channel: chId, postId, createdAt: new Date().toISOString() }],
     }));
-    setRightTab("derivatives");
-  }, [editor, form.title, form.coverMediaId, form.id, setPosts]);
+  }, [editor, setPosts]);
 
   const currentStatus = STATUSES.find(s => s.id === form.status) || STATUSES[0];
   const catColor = CAT_COLOR[form.category] || C.textMid;
@@ -310,12 +437,16 @@ export default function StoryEditorModal() {
       background: "rgba(0,0,0,.6)", display: "flex",
     }}>
       <style>{CSS}</style>
-      {/* BlockNote theme overrides */}
       <style>{`
         .bn-container { font-family: ${FONT}; }
         .bn-editor { min-height: 300px; padding: 0 !important; }
         .bn-block-outer { margin: 0 !important; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
+
+      {showImagePicker && (
+        <ImagePicker items={items} onSelect={addImage} onClose={() => setShowImagePicker(false)} />
+      )}
 
       <div style={{
         width: "100%", height: "100%", display: "flex", flexDirection: "column",
@@ -351,7 +482,7 @@ export default function StoryEditorModal() {
 
           <div style={{ flex: 1 }} />
 
-          {/* Word count */}
+          {/* Stats */}
           <div style={{
             display: "flex", gap: 12, fontSize: 11, color: C.textMute, fontFamily: FONT,
             background: C.borderLight, border: `1px solid ${C.border}`,
@@ -468,7 +599,6 @@ export default function StoryEditorModal() {
 
           {/* ── CENTER: Title + Editor ─────────────────────────────────── */}
           <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-            {/* Title & Subtitle */}
             <div style={{ padding: "32px 48px 0", maxWidth: 800, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
               <input
                 value={form.title}
@@ -494,9 +624,17 @@ export default function StoryEditorModal() {
               <div style={{ borderTop: `1px solid ${C.borderLight}`, marginBottom: 24 }} />
             </div>
 
-            {/* BlockNote Editor */}
+            {/* BlockNote Editor with live word count */}
             <div style={{ flex: 1, padding: "0 48px 40px", maxWidth: 800, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
-              <BlockNoteViewRaw editor={editor} theme="light" style={{ fontSize: 15, lineHeight: 1.8 }}>
+              <BlockNoteViewRaw
+                editor={editor}
+                theme="light"
+                style={{ fontSize: 15, lineHeight: 1.8 }}
+                onChange={() => {
+                  const text = blocksToText(editor.document || []);
+                  setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
+                }}
+              >
                 <BlockNoteDefaultUI />
               </BlockNoteViewRaw>
             </div>
@@ -539,68 +677,77 @@ export default function StoryEditorModal() {
 
               {/* ── MATERIALIEN TAB ──────────────────────────────────── */}
               {rightTab === "materials" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <p style={{ margin: 0, fontSize: 11, color: C.textMute, fontFamily: FONT }}>
-                    Sammle alles zu dieser Story: Links, Notizen, Quellen und Ideen.
+                    Sammle alles zu dieser Story: Links, Notizen, Bilder und Quellen.
                   </p>
 
-                  {/* Add link */}
-                  {addingLink ? (
-                    <div style={{ background: C.bg, border: `1px solid ${C.accent}44`, borderRadius: 9, padding: 12 }}>
-                      <input
-                        autoFocus
-                        value={linkInput}
-                        onChange={e => setLinkInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") addLink(); if (e.key === "Escape") setAddingLink(false); }}
-                        placeholder="https://…"
-                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 6 }}
-                      />
-                      <input
-                        value={linkTitle}
-                        onChange={e => setLinkTitle(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") addLink(); }}
-                        placeholder="Titel (optional)"
-                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 8 }}
-                      />
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={addLink} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Hinzufügen</button>
-                        <button onClick={() => { setAddingLink(false); setLinkInput(""); setLinkTitle(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
+                  {/* Add buttons row */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {/* Add link */}
+                    {addingLink ? (
+                      <div style={{ background: C.bg, border: `1px solid ${C.accent}44`, borderRadius: 9, padding: 12 }}>
+                        <input
+                          autoFocus
+                          value={linkInput}
+                          onChange={e => setLinkInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") addLink(); if (e.key === "Escape") setAddingLink(false); }}
+                          placeholder="https://…"
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 6 }}
+                        />
+                        <input
+                          value={linkTitle}
+                          onChange={e => setLinkTitle(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") addLink(); }}
+                          placeholder="Titel (optional)"
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 8 }}
+                        />
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={addLink} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Hinzufügen</button>
+                          <button onClick={() => { setAddingLink(false); setLinkInput(""); setLinkTitle(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <button onClick={() => setAddingLink(true)}
-                      style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", borderRadius: 8, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
-                      <LinkIcon size={13} strokeWidth={IW} /> Link hinzufügen
-                    </button>
-                  )}
+                    ) : (
+                      <button onClick={() => setAddingLink(true)}
+                        style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", borderRadius: 8, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
+                        <LinkIcon size={13} strokeWidth={IW} /> Link hinzufügen
+                      </button>
+                    )}
 
-                  {/* Add note */}
-                  {addingNote ? (
-                    <div style={{ background: C.bg, border: `1px solid #F59E0B44`, borderRadius: 9, padding: 12 }}>
-                      <textarea
-                        autoFocus
-                        value={noteInput}
-                        onChange={e => setNoteInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter" && e.metaKey) addNote(); if (e.key === "Escape") setAddingNote(false); }}
-                        placeholder="Notiz, Idee oder Quellenangabe…"
-                        rows={3}
-                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", resize: "none", marginBottom: 8 }}
-                      />
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={addNote} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: "#F59E0B", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Notiz speichern</button>
-                        <button onClick={() => { setAddingNote(false); setNoteInput(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
+                    {/* Add note */}
+                    {addingNote ? (
+                      <div style={{ background: C.bg, border: `1px solid #F59E0B44`, borderRadius: 9, padding: 12 }}>
+                        <textarea
+                          autoFocus
+                          value={noteInput}
+                          onChange={e => setNoteInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter" && e.metaKey) addNote(); if (e.key === "Escape") setAddingNote(false); }}
+                          placeholder="Notiz, Idee oder Quellenangabe…"
+                          rows={3}
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", resize: "none", marginBottom: 8 }}
+                        />
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={addNote} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: "#F59E0B", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Notiz speichern</button>
+                          <button onClick={() => { setAddingNote(false); setNoteInput(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <button onClick={() => setAddingNote(true)}
+                    ) : (
+                      <button onClick={() => setAddingNote(true)}
+                        style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", borderRadius: 8, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
+                        <StickyNote size={13} strokeWidth={IW} /> Notiz hinzufügen
+                      </button>
+                    )}
+
+                    {/* Add image */}
+                    <button onClick={() => setShowImagePicker(true)}
                       style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", borderRadius: 8, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
-                      <StickyNote size={13} strokeWidth={IW} /> Notiz hinzufügen
+                      <ImageIcon size={13} strokeWidth={IW} /> Bild hinzufügen
                     </button>
-                  )}
+                  </div>
 
                   {/* Materials list */}
                   {form.materials.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "20px 0", color: C.textMute, fontSize: 12, fontFamily: FONT }}>
+                    <div style={{ textAlign: "center", padding: "16px 0", color: C.textMute, fontSize: 12, fontFamily: FONT }}>
                       Noch keine Materialien gesammelt.
                     </div>
                   ) : (
@@ -617,12 +764,14 @@ export default function StoryEditorModal() {
               {rightTab === "derivatives" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <p style={{ margin: "0 0 8px", fontSize: 11, color: C.textMute, fontFamily: FONT }}>
-                    Leite aus dieser Story Entwürfe für deine Kanäle ab.
+                    KI leitet aus dieser Story kanalspezifische Entwürfe ab.
                     {!hasContent && <span style={{ color: "#F59E0B" }}> Schreibe zuerst etwas im Editor.</span>}
                   </p>
 
-                  {/* Show only target channels, or all if none selected */}
-                  {(form.targetChannels.length > 0 ? STORY_CHANNELS.filter(c => form.targetChannels.includes(c.id)) : STORY_CHANNELS).map(ch => {
+                  {(form.targetChannels.length > 0
+                    ? STORY_CHANNELS.filter(c => form.targetChannels.includes(c.id))
+                    : STORY_CHANNELS
+                  ).map(ch => {
                     const derivative = form.derivatives.find(d => d.channel === ch.id);
                     return (
                       <DerivativeRow
@@ -631,6 +780,7 @@ export default function StoryEditorModal() {
                         derivative={derivative}
                         onCreate={createDerivative}
                         hasContent={hasContent}
+                        loading={!!deriving[ch.id]}
                       />
                     );
                   })}
