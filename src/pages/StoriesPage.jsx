@@ -1,136 +1,248 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, Eye, Heart, MessageCircle, BarChart2, Clock, Trash2, Edit3, Film, BookOpen, Search } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Search, Trash2, BookOpen, Link as LinkIcon, StickyNote, PenLine, Layers } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
-import { CHANNELS, DEMO_STORIES } from "../constants/demo.js";
+import { STORY_CHANNELS } from "../constants/demo.js";
 import { fmtDate, uid } from "../utils/store.js";
-import { Sp, Badge, Btn, FL, SBadge, SCrd } from "../components/ui/index.jsx";
-import { useSections, SecCard } from "../hooks/useSections.jsx";
+import { Btn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
-// ── STORIES PAGE ────────────────────────────────────────────────────────────
-function StoriesPage(){
-  const { stories, items, setEdStory: onEdit, newStory: onNew, delStory: onDelete } = useApp();
-  const {order,dragId:sDragId,setDragId:sSetDragId,overId:sOverId,setOverId:sSetOverId,drop:sDrop}=useSections("stories","default",['stories']);
-  const [filt,setFilt]=useState("all");
-  const [q,setQ]=useState("");
-  const filtered=stories.filter(s=>{
-    const fOk=filt==="all"||s.status===filt;
-    const qOk=!q.trim()||(s.title||"").toLowerCase().includes(q.toLowerCase())||(s.subtitle||"").toLowerCase().includes(q.toLowerCase());
-    return fOk&&qOk;
-  });
-  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
-  const catColors={"Politik":"#3B82F6","Wirtschaft":"#10B981","Tech":"#8B5CF6","Sport":"#F59E0B","Lifestyle":"#EC4899","Kultur":"#6366F1","Gesundheit":"#EF4444","Reise":"#14B8A6","Bildung":"#F97316","Andere":"#6B7280"};
+const STATUSES = [
+  { id:"idea",      label:"Idee",           color:"#6366F1", icon:"💡" },
+  { id:"draft",     label:"Entwurf",        color:"#F59E0B", icon:"✏️" },
+  { id:"ready",     label:"Bereit",         color:"#10B981", icon:"✅" },
+  { id:"published", label:"Veröffentlicht", color:"#0EA5E9", icon:"🚀" },
+];
 
-  const StoryCard=({story})=>{
-    const cover=items.find(m=>m.id===story.coverMediaId);
-    const wc=(story.sections||[]).map(s=>`${s.heading} ${s.content}`).join(" ").trim().split(/\s+/).filter(Boolean).length;
-    const sc={draft:{c:C.warning,l:"Entwurf"},published:{c:C.success,l:"Veröffentlicht"}}[story.status]||{c:C.textSoft,l:"–"};
-    return(
-      <div style={{...card,overflow:"hidden",cursor:"pointer",transition:"all .18s",breakInside:"avoid",marginBottom:10}}
-        onClick={()=>onEdit(story)}
-        onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.1)";}}
-        onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.04)";}}>
-        {cover?(
-          <>
-            <div style={{position:"relative"}}>
-              <img src={cover.url} alt={story.title||""} style={{width:"100%",height:160,objectFit:"cover",display:"block"}} loading="lazy"/>
-              <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,transparent 40%,rgba(0,0,0,.65) 100%)"}}/>
-              {story.category&&<div style={{position:"absolute",top:8,left:8,fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:20,background:(catColors[story.category]||"#6B7280"),color:"#fff"}}>{story.category}</div>}
-              <div style={{position:"absolute",top:8,right:8,fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:5,background:"rgba(0,0,0,.55)",color:sc.c}}>{sc.l}</div>
-              <div style={{position:"absolute",bottom:8,left:10,right:10}}>
-                <div style={{fontWeight:800,fontSize:13,color:"#fff",lineHeight:1.3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{story.title||"Kein Titel"}</div>
+const CAT_COLOR = {Marketing:"#E1306C",Tech:"#8B5CF6",Lifestyle:"#EC4899",Wirtschaft:"#10B981",Politik:"#3B82F6",Kultur:"#6366F1",Gesundheit:"#EF4444",Reise:"#14B8A6",Bildung:"#F97316",Andere:"#6B7280"};
+
+function countWords(blocks) {
+  if (!blocks?.length) return 0;
+  const extract = (content) => {
+    if (!content || !Array.isArray(content)) return "";
+    return content.map(item => item.type === "text" ? (item.text || "") : "").join(" ");
+  };
+  const text = blocks.map(b => extract(b.content)).join(" ");
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+// ── Story Card ─────────────────────────────────────────────────────────────
+function StoryCard({ story, onEdit, onDelete }) {
+  const [hover, setHover] = useState(false);
+  const status = STATUSES.find(s => s.id === story.status) || STATUSES[0];
+  const catColor = CAT_COLOR[story.category] || C.textMid;
+  const wordCount = useMemo(() => countWords(story.blocks), [story.blocks]);
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const materialCount = story.materials?.length || 0;
+  const derivCount = story.derivatives?.length || 0;
+  const targetChs = (story.targetChannels || []).map(id => STORY_CHANNELS.find(c => c.id === id)).filter(Boolean);
+  const linkCount = (story.materials || []).filter(m => m.type === "link").length;
+  const noteCount = (story.materials || []).filter(m => m.type === "note").length;
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={() => onEdit(story)}
+      style={{
+        background: C.surface,
+        border: `1px solid ${hover ? C.accent + "44" : C.border}`,
+        borderRadius: 12, overflow: "hidden", cursor: "pointer",
+        transition: "all .15s",
+        transform: hover ? "translateY(-2px)" : "none",
+        boxShadow: hover ? "0 8px 24px rgba(0,0,0,.1)" : "0 1px 3px rgba(0,0,0,.04)",
+      }}
+    >
+      {/* Color accent bar */}
+      <div style={{ height: 3, background: status.color }} />
+
+      <div style={{ padding: "16px 18px" }}>
+        {/* Header: category + status */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+          {story.category && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+              background: catColor + "15", color: catColor, fontFamily: FONT,
+            }}>{story.category}</span>
+          )}
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+            background: status.color + "15", color: status.color, fontFamily: FONT,
+            display: "flex", alignItems: "center", gap: 3,
+          }}>
+            {status.icon} {status.label}
+          </span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={e => { e.stopPropagation(); if (window.confirm("Story löschen?")) onDelete(story.id); }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: C.textMute, padding: "2px 4px", opacity: hover ? 1 : 0, transition: "opacity .12s" }}>
+            <Trash2 size={13} strokeWidth={IW} />
+          </button>
+        </div>
+
+        {/* Title */}
+        <h3 style={{
+          margin: "0 0 4px", fontFamily: FONT_DISPLAY, fontWeight: 800,
+          fontSize: 15, color: C.text, lineHeight: 1.3,
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+        }}>
+          {story.title || "Kein Titel"}
+        </h3>
+        {story.subtitle && (
+          <p style={{
+            margin: "0 0 12px", fontSize: 12, color: C.textMid, fontFamily: FONT, lineHeight: 1.5,
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+          }}>{story.subtitle}</p>
+        )}
+
+        {/* Target channels */}
+        {targetChs.length > 0 && (
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 }}>
+            {targetChs.map(ch => (
+              <div key={ch.id} style={{
+                display: "flex", alignItems: "center", gap: 4, padding: "3px 8px",
+                borderRadius: 6, border: `1px solid ${ch.color}33`,
+                background: ch.color + "0d",
+              }}>
+                <ChIco id={ch.id} size={11} color={ch.color} />
+                <span style={{ fontSize: 10, color: ch.color, fontWeight: 600, fontFamily: FONT }}>{ch.label}</span>
               </div>
-            </div>
-            <div style={{padding:"10px 12px"}}>
-              {story.subtitle&&<div style={{fontSize:11.5,color:C.textSoft,marginBottom:6,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{story.subtitle}</div>}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{display:"flex",gap:8,fontSize:10,color:C.textMute}}>
-                  <span>{(story.sections||[]).length} Abschnitte</span>
-                  <span>·</span>
-                  <span>{wc} Wörter</span>
-                </div>
-                <div style={{display:"flex",gap:5}}>
-                  <button onClick={e=>{e.stopPropagation();if(window.confirm("Story löschen?"))onDelete(story.id);}} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:"2px 4px"}}><Trash2 size={12} strokeWidth={2}/></button>
-                </div>
-              </div>
-            </div>
-          </>
-        ):(
-          <div style={{padding:"16px 16px 12px",background:`linear-gradient(135deg,${C.surface},${story.category?catColors[story.category]+"08":C.bg})`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-              <div style={{display:"flex",gap:5}}>
-                {story.category&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,background:(catColors[story.category]||"#6B7280")+"15",color:catColors[story.category]||"#6B7280"}}>{story.category}</span>}
-                <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:5,background:sc.c+"14",color:sc.c}}>{sc.l}</span>
-              </div>
-              <button onClick={e=>{e.stopPropagation();if(window.confirm("Story löschen?"))onDelete(story.id);}} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:"1px 3px"}}><Trash2 size={12} strokeWidth={2}/></button>
-            </div>
-            <div style={{fontWeight:800,fontSize:14,color:C.text,lineHeight:1.3,marginBottom:5,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical"}}>{story.title||"Kein Titel"}</div>
-            {story.subtitle&&<div style={{fontSize:11.5,color:C.textSoft,lineHeight:1.4,marginBottom:8,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{story.subtitle}</div>}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,borderTop:`1px solid ${C.borderLight}`}}>
-              <div style={{display:"flex",gap:8,fontSize:10,color:C.textMute}}>
-                <span>{(story.sections||[]).length} Abschnitte</span>
-                <span>·</span><span>{wc} Wörter</span>
-              </div>
-              <span style={{fontSize:10,color:C.textMute}}>{story.createdAt||""}</span>
-            </div>
+            ))}
           </div>
         )}
-      </div>
-    );
-  };
 
-  const storiesToolbar=(
-    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
-      <div style={{position:"relative",flex:1,minWidth:200}}>
-        <Search size={12} color={C.textMute} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}/>
-        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Storys suchen…"
-          style={{width:"100%",padding:"7px 12px 7px 28px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
-      </div>
-      <div style={{display:"flex",gap:2,background:C.borderLight,borderRadius:8,padding:3}}>
-        {[["all","Alle"],["draft","Entwürfe"],["published","Veröffentlicht"]].map(([v,l])=>(
-          <button key={v} onClick={()=>setFilt(v)} style={{padding:"5px 12px",borderRadius:6,border:"none",background:filt===v?C.surface:"transparent",color:filt===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>{l}</button>
-        ))}
-      </div>
-      <Btn onClick={onNew}><Plus size={13} strokeWidth={2.5}/>Neue Story</Btn>
-    </div>
-  );
-
-  const storiesGridContent=(
-    <div>
-      {storiesToolbar}
-      {filtered.length===0?(
-        <div style={{textAlign:"center",padding:"56px 20px",color:C.textMute}}>
-          <BookOpen size={48} strokeWidth={1} style={{margin:"0 auto 14px",display:"block",opacity:.3}}/>
-          <div style={{fontWeight:700,fontSize:15,color:C.textMid,marginBottom:4}}>
-            {q?"Keine Treffer":"Noch keine Storys"}
-          </div>
-          <div style={{fontSize:13,marginBottom:16}}>{q?`Keine Storys für „${q}"`:"Erstelle Artikel und wandle sie in Social-Media-Posts um"}</div>
-          {!q&&<Btn onClick={onNew}><Plus size={13} strokeWidth={2.5}/>Erste Story erstellen</Btn>}
+        {/* Stats row */}
+        <div style={{
+          display: "flex", gap: 14, fontSize: 11, color: C.textMute,
+          fontFamily: FONT, paddingTop: 10, borderTop: `1px solid ${C.borderLight}`,
+          flexWrap: "wrap",
+        }}>
+          <span title="Wörter" style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <BookOpen size={11} strokeWidth={IW} />
+            {wordCount > 0 ? `${wordCount} Wörter · ${readingTime} Min.` : "Noch kein Text"}
+          </span>
+          {materialCount > 0 && (
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              {linkCount > 0 && <><LinkIcon size={11} strokeWidth={IW} /> {linkCount}</>}
+              {noteCount > 0 && <><StickyNote size={11} strokeWidth={IW} /> {noteCount}</>}
+            </span>
+          )}
+          {derivCount > 0 && (
+            <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              <Layers size={11} strokeWidth={IW} />
+              {derivCount} Ableitungen
+            </span>
+          )}
+          {story.updatedAt && (
+            <span style={{ marginLeft: "auto", color: C.textMute }}>
+              {new Date(story.updatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short" })}
+            </span>
+          )}
         </div>
-      ):(
-        <div style={{columns:"3 240px",columnGap:10}}>
-          {filtered.map(s=><StoryCard key={s.id} story={s}/>)}
-        </div>
-      )}
-    </div>
-  );
-
-  const widgetMap={
-    stories:{title:'Alle Storys',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{filtered.length} Storys</span>,content:storiesGridContent},
-  };
-
-  return(
-    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:"#F9FAFB"}}>
-      <div style={{marginBottom:12}}>
-        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:600,color:"#111827",letterSpacing:"-.3px"}}>Storys</div>
-        <div style={{fontSize:12,color:"#9CA3AF",marginTop:2}}>Artikel & Stories verwalten</div>
       </div>
-      {order.map(id=>{
-        const w=widgetMap[id];if(!w)return null;
-        return <SecCard key={id} id={id} title={w.title} right={w.right} dragId={sDragId} overId={sOverId} setDragId={sSetDragId} setOverId={sSetOverId} drop={sDrop}>{w.content}</SecCard>;
-      })}
     </div>
   );
 }
-export default StoriesPage;
+
+// ── Main Page ───────────────────────────────────────────────────────────────
+export default function StoriesPage() {
+  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete } = useApp();
+  const [filt, setFilt] = useState("all");
+  const [q, setQ] = useState("");
+
+  const filtered = useMemo(() => stories.filter(s => {
+    const fOk = filt === "all" || s.status === filt;
+    const qOk = !q.trim() || (s.title || "").toLowerCase().includes(q.toLowerCase()) || (s.tags || "").toLowerCase().includes(q.toLowerCase());
+    return fOk && qOk && !s.deleted;
+  }), [stories, filt, q]);
+
+  const counts = useMemo(() => {
+    const c = { all: stories.length };
+    STATUSES.forEach(s => { c[s.id] = stories.filter(x => x.status === s.id).length; });
+    return c;
+  }, [stories]);
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", background: C.bg }}>
+      <style>{CSS}</style>
+
+      {/* Header */}
+      <div style={{ padding: "24px 28px 0", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text }}>
+            Storys
+          </h1>
+          <p style={{ margin: "3px 0 0", fontSize: 13, color: C.textMid, fontFamily: FONT }}>
+            Ideen sammeln, Inhalte schreiben, für alle Kanäle ableiten
+          </p>
+        </div>
+        <div style={{ flex: 1 }} />
+        <Btn onClick={onNew}>
+          <Plus size={15} strokeWidth={IW} /> Neue Story
+        </Btn>
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ padding: "16px 28px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        {/* Search */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: 8, padding: "0 12px", minWidth: 220,
+        }}>
+          <Search size={14} strokeWidth={IW} color={C.textMute} />
+          <input
+            value={q} onChange={e => setQ(e.target.value)}
+            placeholder="Suchen…"
+            style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, fontFamily: FONT, color: C.text, padding: "8px 0", width: "100%" }}
+          />
+        </div>
+
+        {/* Status filter pills */}
+        {[["all", "Alle", null], ...STATUSES.map(s => [s.id, `${s.icon} ${s.label}`, s.color])].map(([id, label, color]) => (
+          <button key={id} onClick={() => setFilt(id)}
+            style={{
+              padding: "6px 14px", borderRadius: 20, fontFamily: FONT, fontSize: 12, fontWeight: 600,
+              border: `1.5px solid ${filt === id ? (color || C.accent) : C.border}`,
+              background: filt === id ? (color || C.accent) + "12" : "transparent",
+              color: filt === id ? (color || C.accent) : C.textMid,
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
+            }}>
+            {label}
+            <span style={{
+              background: filt === id ? (color || C.accent) : C.borderLight,
+              color: filt === id ? (color || C.accent) : C.textMute,
+              borderRadius: 10, fontSize: 10, padding: "0 5px", fontWeight: 700,
+            }}>{counts[id] || 0}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div style={{ padding: "0 28px 32px" }}>
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: C.textMute }}>
+            <BookOpen size={48} strokeWidth={1.2} style={{ margin: "0 auto 16px", display: "block", color: C.border }} />
+            <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 700, color: C.textSoft }}>
+              {q || filt !== "all" ? "Keine Storys gefunden" : "Noch keine Storys"}
+            </p>
+            <p style={{ margin: "8px 0 20px", fontSize: 13, fontFamily: FONT }}>
+              {q || filt !== "all" ? "Andere Filter probieren" : "Erstelle deine erste Story – schreibe einen Artikel und leite Social-Media-Posts ab."}
+            </p>
+            {!q && filt === "all" && <Btn onClick={onNew}><Plus size={14} strokeWidth={IW} /> Erste Story erstellen</Btn>}
+          </div>
+        ) : (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gap: 16,
+          }}>
+            {filtered.map(story => (
+              <StoryCard key={story.id} story={story} onEdit={onEdit} onDelete={onDelete} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

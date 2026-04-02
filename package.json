@@ -17,6 +17,9 @@
     "test:all": "vitest run && playwright test"
   },
   "dependencies": {
+    "@blocknote/ariakit": "^0.47.3",
+    "@blocknote/core": "^0.47.3",
+    "@blocknote/react": "^0.47.3",
     "@clerk/clerk-react": "^5.0.0",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",

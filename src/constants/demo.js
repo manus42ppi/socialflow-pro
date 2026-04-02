@@ -1,10 +1,17 @@
 // ── DEMO DATA ───────────────────────────────────────────────────────────────
 export const CHANNELS = [
-  { id:"instagram", label:"Instagram",  color:"#E1306C", bg:"#fff0f6", maxChars:2200  },
-  { id:"twitter",   label:"X/Twitter",  color:"#000000", bg:"#f7f7f7", maxChars:280   },
-  { id:"linkedin",  label:"LinkedIn",   color:"#0077B5", bg:"#f0f7fc", maxChars:3000  },
-  { id:"facebook",  label:"Facebook",   color:"#1877F2", bg:"#f0f5ff", maxChars:63000 },
-  { id:"whatsapp",  label:"WhatsApp",   color:"#25D366", bg:"#f0fdf4", maxChars:65536 },
+  { id:"instagram", label:"Instagram",     color:"#E1306C", bg:"#fff0f6", maxChars:2200  },
+  { id:"twitter",   label:"X/Twitter",     color:"#000000", bg:"#f7f7f7", maxChars:280   },
+  { id:"linkedin",  label:"LinkedIn",      color:"#0077B5", bg:"#f0f7fc", maxChars:3000  },
+  { id:"facebook",  label:"Facebook",      color:"#1877F2", bg:"#f0f5ff", maxChars:63000 },
+  { id:"whatsapp",  label:"WhatsApp",      color:"#25D366", bg:"#f0fdf4", maxChars:65536 },
+];
+
+// Extended channels including non-social (used in Story context)
+export const STORY_CHANNELS = [
+  ...CHANNELS,
+  { id:"website", label:"Website / Blog",  color:"#0EA5E9", bg:"#f0f9ff", maxChars:100000 },
+  { id:"print",   label:"Print / Zeitung", color:"#64748B", bg:"#f8fafc", maxChars:100000 },
 ];
 
 export const ROLES = {
@@ -76,9 +83,47 @@ export const DEMO_POSTS = [
 ];
 
 export const DEMO_STORIES = [
-  {id:"story-1",title:"Wie Social Media die Kommunikation verändert",subtitle:"Eine Analyse der digitalen Transformation",coverMediaId:null,category:"Tech",status:"draft",sections:[
-    {id:"sec-1",heading:"Die neue Kommunikationslandschaft",content:"Social Media hat in den letzten zehn Jahren die Kommunikation grundlegend verändert. Plattformen wie Instagram, Twitter und LinkedIn sind längst keine Spielwiesen mehr, sondern ernsthafte Kommunikationskanäle für Unternehmen und Privatpersonen gleichermaßen."},
-    {id:"sec-2",heading:"Chancen und Risiken",content:"Mit der wachsenden Bedeutung sozialer Netzwerke entstehen sowohl neue Möglichkeiten als auch Herausforderungen. Content Creator und Marken müssen authentisch, konsistent und strategisch vorgehen, um ihre Zielgruppen zu erreichen und echte Bindungen aufzubauen."},
-    {id:"sec-3",heading:"Ausblick",content:"Die Zukunft gehört denjenigen, die Inhalte plattformspezifisch anpassen und gleichzeitig ihre authentische Stimme bewahren. Tools wie SocialFlow Pro helfen dabei, diesen Spagat erfolgreich zu meistern."},
-  ],createdAt:"2024-03-15",tags:"social media, kommunikation, digital"},
+  {
+    id:"story-1",
+    title:"Wie Social Media die Kommunikation verändert",
+    subtitle:"Eine Analyse der digitalen Transformation in Unternehmen",
+    category:"Tech",
+    status:"draft",
+    blocks:[
+      {id:"b1",type:"heading",props:{level:2,textAlignment:"left"},content:[{type:"text",text:"Die neue Kommunikationslandschaft",styles:{}}],children:[]},
+      {id:"b2",type:"paragraph",props:{textAlignment:"left"},content:[{type:"text",text:"Social Media hat in den letzten zehn Jahren die Kommunikation grundlegend verändert. Plattformen wie Instagram, Twitter und LinkedIn sind längst keine Spielwiesen mehr, sondern ernsthafte Kommunikationskanäle für Unternehmen und Privatpersonen gleichermaßen.",styles:{}}],children:[]},
+      {id:"b3",type:"heading",props:{level:2,textAlignment:"left"},content:[{type:"text",text:"Chancen und Risiken",styles:{}}],children:[]},
+      {id:"b4",type:"paragraph",props:{textAlignment:"left"},content:[{type:"text",text:"Mit der wachsenden Bedeutung sozialer Netzwerke entstehen sowohl neue Möglichkeiten als auch Herausforderungen. Content Creator und Marken müssen authentisch, konsistent und strategisch vorgehen, um ihre Zielgruppen zu erreichen.",styles:{}}],children:[]},
+      {id:"b5",type:"heading",props:{level:2,textAlignment:"left"},content:[{type:"text",text:"Ausblick",styles:{}}],children:[]},
+      {id:"b6",type:"paragraph",props:{textAlignment:"left"},content:[{type:"text",text:"Die Zukunft gehört denjenigen, die Inhalte plattformspezifisch anpassen und gleichzeitig ihre authentische Stimme bewahren. Tools wie SocialFlow Pro helfen dabei, diesen Spagat erfolgreich zu meistern.",styles:{}}],children:[]},
+    ],
+    materials:[
+      {id:"m1",type:"link",url:"https://www.statista.com/topics/1164/social-networks/",title:"Statista: Social Media Nutzerzahlen 2024",description:"Aktuelle Statistiken zur Social-Media-Nutzung weltweit",addedAt:"2024-03-14"},
+      {id:"m2",type:"note",url:"",title:"TikTok-Algorithmus bevorzugt kurze, authentische Videos – wichtig für Zielgruppe 18-35",description:"",addedAt:"2024-03-14"},
+    ],
+    derivatives:[],
+    targetChannels:["instagram","linkedin","website"],
+    coverMediaId:null,
+    tags:"social media, kommunikation, digital",
+    createdAt:"2024-03-15",
+    updatedAt:"2024-03-15",
+  },
+  {
+    id:"story-2",
+    title:"Frühjahrs-Kollektion 2026",
+    subtitle:"",
+    category:"Marketing",
+    status:"idea",
+    blocks:[],
+    materials:[
+      {id:"m3",type:"note",url:"",title:"Farbpalette: Pastell, Mint, Apricot – Trend aus Pinterest-Research",description:"",addedAt:"2024-04-01"},
+      {id:"m4",type:"link",url:"https://www.pinterest.com/",title:"Pinterest Board: Spring Fashion 2026",description:"",addedAt:"2024-04-01"},
+    ],
+    derivatives:[],
+    targetChannels:["instagram","facebook","print"],
+    coverMediaId:null,
+    tags:"mode, frühling, kollektion",
+    createdAt:"2024-04-01",
+    updatedAt:"2024-04-01",
+  },
 ];

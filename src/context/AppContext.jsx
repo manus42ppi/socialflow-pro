@@ -194,18 +194,12 @@ export function AppProvider({ children }) {
   const delStory = id => setStories(prev => prev.filter(s => s.id !== id));
   const newStory = () => setEdStory({
     id: null, title: "", subtitle: "", coverMediaId: null,
-    category: "", sections: [], status: "draft",
-    createdAt: new Date().toLocaleDateString("de-DE"), tags: "",
+    category: "", blocks: [], materials: [], derivatives: [],
+    targetChannels: [], status: "idea",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: "",
   });
-  const convertSection = (sec, story) => {
-    setEdPost({
-      id: null,
-      title: `${story.title}${sec.heading ? ` – ${sec.heading}` : ""}`,
-      content: sec.content || "",
-      channels: [], scheduledDate: "", scheduledTime: "",
-      status: "draft", mediaId: story.coverMediaId || null, campaignId: null,
-    });
-  };
 
   // ── Media actions ─────────────────────────────────────────────────────────
   const uploadItem = i => setItems(prev => [...prev, i]);
@@ -273,7 +267,6 @@ export function AppProvider({ children }) {
     saveStory,
     delStory,
     newStory,
-    convertSection,
     detailPost,
     setDetailPost,
   };

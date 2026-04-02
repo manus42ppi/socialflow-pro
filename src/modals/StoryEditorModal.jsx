@@ -1,214 +1,651 @@
-import { useState, useEffect, useRef } from "react";
-import { X, Plus, Trash2, ChevronLeft, ChevronRight, Type, Image, Film, Smile, Sliders, Eye, Save, Clock, Send, Check, Edit2, FileText, BookOpen } from "lucide-react";
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/react/style.css";
+import { BlockNoteViewRaw, BlockNoteDefaultUI, useCreateBlockNote } from "@blocknote/react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  X, Save, Check, BookOpen, FileText, Link as LinkIcon, StickyNote,
+  Plus, Trash2, ChevronDown, ExternalLink, Eye, Send, Printer,
+  Clock, Hash, Lightbulb, PenLine, Layers, Globe, Image as ImageIcon,
+} from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
-import { CHANNELS } from "../constants/demo.js";
-import { uid, fileToDataURL, getMediaType } from "../utils/store.js";
-import { Sp, Badge, Btn, FL, TIn } from "../components/ui/index.jsx";
+import { STORY_CHANNELS } from "../constants/demo.js";
+import { uid } from "../utils/store.js";
+import { Btn, FL } from "../components/ui/index.jsx";
+import ChIco from "../components/ui/ChIco.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
-// ── STORY EDITOR MODAL ─────────────────────────────────────────────────────
-function StoryEditorModal(){
-  const { edStory: story, items, saveStory: onSave, setEdStory, uploadItem: onUpload, convertSection: onConvertSection } = useApp();
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const CATS = ["","Marketing","Tech","Lifestyle","Wirtschaft","Politik","Kultur","Gesundheit","Reise","Bildung","Andere"];
+const CAT_COLOR = {Marketing:"#E1306C",Tech:"#8B5CF6",Lifestyle:"#EC4899",Wirtschaft:"#10B981",Politik:"#3B82F6",Kultur:"#6366F1",Gesundheit:"#EF4444",Reise:"#14B8A6",Bildung:"#F97316",Andere:"#6B7280"};
+
+const STATUSES = [
+  { id:"idea",      label:"Idee",           color:"#6366F1", icon:"💡", desc:"Ersten Gedanken sammeln" },
+  { id:"draft",     label:"Entwurf",        color:"#F59E0B", icon:"✏️", desc:"Inhalt wird geschrieben" },
+  { id:"ready",     label:"Bereit",         color:"#10B981", icon:"✅", desc:"Bereit für Ableitungen" },
+  { id:"published", label:"Veröffentlicht", color:"#0EA5E9", icon:"🚀", desc:"Story ist publiziert" },
+];
+
+// Channel-specific char limits for post derivation
+const CH_LIMITS = { instagram:2200, twitter:280, linkedin:1300, facebook:500, whatsapp:800, website:100000, print:100000 };
+// Suggested post angles per channel
+const CH_ANGLE = {
+  instagram: "Visueller Hook + kurze, emotionale Caption + Hashtags",
+  twitter:   "Kernaussage als prägnanter Tweet, unter 280 Zeichen",
+  linkedin:  "Professioneller Kontext, Mehrwert, 3–5 Absätze",
+  facebook:  "Erzählerisch, Gemeinschaftsgefühl, Frage am Ende",
+  whatsapp:  "Persönlich, direkt, kurze Nachricht",
+  website:   "Vollständiger Artikel mit Einleitung, Hauptteil, Fazit",
+  print:     "Druckreifer Artikel, Blocksatz, Quellen, Bildunterschriften",
+};
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function blocksToText(blocks) {
+  if (!blocks?.length) return "";
+  const extract = (content) => {
+    if (!content) return "";
+    if (Array.isArray(content)) return content.map(item => item.type === "text" ? (item.text || "") : "").join("");
+    return "";
+  };
+  const lines = [];
+  for (const block of blocks) {
+    const t = extract(block.content);
+    if (t.trim()) lines.push(t.trim());
+    if (block.children?.length) lines.push(blocksToText(block.children));
+  }
+  return lines.filter(Boolean).join("\n\n");
+}
+
+function sectionsToBlocks(sections) {
+  if (!sections?.length) return [];
+  const blocks = [];
+  for (const sec of sections) {
+    if (sec.heading) blocks.push({ type:"heading", props:{level:2,textAlignment:"left"}, content:[{type:"text",text:sec.heading,styles:{}}], children:[] });
+    if (sec.content) blocks.push({ type:"paragraph", props:{textAlignment:"left"}, content:[{type:"text",text:sec.content,styles:{}}], children:[] });
+  }
+  return blocks;
+}
+
+function truncate(text, channel) {
+  const limit = CH_LIMITS[channel] || 500;
+  if (text.length <= limit) return text;
+  return text.slice(0, limit - 3).trimEnd() + "…";
+}
+
+function getDomain(url) {
+  try { return new URL(url).hostname.replace("www.", ""); }
+  catch { return url; }
+}
+
+// ── MATERIAL CARD ───────────────────────────────────────────────────────────
+function MaterialCard({ mat, onRemove }) {
+  const isLink = mat.type === "link";
+  return (
+    <div style={{
+      background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+      padding: "10px 12px", display: "flex", gap: 8, alignItems: "flex-start",
+    }}>
+      <div style={{ flexShrink: 0, marginTop: 2 }}>
+        {isLink
+          ? <LinkIcon size={13} strokeWidth={IW} color={C.accent} />
+          : <StickyNote size={13} strokeWidth={IW} color="#F59E0B" />
+        }
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: isLink ? C.accent : C.text,
+          fontFamily: FONT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {isLink ? (
+            <a href={mat.url} target="_blank" rel="noopener noreferrer"
+              style={{ color: C.accent, textDecoration: "none" }}
+              onClick={e => e.stopPropagation()}>
+              {mat.title || mat.url}
+            </a>
+          ) : mat.title}
+        </div>
+        {isLink && (
+          <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT, marginTop: 1 }}>
+            {getDomain(mat.url)}
+          </div>
+        )}
+      </div>
+      <button onClick={() => onRemove(mat.id)}
+        style={{ background: "none", border: "none", cursor: "pointer", color: C.textMute, padding: 2, flexShrink: 0 }}>
+        <X size={12} strokeWidth={2} />
+      </button>
+    </div>
+  );
+}
+
+// ── DERIVATIVE ROW ──────────────────────────────────────────────────────────
+function DerivativeRow({ channel, derivative, onCreate, hasContent }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "9px 12px", borderRadius: 8,
+        background: hover ? C.bg : "transparent",
+        border: `1px solid ${hover ? C.border : "transparent"}`,
+        transition: "all .12s",
+      }}>
+      <ChIco id={channel.id} size={16} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: FONT }}>{channel.label}</div>
+        {!derivative && (
+          <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>{CH_ANGLE[channel.id]}</div>
+        )}
+      </div>
+      {derivative ? (
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+          background: "#ECFDF3", color: C.success, display: "flex", alignItems: "center", gap: 3,
+        }}>
+          <Check size={9} strokeWidth={3} /> Entwurf erstellt
+        </span>
+      ) : (
+        <button
+          onClick={() => onCreate(channel.id)}
+          disabled={!hasContent}
+          title={!hasContent ? "Schreibe zuerst etwas im Editor" : "Entwurf für diesen Kanal erstellen"}
+          style={{
+            padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.accent}`,
+            background: "transparent", color: C.accent, cursor: hasContent ? "pointer" : "default",
+            fontSize: 11, fontWeight: 600, fontFamily: FONT,
+            opacity: hasContent ? 1 : 0.4,
+            display: "flex", alignItems: "center", gap: 4,
+          }}>
+          <PenLine size={11} strokeWidth={IW} /> Entwurf
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── MAIN COMPONENT ─────────────────────────────────────────────────────────
+export default function StoryEditorModal() {
+  const { edStory: story, items, saveStory: onSave, setEdStory, setPosts } = useApp();
   const onClose = () => setEdStory(null);
-  const CATS=["","Politik","Wirtschaft","Tech","Sport","Lifestyle","Kultur","Gesundheit","Reise","Bildung","Andere"];
-  const catColors={"Politik":"#3B82F6","Wirtschaft":"#10B981","Tech":"#8B5CF6","Sport":"#F59E0B","Lifestyle":"#EC4899","Kultur":"#6366F1","Gesundheit":"#EF4444","Reise":"#14B8A6","Bildung":"#F97316","Andere":"#6B7280"};
-  const [form,setForm]=useState({...story,sections:story.sections?.map(s=>({...s}))||[]});
-  const [picker,setPicker]=useState(false);
-  const [autoSaved,setAutoSaved]=useState(null);
-  const asRef=useRef();
-  const cover=items.find(m=>m.id===form.coverMediaId);
 
-  // Stats
-  const allText=(form.sections||[]).map(s=>`${s.heading} ${s.content}`).join(" ");
-  const wordCount=(allText).trim().split(/\s+/).filter(Boolean).length;
-  const charCount=allText.length;
+  // Migrate old sections format → blocks
+  const initialBlocks = useMemo(() => {
+    if (story.blocks?.length) return story.blocks;
+    if (story.sections?.length) return sectionsToBlocks(story.sections);
+    return undefined;
+  }, []); // eslint-disable-line
 
-  // Auto-save: ref keeps latest form so timer fires with current data without resetting on every section edit
-  const storyFormRef=useRef(form);
-  storyFormRef.current=form;
-  useEffect(()=>{
-    clearTimeout(asRef.current);
-    if(!form.title)return;
-    asRef.current=setTimeout(()=>{
-      const f=storyFormRef.current;
-      onSave({...f,id:f.id||uid()});
-      setAutoSaved(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}));
-    },30000);
-    return()=>clearTimeout(asRef.current);
-  },[form.title]);
-
-  const addSection=()=>setForm(f=>({...f,sections:[...f.sections,{id:uid(),heading:"",content:""}]}));
-  const updSec=(id,key,val)=>setForm(f=>({...f,sections:f.sections.map(s=>s.id===id?{...s,[key]:val}:s)}));
-  const delSec=id=>setForm(f=>({...f,sections:f.sections.filter(s=>s.id!==id)}));
-  const moveSec=(id,dir)=>setForm(f=>{
-    const arr=[...f.sections];
-    const i=arr.findIndex(s=>s.id===id);
-    const j=i+dir;
-    if(j<0||j>=arr.length)return f;
-    [arr[i],arr[j]]=[arr[j],arr[i]];
-    return{...f,sections:arr};
+  const [form, setForm] = useState({
+    ...story,
+    blocks: story.blocks || [],
+    materials: story.materials || [],
+    derivatives: story.derivatives || [],
+    targetChannels: story.targetChannels || [],
+    status: story.status || "idea",
+    tags: story.tags || "",
+    category: story.category || "",
   });
 
-  const handleSave=(status)=>onSave({...form,id:form.id||uid(),status});
+  const [rightTab, setRightTab] = useState("materials");
+  const [linkInput, setLinkInput] = useState("");
+  const [linkTitle, setLinkTitle] = useState("");
+  const [noteInput, setNoteInput] = useState("");
+  const [addingLink, setAddingLink] = useState(false);
+  const [addingNote, setAddingNote] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(null);
 
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"stretch",justifyContent:"center",padding:0}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{background:C.surface,width:"100%",maxWidth:1100,margin:"16px auto",borderRadius:16,display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,.22)",border:`1px solid ${C.border}`}}>
+  const asRef = useRef();
+  const formRef = useRef(form);
+  formRef.current = form;
 
-        {/* ── Top bar ── */}
-        <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 20px",borderBottom:`1px solid ${C.borderLight}`,flexShrink:0,background:C.bg}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-            <BookOpen size={14} color={C.textMute} strokeWidth={2}/>
-            <span style={{fontSize:10,color:C.textMute,fontWeight:600,textTransform:"uppercase",letterSpacing:".05em"}}>
-              {form.id?"Story bearbeiten":"Story erstellen"}
+  // ── BlockNote editor ──────────────────────────────────────────────────────
+  const editor = useCreateBlockNote({ initialContent: initialBlocks });
+
+  // ── Computed stats ────────────────────────────────────────────────────────
+  const [wordCount, setWordCount] = useState(0);
+  useEffect(() => {
+    const text = blocksToText(editor.document || []);
+    setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
+  }, []); // updated on save
+
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const hasContent = wordCount > 5;
+
+  // ── Auto-save ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    clearTimeout(asRef.current);
+    if (!form.title) return;
+    asRef.current = setTimeout(() => {
+      const f = formRef.current;
+      const text = blocksToText(editor.document || []);
+      const wc = text.trim().split(/\s+/).filter(Boolean).length;
+      setWordCount(wc);
+      onSave({ ...f, id: f.id || uid(), blocks: editor.document, updatedAt: new Date().toISOString() });
+      setAutoSaved(new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }));
+    }, 20000);
+    return () => clearTimeout(asRef.current);
+  }, [form.title]);
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  const handleSave = (status) => {
+    const f = formRef.current;
+    const text = blocksToText(editor.document || []);
+    const wc = text.trim().split(/\s+/).filter(Boolean).length;
+    setWordCount(wc);
+    onSave({
+      ...f,
+      id: f.id || uid(),
+      status: status || f.status,
+      blocks: editor.document,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const addLink = () => {
+    const url = linkInput.trim();
+    if (!url) return;
+    setForm(f => ({
+      ...f,
+      materials: [...f.materials, {
+        id: uid(), type: "link",
+        url, title: linkTitle.trim() || url,
+        description: "", addedAt: new Date().toISOString(),
+      }],
+    }));
+    setLinkInput(""); setLinkTitle(""); setAddingLink(false);
+  };
+
+  const addNote = () => {
+    if (!noteInput.trim()) return;
+    setForm(f => ({
+      ...f,
+      materials: [...f.materials, {
+        id: uid(), type: "note",
+        url: "", title: noteInput.trim(),
+        description: "", addedAt: new Date().toISOString(),
+      }],
+    }));
+    setNoteInput(""); setAddingNote(false);
+  };
+
+  const removeMaterial = useCallback((id) => {
+    setForm(f => ({ ...f, materials: f.materials.filter(m => m.id !== id) }));
+  }, []);
+
+  const toggleChannel = (chId) => {
+    setForm(f => ({
+      ...f,
+      targetChannels: f.targetChannels.includes(chId)
+        ? f.targetChannels.filter(c => c !== chId)
+        : [...f.targetChannels, chId],
+    }));
+  };
+
+  const createDerivative = useCallback((chId) => {
+    const text = blocksToText(editor.document || []);
+    const shortened = truncate(text, chId);
+    const postId = uid();
+    const post = {
+      id: postId, title: form.title || "Story-Ableitung",
+      content: shortened, channels: chId === "website" || chId === "print" ? [] : [chId],
+      status: "draft", scheduledDate: "", scheduledTime: "",
+      mediaId: form.coverMediaId || null, campaignId: null, deleted: false, storyId: form.id || null,
+    };
+    setPosts(prev => [...prev, post]);
+    setForm(f => ({
+      ...f,
+      derivatives: [...f.derivatives, { id: uid(), channel: chId, postId, createdAt: new Date().toISOString() }],
+    }));
+    setRightTab("derivatives");
+  }, [editor, form.title, form.coverMediaId, form.id, setPosts]);
+
+  const currentStatus = STATUSES.find(s => s.id === form.status) || STATUSES[0];
+  const catColor = CAT_COLOR[form.category] || C.textMid;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,.6)", display: "flex",
+    }}>
+      <style>{CSS}</style>
+      {/* BlockNote theme overrides */}
+      <style>{`
+        .bn-container { font-family: ${FONT}; }
+        .bn-editor { min-height: 300px; padding: 0 !important; }
+        .bn-block-outer { margin: 0 !important; }
+      `}</style>
+
+      <div style={{
+        width: "100%", height: "100%", display: "flex", flexDirection: "column",
+        background: C.bg,
+      }}>
+
+        {/* ── TOP BAR ───────────────────────────────────────────────────── */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12, padding: "12px 20px",
+          borderBottom: `1px solid ${C.border}`, background: C.surface, flexShrink: 0,
+        }}>
+          <BookOpen size={16} strokeWidth={IW} color={C.accent} />
+          <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 14, color: C.text }}>
+            Story-Editor
+          </span>
+          {form.category && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+              background: catColor + "18", color: catColor, fontFamily: FONT,
+            }}>{form.category}</span>
+          )}
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+            background: currentStatus.color + "15", color: currentStatus.color, fontFamily: FONT,
+          }}>
+            {currentStatus.icon} {currentStatus.label}
+          </span>
+          {autoSaved && (
+            <span style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>
+              · Auto-gespeichert {autoSaved}
             </span>
-            {form.category&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:(catColors[form.category]||"#6B7280")+"18",color:catColors[form.category]||"#6B7280",textTransform:"uppercase",letterSpacing:".04em"}}>{form.category}</span>}
-            {autoSaved&&<span style={{fontSize:10,color:C.textMute}}>· AUTO-SAVE {autoSaved}</span>}
+          )}
+
+          <div style={{ flex: 1 }} />
+
+          {/* Word count */}
+          <div style={{
+            display: "flex", gap: 12, fontSize: 11, color: C.textMute, fontFamily: FONT,
+            background: C.borderLight, border: `1px solid ${C.border}`,
+            padding: "5px 12px", borderRadius: 6,
+          }}>
+            <span><strong style={{ color: C.text }}>{wordCount}</strong> Wörter</span>
+            <span style={{ color: C.border }}>·</span>
+            <span><strong style={{ color: C.text }}>{readingTime}</strong> Min. Lesezeit</span>
+            <span style={{ color: C.border }}>·</span>
+            <span><strong style={{ color: C.text }}>{form.materials.length}</strong> Materialien</span>
+            <span style={{ color: C.border }}>·</span>
+            <span><strong style={{ color: C.text }}>{form.derivatives.length}</strong> Ableitungen</span>
           </div>
-          <div style={{display:"flex",gap:5,alignItems:"center",background:C.borderLight,border:`1px solid ${C.border}`,borderRadius:7,padding:"4px 10px",fontSize:10,color:C.textMute}}>
-            <span style={{fontWeight:700}}>{(form.sections||[]).length}</span> Abschnitte
-            <span style={{color:C.border}}>·</span>
-            <span style={{fontWeight:700}}>{wordCount}</span> Wörter
-            <span style={{color:C.border}}>·</span>
-            <span style={{fontWeight:700}}>{charCount}</span> Zeichen
-          </div>
-          <div style={{display:"flex",gap:6}}>
-            <Btn variant="secondary" onClick={()=>handleSave("draft")} style={{fontSize:12}}><FileText size={12} strokeWidth={2}/>Entwurf</Btn>
-            <Btn onClick={()=>handleSave("published")} style={{fontSize:12}}><Check size={12} strokeWidth={2.5}/>Veröffentlichen</Btn>
-          </div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:4,marginLeft:4}}><X size={19} strokeWidth={2}/></button>
+
+          <Btn variant="secondary" onClick={() => handleSave()} style={{ fontSize: 12 }}>
+            <Save size={13} strokeWidth={IW} /> Speichern
+          </Btn>
+          <Btn onClick={() => handleSave("ready")} style={{ fontSize: 12 }}>
+            <Check size={13} strokeWidth={2.5} /> Bereit markieren
+          </Btn>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMute, padding: 4 }}>
+            <X size={20} strokeWidth={2} />
+          </button>
         </div>
 
-        {/* ── Category row ── */}
-        <div style={{padding:"6px 20px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",gap:4,alignItems:"center",overflowX:"auto",flexShrink:0}}>
-          <span style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".05em",flexShrink:0,marginRight:2}}>KATEGORIE</span>
-          {CATS.filter(c=>c).map(cat=>(
-            <button key={cat} onClick={()=>setForm(f=>({...f,category:f.category===cat?"":cat}))}
-              style={{padding:"3px 10px",borderRadius:20,border:`1.5px solid ${form.category===cat?(catColors[cat]||"#6B7280"):C.border}`,background:form.category===cat?(catColors[cat]||"#6B7280")+"14":"transparent",color:form.category===cat?(catColors[cat]||"#6B7280"):C.textSoft,fontSize:10.5,fontWeight:700,cursor:"pointer",fontFamily:FONT,flexShrink:0,transition:"all .12s"}}>
-              {cat}
-            </button>
-          ))}
-        </div>
+        {/* ── BODY ──────────────────────────────────────────────────────── */}
+        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
-        {/* ── Main area ── */}
-        <div style={{flex:1,overflow:"hidden",display:"flex"}}>
-
-          {/* Left: content editor */}
-          <div style={{flex:1,overflow:"auto",padding:"24px 32px",display:"flex",flexDirection:"column",gap:0}}>
-            {/* Title */}
-            <input value={form.title||""} onChange={e=>setForm(f=>({...f,title:e.target.value}))}
-              placeholder="Story-Titel…"
-              style={{width:"100%",border:"none",outline:"none",fontSize:28,fontWeight:800,fontFamily:FONT_DISPLAY,color:C.text,background:"transparent",letterSpacing:"-.02em",lineHeight:1.2,marginBottom:8,padding:0}}/>
-            {/* Subtitle */}
-            <input value={form.subtitle||""} onChange={e=>setForm(f=>({...f,subtitle:e.target.value}))}
-              placeholder="Untertitel / Zusammenfassung…"
-              style={{width:"100%",border:"none",outline:"none",fontSize:15,fontFamily:FONT,color:C.textSoft,background:"transparent",lineHeight:1.4,marginBottom:24,padding:0,fontWeight:400}}/>
-
-            {/* Sections */}
-            {(form.sections||[]).length===0&&(
-              <div style={{textAlign:"center",padding:"40px 20px",border:`2px dashed ${C.border}`,borderRadius:12,color:C.textMute}}>
-                <FileText size={32} strokeWidth={1} style={{margin:"0 auto 10px",display:"block",opacity:.35}}/>
-                <div style={{fontSize:13,fontWeight:600,color:C.textMid,marginBottom:4}}>Noch keine Abschnitte</div>
-                <div style={{fontSize:12,marginBottom:12}}>Füge Abschnitte hinzu um deine Story zu strukturieren</div>
-                <Btn onClick={addSection}><Plus size={13} strokeWidth={2.5}/>Abschnitt hinzufügen</Btn>
-              </div>
-            )}
-            {(form.sections||[]).map((sec,i)=>(
-              <div key={sec.id} style={{marginBottom:20,borderLeft:`3px solid ${C.border}`,paddingLeft:16,transition:"border-color .15s"}}
-                onFocus={e=>e.currentTarget.style.borderColor=C.accent}
-                onBlur={e=>e.currentTarget.style.borderColor=C.border}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                  <span style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",flexShrink:0}}>Abschnitt {i+1}</span>
-                  <div style={{flex:1}}/>
-                  {/* Move up/down */}
-                  <button onClick={()=>moveSec(sec.id,-1)} disabled={i===0} style={{background:"none",border:"none",color:i===0?C.borderLight:C.textSoft,cursor:i===0?"default":"pointer",padding:"2px 4px",fontSize:12}}>↑</button>
-                  <button onClick={()=>moveSec(sec.id,1)} disabled={i===(form.sections.length-1)} style={{background:"none",border:"none",color:i===(form.sections.length-1)?C.borderLight:C.textSoft,cursor:i===(form.sections.length-1)?"default":"pointer",padding:"2px 4px",fontSize:12}}>↓</button>
-                  {/* Convert to post */}
-                  <button onClick={()=>onConvertSection(sec,form)} title="Zu Post konvertieren"
-                    style={{background:C.accentLight,border:"none",borderRadius:6,color:C.accent,fontSize:10,fontWeight:700,padding:"3px 8px",cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:3}}>
-                    <Send size={9} strokeWidth={2.5}/>Post
-                  </button>
-                  {/* Delete */}
-                  <button onClick={()=>delSec(sec.id)} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer",padding:"2px 4px"}}><X size={13} strokeWidth={2}/></button>
-                </div>
-                {/* Heading */}
-                <input value={sec.heading||""} onChange={e=>updSec(sec.id,"heading",e.target.value)}
-                  placeholder="Überschrift (optional)…"
-                  style={{width:"100%",border:"none",outline:"none",fontSize:16,fontWeight:700,fontFamily:FONT,color:C.text,background:"transparent",padding:0,marginBottom:6,letterSpacing:"-.01em"}}/>
-                {/* Content */}
-                <textarea value={sec.content||""} onChange={e=>updSec(sec.id,"content",e.target.value)}
-                  placeholder="Text…"
-                  style={{width:"100%",minHeight:80,border:"none",outline:"none",fontSize:13.5,fontFamily:FONT,color:C.textMid,background:"transparent",padding:0,resize:"none",lineHeight:1.7,boxSizing:"border-box"}}
-                  onInput={e=>{e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px";}}/>
-              </div>
-            ))}
-            {(form.sections||[]).length>0&&(
-              <button onClick={addSection} style={{display:"flex",alignItems:"center",gap:7,border:`1.5px dashed ${C.border}`,borderRadius:10,padding:"10px 16px",background:"transparent",color:C.textSoft,cursor:"pointer",fontFamily:FONT,fontSize:13,fontWeight:600,marginTop:4,transition:"all .15s",width:"100%",justifyContent:"center"}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.color=C.accent;}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textSoft;}}>
-                <Plus size={14} strokeWidth={2.5}/>Abschnitt hinzufügen
-              </button>
-            )}
-          </div>
-
-          {/* Right: cover + meta */}
-          <div style={{width:260,flexShrink:0,borderLeft:`1px solid ${C.borderLight}`,padding:"20px 16px",overflow:"auto",display:"flex",flexDirection:"column",gap:14,background:C.bg}}>
-            {/* Cover image */}
-            <div>
-              <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",marginBottom:6}}>Cover-Bild</div>
-              {cover?(
-                <div style={{position:"relative",borderRadius:10,overflow:"hidden"}}>
-                  <img src={cover.url} alt="" style={{width:"100%",height:130,objectFit:"cover",display:"block"}}/>
-                  <div style={{position:"absolute",top:6,right:6,display:"flex",gap:4}}>
-                    <button onClick={()=>setPicker(true)} style={{background:"rgba(255,255,255,.9)",border:"none",borderRadius:6,padding:"4px 7px",cursor:"pointer",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",gap:3}}><Edit2 size={9} strokeWidth={2}/>Ändern</button>
-                    <button onClick={()=>setForm(f=>({...f,coverMediaId:null}))} style={{background:"rgba(255,255,255,.9)",border:"none",borderRadius:6,padding:"4px",cursor:"pointer"}}><X size={11} strokeWidth={2}/></button>
-                  </div>
-                </div>
-              ):(
-                <button onClick={()=>setPicker(true)} style={{width:"100%",height:110,border:`1.5px dashed ${C.border}`,borderRadius:10,background:"transparent",color:C.textSoft,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,fontFamily:FONT,transition:"all .15s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.color=C.accent;}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textSoft;}}>
-                  <Image size={20} strokeWidth={1.5}/>
-                  <span style={{fontSize:11,fontWeight:600}}>Cover auswählen</span>
-                </button>
-              )}
-            </div>
-            {/* Tags */}
-            <div>
-              <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",marginBottom:5}}>Tags</div>
-              <input value={form.tags||""} onChange={e=>setForm(f=>({...f,tags:e.target.value}))}
-                placeholder="tag1, tag2…"
-                style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box"}}/>
-            </div>
+          {/* ── LEFT PANEL: Metadata ──────────────────────────────────── */}
+          <div style={{
+            width: 230, borderRight: `1px solid ${C.border}`,
+            background: C.surface, overflowY: "auto", padding: "20px 16px",
+            display: "flex", flexDirection: "column", gap: 20, flexShrink: 0,
+          }}>
             {/* Status */}
             <div>
-              <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",marginBottom:5}}>Status</div>
-              <div style={{display:"flex",gap:5}}>
-                {[["draft","Entwurf",C.warning],["published","Veröffentlicht",C.success]].map(([v,l,c])=>(
-                  <button key={v} onClick={()=>setForm(f=>({...f,status:v}))}
-                    style={{flex:1,padding:"6px 0",borderRadius:7,border:`1.5px solid ${form.status===v?c:C.border}`,background:form.status===v?c+"14":"transparent",color:form.status===v?c:C.textSoft,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:FONT}}>
-                    {l}
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Status</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {STATUSES.map(s => (
+                  <button key={s.id} onClick={() => setForm(f => ({ ...f, status: s.id }))}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "7px 10px",
+                      borderRadius: 7, border: `1.5px solid ${form.status === s.id ? s.color : C.border}`,
+                      background: form.status === s.id ? s.color + "12" : "transparent",
+                      cursor: "pointer", textAlign: "left",
+                    }}>
+                    <span style={{ fontSize: 14 }}>{s.icon}</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: form.status === s.id ? s.color : C.text, fontFamily: FONT }}>{s.label}</div>
+                      <div style={{ fontSize: 9, color: C.textMute, fontFamily: FONT }}>{s.desc}</div>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
-            {/* Created */}
-            <div style={{fontSize:11,color:C.textMute}}>Erstellt: {form.createdAt||new Date().toLocaleDateString("de-DE")}</div>
-            {/* Alle Sektionen zu Posts */}
-            {(form.sections||[]).length>0&&(
-              <div style={{marginTop:"auto",paddingTop:10,borderTop:`1px solid ${C.borderLight}`}}>
-                <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>Quick-Aktionen</div>
-                <button onClick={()=>(form.sections||[]).forEach(sec=>onConvertSection(sec,form))}
-                  style={{width:"100%",padding:"9px 12px",borderRadius:9,border:`1.5px solid ${C.accent}`,background:C.accentLight,color:C.accent,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                  <Send size={12} strokeWidth={2}/>Alle Abschnitte → Posts
-                </button>
+
+            {/* Category */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Kategorie</div>
+              <select
+                value={form.category}
+                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                style={{
+                  width: "100%", padding: "7px 10px", borderRadius: 7,
+                  border: `1px solid ${C.border}`, background: C.bg,
+                  color: C.text, fontSize: 12, fontFamily: FONT, outline: "none",
+                }}>
+                {CATS.map(c => <option key={c} value={c}>{c || "Keine Kategorie"}</option>)}
+              </select>
+            </div>
+
+            {/* Target channels */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Ziel-Kanäle</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {STORY_CHANNELS.map(ch => {
+                  const active = form.targetChannels.includes(ch.id);
+                  return (
+                    <button key={ch.id} onClick={() => toggleChannel(ch.id)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        padding: "6px 10px", borderRadius: 7,
+                        border: `1.5px solid ${active ? ch.color : C.border}`,
+                        background: active ? ch.color + "12" : "transparent",
+                        cursor: "pointer",
+                      }}>
+                      <ChIco id={ch.id} size={14} color={active ? ch.color : C.textMute} />
+                      <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, color: active ? ch.color : C.textMid, fontFamily: FONT }}>{ch.label}</span>
+                      {active && <Check size={11} strokeWidth={2.5} style={{ marginLeft: "auto", color: ch.color }} />}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
+
+            {/* Tags */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>
+                <Hash size={10} strokeWidth={2} style={{ display: "inline", marginRight: 3 }} />Tags
+              </div>
+              <input
+                value={form.tags}
+                onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+                placeholder="tag1, tag2, tag3"
+                style={{
+                  width: "100%", padding: "7px 10px", borderRadius: 7,
+                  border: `1px solid ${C.border}`, background: C.bg,
+                  color: C.text, fontSize: 12, fontFamily: FONT, outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* ── CENTER: Title + Editor ─────────────────────────────────── */}
+          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+            {/* Title & Subtitle */}
+            <div style={{ padding: "32px 48px 0", maxWidth: 800, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+              <input
+                value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="Titel deiner Story…"
+                style={{
+                  width: "100%", border: "none", outline: "none",
+                  fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 32,
+                  color: C.text, background: "transparent", marginBottom: 8,
+                  lineHeight: 1.2,
+                }}
+              />
+              <input
+                value={form.subtitle}
+                onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))}
+                placeholder="Untertitel oder Lead-Satz (optional)…"
+                style={{
+                  width: "100%", border: "none", outline: "none",
+                  fontFamily: FONT, fontSize: 16, color: C.textMid,
+                  background: "transparent", marginBottom: 24,
+                }}
+              />
+              <div style={{ borderTop: `1px solid ${C.borderLight}`, marginBottom: 24 }} />
+            </div>
+
+            {/* BlockNote Editor */}
+            <div style={{ flex: 1, padding: "0 48px 40px", maxWidth: 800, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+              <BlockNoteViewRaw editor={editor} theme="light" style={{ fontSize: 15, lineHeight: 1.8 }}>
+                <BlockNoteDefaultUI />
+              </BlockNoteViewRaw>
+            </div>
+          </div>
+
+          {/* ── RIGHT PANEL: Materials + Derivatives ──────────────────── */}
+          <div style={{
+            width: 300, borderLeft: `1px solid ${C.border}`,
+            background: C.surface, display: "flex", flexDirection: "column", flexShrink: 0,
+          }}>
+            {/* Tab bar */}
+            <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+              {[
+                ["materials", "Materialien", form.materials.length],
+                ["derivatives", "Ableitungen", form.derivatives.length],
+              ].map(([id, label, count]) => (
+                <button key={id} onClick={() => setRightTab(id)}
+                  style={{
+                    flex: 1, padding: "12px 8px", border: "none", cursor: "pointer",
+                    background: rightTab === id ? C.bg : "transparent",
+                    borderBottom: rightTab === id ? `2px solid ${C.accent}` : "2px solid transparent",
+                    color: rightTab === id ? C.accent : C.textMid,
+                    fontFamily: FONT, fontSize: 12, fontWeight: 700,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  }}>
+                  {label}
+                  {count > 0 && (
+                    <span style={{
+                      background: rightTab === id ? C.accent : C.border,
+                      color: rightTab === id ? "#fff" : C.textMid,
+                      borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 6px",
+                    }}>{count}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+
+              {/* ── MATERIALIEN TAB ──────────────────────────────────── */}
+              {rightTab === "materials" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <p style={{ margin: 0, fontSize: 11, color: C.textMute, fontFamily: FONT }}>
+                    Sammle alles zu dieser Story: Links, Notizen, Quellen und Ideen.
+                  </p>
+
+                  {/* Add link */}
+                  {addingLink ? (
+                    <div style={{ background: C.bg, border: `1px solid ${C.accent}44`, borderRadius: 9, padding: 12 }}>
+                      <input
+                        autoFocus
+                        value={linkInput}
+                        onChange={e => setLinkInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") addLink(); if (e.key === "Escape") setAddingLink(false); }}
+                        placeholder="https://…"
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 6 }}
+                      />
+                      <input
+                        value={linkTitle}
+                        onChange={e => setLinkTitle(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") addLink(); }}
+                        placeholder="Titel (optional)"
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 8 }}
+                      />
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={addLink} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Hinzufügen</button>
+                        <button onClick={() => { setAddingLink(false); setLinkInput(""); setLinkTitle(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => setAddingLink(true)}
+                      style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", borderRadius: 8, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
+                      <LinkIcon size={13} strokeWidth={IW} /> Link hinzufügen
+                    </button>
+                  )}
+
+                  {/* Add note */}
+                  {addingNote ? (
+                    <div style={{ background: C.bg, border: `1px solid #F59E0B44`, borderRadius: 9, padding: 12 }}>
+                      <textarea
+                        autoFocus
+                        value={noteInput}
+                        onChange={e => setNoteInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter" && e.metaKey) addNote(); if (e.key === "Escape") setAddingNote(false); }}
+                        placeholder="Notiz, Idee oder Quellenangabe…"
+                        rows={3}
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", resize: "none", marginBottom: 8 }}
+                      />
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={addNote} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: "#F59E0B", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Notiz speichern</button>
+                        <button onClick={() => { setAddingNote(false); setNoteInput(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => setAddingNote(true)}
+                      style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", borderRadius: 8, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
+                      <StickyNote size={13} strokeWidth={IW} /> Notiz hinzufügen
+                    </button>
+                  )}
+
+                  {/* Materials list */}
+                  {form.materials.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "20px 0", color: C.textMute, fontSize: 12, fontFamily: FONT }}>
+                      Noch keine Materialien gesammelt.
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {form.materials.map(mat => (
+                        <MaterialCard key={mat.id} mat={mat} onRemove={removeMaterial} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── ABLEITUNGEN TAB ──────────────────────────────────── */}
+              {rightTab === "derivatives" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <p style={{ margin: "0 0 8px", fontSize: 11, color: C.textMute, fontFamily: FONT }}>
+                    Leite aus dieser Story Entwürfe für deine Kanäle ab.
+                    {!hasContent && <span style={{ color: "#F59E0B" }}> Schreibe zuerst etwas im Editor.</span>}
+                  </p>
+
+                  {/* Show only target channels, or all if none selected */}
+                  {(form.targetChannels.length > 0 ? STORY_CHANNELS.filter(c => form.targetChannels.includes(c.id)) : STORY_CHANNELS).map(ch => {
+                    const derivative = form.derivatives.find(d => d.channel === ch.id);
+                    return (
+                      <DerivativeRow
+                        key={ch.id}
+                        channel={ch}
+                        derivative={derivative}
+                        onCreate={createDerivative}
+                        hasContent={hasContent}
+                      />
+                    );
+                  })}
+
+                  {form.targetChannels.length === 0 && (
+                    <p style={{ margin: "8px 0 0", fontSize: 10, color: C.textMute, fontFamily: FONT, textAlign: "center" }}>
+                      Wähle Ziel-Kanäle links um die Auswahl einzugrenzen.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-      {picker&&<MediaPicker items={items} posts={[]} onSelect={item=>{setForm(f=>({...f,coverMediaId:item.id}));setPicker(false);}} onUpload={onUpload} onUpdate={()=>{}} onClose={()=>setPicker(false)}/>}
     </div>
   );
 }
-export default StoryEditorModal;

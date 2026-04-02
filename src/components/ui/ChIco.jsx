@@ -34,5 +34,14 @@ export default function ChIco({id,size=14,color}){
       <path d="M8.5 8.5s.5 1 1.5 2 2 1.5 2 1.5l1.5-1 2 3.5s-2 1.5-3.5.5C10 14 8 12 7 10c-1-2 1.5-1.5 1.5-1.5z" stroke={col} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
+  if(id==="website") return <Globe size={size} color={col||"#0EA5E9"} strokeWidth={IW}/>;
+  if(id==="print") return(
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="5" y="2" width="14" height="10" rx="1" stroke={col||"#64748B"} strokeWidth="1.8"/>
+      <path d="M5 14H3a1 1 0 00-1 1v4a1 1 0 001 1h18a1 1 0 001-1v-4a1 1 0 00-1-1h-2" stroke={col||"#64748B"} strokeWidth="1.8" strokeLinejoin="round"/>
+      <rect x="5" y="16" width="14" height="6" rx="1" stroke={col||"#64748B"} strokeWidth="1.8"/>
+      <path d="M8 6h8M8 9h5" stroke={col||"#64748B"} strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
   return <Globe size={size} color={col} strokeWidth={IW}/>;
 }
