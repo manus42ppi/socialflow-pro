@@ -1,7 +1,7 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/react/style.css";
 import "@blocknote/ariakit/style.css";
-import { useCreateBlockNote, useBlockNoteEditor } from "@blocknote/react";
+import { useCreateBlockNote, useBlockNoteEditor, FilePanelController } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/ariakit";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
@@ -102,7 +102,7 @@ function ImagePicker({ items, onSelect, onClose }) {
 }
 
 // ── CUSTOM BLOCKNOTE FILE PANEL (Medienbibliothek) ─────────────────────────
-function MediaLibraryFilePanel({ block }) {
+function MediaLibraryFilePanel({ blockId }) {
   const editor = useBlockNoteEditor();
   const { items, posts } = useApp();
   const [tab, setTab] = useState("library");
@@ -118,14 +118,14 @@ function MediaLibraryFilePanel({ block }) {
   }, [posts]);
 
   const handleSelect = (img) => {
-    editor.updateBlock(block, { props: { url: img.url, name: img.name || "", caption: img.name || "" } });
+    editor.updateBlock(blockId, { props: { url: img.url, name: img.name || "", caption: img.name || "" } });
   };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const url = await fileToDataURL(file);
-    editor.updateBlock(block, { props: { url, name: file.name, caption: "" } });
+    editor.updateBlock(blockId, { props: { url, name: file.name, caption: "" } });
   };
 
   return (
@@ -708,13 +708,15 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               <BlockNoteView
                 editor={editor}
                 theme="light"
-                filePanel={MediaLibraryFilePanel}
+                filePanel={false}
                 style={{ fontSize: 15, lineHeight: 1.8 }}
                 onChange={() => {
                   const text = blocksToText(editor.document || []);
                   setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
                 }}
-              />
+              >
+                <FilePanelController filePanel={MediaLibraryFilePanel} />
+              </BlockNoteView>
             </div>
           </div>
 
