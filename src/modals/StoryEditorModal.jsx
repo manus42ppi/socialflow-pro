@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
-import { uid, aiCall } from "../utils/store.js";
+import { uid, aiCall, fileToDataURL } from "../utils/store.js";
 import { Btn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useApp } from "../context/AppContext.jsx";
@@ -284,7 +284,11 @@ export default function StoryEditorModal() {
   formRef.current = form;
 
   // ── BlockNote editor ──────────────────────────────────────────────────────
-  const editor = useCreateBlockNote({ initialContent: initialBlocks });
+  const editor = useCreateBlockNote({
+    initialContent: initialBlocks,
+    // Enables image/video/file blocks: converts file → data URL (local/demo)
+    uploadFile: async (file) => fileToDataURL(file),
+  });
 
   // ── Live word count ───────────────────────────────────────────────────────
   const [wordCount, setWordCount] = useState(() => {
@@ -441,6 +445,16 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
         .bn-container { font-family: ${FONT}; }
         .bn-editor { min-height: 300px; padding: 0 !important; }
         .bn-block-outer { margin: 0 !important; }
+        /* Floating UI elements must appear above the modal (z:1000) */
+        .bn-toolbar { z-index: 1200 !important; }
+        .bn-suggestion-menu { z-index: 1200 !important; }
+        .bn-side-menu { z-index: 1200 !important; }
+        .bn-image-toolbar { z-index: 1200 !important; }
+        .bn-file-toolbar { z-index: 1200 !important; }
+        [data-radix-popper-content-wrapper] { z-index: 1200 !important; }
+        [data-floating-ui-portal] { z-index: 1200 !important; }
+        /* Slash-menu and formatting toolbar text */
+        .bn-slash-menu { z-index: 1200 !important; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
