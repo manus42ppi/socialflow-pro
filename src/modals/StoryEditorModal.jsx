@@ -1,6 +1,7 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/react/style.css";
-import { BlockNoteViewRaw, BlockNoteDefaultUI, useCreateBlockNote } from "@blocknote/react";
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/ariakit";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   X, Save, Check, BookOpen, Link as LinkIcon, StickyNote,
@@ -640,7 +641,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
             {/* BlockNote Editor with live word count */}
             <div style={{ flex: 1, padding: "0 48px 40px", maxWidth: 800, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
-              <BlockNoteViewRaw
+              <BlockNoteView
                 editor={editor}
                 theme="light"
                 style={{ fontSize: 15, lineHeight: 1.8 }}
@@ -648,9 +649,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   const text = blocksToText(editor.document || []);
                   setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
                 }}
-              >
-                <BlockNoteDefaultUI />
-              </BlockNoteViewRaw>
+              />
             </div>
           </div>
 
