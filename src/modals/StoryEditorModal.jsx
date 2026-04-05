@@ -4,6 +4,7 @@ import "@blocknote/ariakit/style.css";
 import { useCreateBlockNote, useBlockNoteEditor, FilePanelController } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/ariakit";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   X, Save, Check, BookOpen, Link as LinkIcon, StickyNote,
   Trash2, Wand2, Loader, Hash, PenLine, Image as ImageIcon,
@@ -101,14 +102,21 @@ function ImagePicker({ items, onSelect, onClose }) {
   );
 }
 
-// ── CUSTOM BLOCKNOTE FILE PANEL (Medienbibliothek) ─────────────────────────
+// ── CUSTOM BLOCKNOTE FILE PANEL (Medienbibliothek – Vollbild-Modal) ─────────
 function MediaLibraryFilePanel({ blockId }) {
   const editor = useBlockNoteEditor();
   const { items, posts } = useApp();
   const [tab, setTab] = useState("library");
   const [hovId, setHovId] = useState(null);
+  const [search, setSearch] = useState("");
 
   const images = useMemo(() => items.filter(i => i.type === "image" && i.url), [items]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return images;
+    const q = search.toLowerCase();
+    return images.filter(i => (i.name || "").toLowerCase().includes(q) || (i.tags || "").toLowerCase().includes(q));
+  }, [images, search]);
 
   // Usage count: how many posts reference each image
   const usageMap = useMemo(() => {
@@ -128,67 +136,139 @@ function MediaLibraryFilePanel({ blockId }) {
     editor.updateBlock(blockId, { props: { url, name: file.name, caption: "" } });
   };
 
-  return (
-    <div style={{ padding: "14px 16px", minWidth: 420, fontFamily: FONT }}>
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 12, borderBottom: `1px solid ${C.border}`, paddingBottom: 10 }}>
-        {[["library", "Medienbibliothek"], ["upload", "Datei hochladen"]].map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} style={{
-            padding: "4px 12px", borderRadius: 6, border: "none",
-            background: tab === id ? C.accent : "transparent",
-            color: tab === id ? "#fff" : C.textMid,
-            cursor: "pointer", fontSize: 12, fontWeight: tab === id ? 700 : 400, fontFamily: FONT,
-          }}>{label}</button>
-        ))}
-      </div>
-
-      {tab === "library" ? (
-        images.length === 0 ? (
-          <p style={{ color: C.textMute, fontSize: 12, textAlign: "center", padding: "20px 0" }}>
-            Keine Bilder in der Medienbibliothek.
-          </p>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, maxHeight: 300, overflowY: "auto" }}>
-            {images.map(img => {
-              const count = usageMap[img.id] || 0;
-              return (
-                <div key={img.id} onClick={() => handleSelect(img)}
-                  onMouseEnter={() => setHovId(img.id)}
-                  onMouseLeave={() => setHovId(null)}
-                  style={{
-                    position: "relative", borderRadius: 8, overflow: "hidden",
-                    cursor: "pointer", outline: hovId === img.id ? `2px solid ${C.accent}` : `2px solid transparent`,
-                    transition: "outline .1s",
-                  }}>
-                  <img src={img.url} alt={img.name || ""}
-                    style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
-                  {count > 0 && (
-                    <div style={{
-                      position: "absolute", bottom: 4, left: 4,
-                      background: "rgba(0,0,0,.65)", color: "#fff",
-                      fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 10,
-                      display: "flex", alignItems: "center", gap: 3,
-                    }}>
-                      <Check size={8} strokeWidth={3} /> {count}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )
-      ) : (
-        <label style={{
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-          padding: 28, borderRadius: 10, border: `2px dashed ${C.border}`,
-          cursor: "pointer", color: C.textMute, fontSize: 12, fontFamily: FONT,
+  // Render as a full-screen portal overlay so it appears above BlockNote
+  return createPortal(
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: "rgba(0,0,0,.6)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontFamily: FONT,
+    }}>
+      <div style={{
+        background: C.surface, borderRadius: 16,
+        boxShadow: "0 24px 64px rgba(0,0,0,.28)",
+        width: "min(760px, 96vw)", maxHeight: "85vh",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        {/* Header */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "16px 20px", borderBottom: `1px solid ${C.border}`,
         }}>
-          <ImageIcon size={28} strokeWidth={1.5} color={C.textMute} />
-          <span>Bild oder Video auswählen</span>
-          <input type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={handleFileUpload} />
-        </label>
-      )}
-    </div>
+          <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Bild einfügen</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* Tab switcher */}
+            <div style={{ display: "flex", background: C.bg, borderRadius: 8, padding: 2 }}>
+              {[["library", "Medienbibliothek"], ["upload", "Hochladen"]].map(([id, label]) => (
+                <button key={id} onClick={() => setTab(id)} style={{
+                  padding: "5px 14px", borderRadius: 6, border: "none",
+                  background: tab === id ? C.accent : "transparent",
+                  color: tab === id ? "#fff" : C.textMid,
+                  cursor: "pointer", fontSize: 12, fontWeight: tab === id ? 700 : 500,
+                  fontFamily: FONT, transition: "background .15s",
+                }}>{label}</button>
+              ))}
+            </div>
+            {/* Close — clicking the backdrop also closes, but BlockNote handles that */}
+          </div>
+        </div>
+
+        {tab === "library" ? (
+          <>
+            {/* Search */}
+            <div style={{ padding: "12px 20px", borderBottom: `1px solid ${C.border}` }}>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Bilder suchen (Name, Tags)…"
+                style={{
+                  width: "100%", padding: "8px 12px", borderRadius: 8, boxSizing: "border-box",
+                  border: `1px solid ${C.border}`, background: C.bg, color: C.text,
+                  fontSize: 13, fontFamily: FONT, outline: "none",
+                }}
+              />
+            </div>
+
+            {/* Grid */}
+            <div style={{ overflowY: "auto", padding: 20, flex: 1 }}>
+              {filtered.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: C.textMute, fontSize: 13 }}>
+                  {images.length === 0
+                    ? "Noch keine Bilder in der Medienbibliothek. Lade zuerst Bilder hoch."
+                    : "Kein Bild gefunden."}
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+                  {filtered.map(img => {
+                    const count = usageMap[img.id] || 0;
+                    const isHov = hovId === img.id;
+                    return (
+                      <div key={img.id}
+                        onClick={() => handleSelect(img)}
+                        onMouseEnter={() => setHovId(img.id)}
+                        onMouseLeave={() => setHovId(null)}
+                        style={{
+                          position: "relative", borderRadius: 10, overflow: "hidden",
+                          cursor: "pointer", aspectRatio: "1/1",
+                          outline: isHov ? `3px solid ${C.accent}` : "3px solid transparent",
+                          transition: "outline .12s",
+                        }}>
+                        <img src={img.url} alt={img.name || ""}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        {/* Hover overlay */}
+                        <div style={{
+                          position: "absolute", inset: 0,
+                          background: "linear-gradient(to top, rgba(0,0,0,.7) 0%, rgba(0,0,0,0) 50%)",
+                          opacity: isHov ? 1 : 0, transition: "opacity .15s",
+                          display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                          padding: "6px 8px",
+                        }}>
+                          {img.name && (
+                            <span style={{ color: "#fff", fontSize: 10, fontWeight: 600, lineHeight: 1.3,
+                              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {img.name}
+                            </span>
+                          )}
+                        </div>
+                        {/* Usage badge */}
+                        {count > 0 && (
+                          <div style={{
+                            position: "absolute", top: 6, left: 6,
+                            background: "rgba(0,0,0,.7)", color: "#fff",
+                            fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 10,
+                            display: "flex", alignItems: "center", gap: 3,
+                          }}>
+                            <Check size={8} strokeWidth={3} /> {count}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          /* Upload tab */
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
+            <label style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+              padding: "48px 64px", borderRadius: 12, border: `2px dashed ${C.border}`,
+              cursor: "pointer", color: C.textMute, fontSize: 13, fontFamily: FONT,
+              transition: "border-color .15s",
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = C.accent}
+              onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+              <ImageIcon size={36} strokeWidth={1.5} color={C.accent} />
+              <span style={{ fontWeight: 600, color: C.text, fontSize: 14 }}>Bild auswählen</span>
+              <span style={{ fontSize: 12 }}>oder Datei hier ablegen</span>
+              <input type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={handleFileUpload} />
+            </label>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
   );
 }
 
