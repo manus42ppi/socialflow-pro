@@ -30,7 +30,10 @@ export default function MediaPage(){
       const item={id,name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:true};
       onUpload(item);
       if(item.type==="image"){
-        AI.analyzeImg(url).then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});}).catch(()=>onUpdate({...item,analyzing:false}));
+        const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
+        Promise.race([AI.analyzeImg(url),timeout])
+          .then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
+          .catch(()=>onUpdate({...item,analyzing:false}));
       } else { onUpdate({...item,analyzing:false}); }
     }
   },[onUpload,onUpdate]);
@@ -43,7 +46,10 @@ export default function MediaPage(){
     const item={...ext,id:uid(),analyzing:ext.type==="image"};
     onUpload(item);
     if(item.type==="image"){
-      AI.analyzeImg(item.url).then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):(item.tags||""),description:r.description||item.description||"",altText:r.suggestedAlt||item.altText||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});}).catch(()=>onUpdate({...item,analyzing:false}));
+      const timeout2=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
+      Promise.race([AI.analyzeImg(item.url),timeout2])
+        .then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):(item.tags||""),description:r.description||item.description||"",altText:r.suggestedAlt||item.altText||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
+        .catch(()=>onUpdate({...item,analyzing:false}));
     } else {
       onUpdate({...item,analyzing:false});
     }
@@ -147,6 +153,10 @@ export default function MediaPage(){
             <div style={{color:"#fff",fontSize:11,fontWeight:600,textShadow:"0 1px 3px rgba(0,0,0,.6)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
             {item.tags&&<div style={{color:"rgba(255,255,255,.7)",fontSize:9.5,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.tags}</div>}
           </div>}
+        </div>}
+        {/* Usage badge (always visible when used) */}
+        {!batchMode&&used.length>0&&!item.analyzing&&<div style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.68)",color:"#fff",fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:20,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3,pointerEvents:"none"}}>
+          <Check size={8} strokeWidth={3}/>{used.length}
         </div>}
         {/* Source badge (always visible, normal mode only) */}
         {item.source&&!hov&&!batchMode&&<div style={{position:"absolute",bottom:8,left:8}}><SrcBadge source={item.source}/></div>}

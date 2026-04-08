@@ -53,6 +53,7 @@ export function AppProvider({ children }) {
   const postsLoaded = useRef(false);
   const campsLoaded = useRef(false);
   const storiesLoaded = useRef(false);
+  const demoMediaLoaded = useRef(false);
 
   // ── KV Persistence: Load when Clerk signs in, reset when signed out ───────
   //
@@ -151,6 +152,28 @@ export function AppProvider({ children }) {
       storeSet(`media:img:${i.id}`, { url: i.url })
     );
   }, [items]);
+
+  // ── Demo-User: localStorage Fallback für Media ───────────────────────────
+  // Clerk-User nutzen KV. Demo-User bekommen localStorage als Fallback,
+  // damit Medien den Seiten-Reload überleben.
+  useEffect(() => {
+    if (!demoUser) { demoMediaLoaded.current = false; return; }
+    if (demoMediaLoaded.current) return;
+    try {
+      const saved = localStorage.getItem("demo_media");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.length) { setItems(parsed); mediaLoaded.current = true; }
+      }
+    } catch {}
+    demoMediaLoaded.current = true;
+  }, [demoUser]);
+
+  useEffect(() => {
+    if (!demoUser || !demoMediaLoaded.current) return;
+    try { localStorage.setItem("demo_media", JSON.stringify(items)); }
+    catch {}
+  }, [items, demoUser]);
 
   // ── Resolved user ─────────────────────────────────────────────────────────
   const user = demoUser || (isSignedIn && clerkUser ? mapClerkUser(clerkUser) : null);
