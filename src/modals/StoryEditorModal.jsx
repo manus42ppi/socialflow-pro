@@ -474,6 +474,7 @@ export default function StoryEditorModal() {
   }, [story.id, user?.id]); // eslint-disable-line
 
   // ── Auto-save ─────────────────────────────────────────────────────────────
+  // Uses updateStory (not saveStory/onSave) so the editor stays open
   useEffect(() => {
     clearTimeout(asRef.current);
     if (!form.title) return;
@@ -482,7 +483,9 @@ export default function StoryEditorModal() {
       const text = blocksToText(editor.document || []);
       const wc = text.trim().split(/\s+/).filter(Boolean).length;
       setWordCount(wc);
-      onSave({ ...f, id: f.id || uid(), blocks: editor.document, updatedAt: new Date().toISOString() });
+      const saved = { ...f, id: f.id || uid(), blocks: editor.document, updatedAt: new Date().toISOString() };
+      updateStory(saved);
+      setEdStory(saved); // keep edStory in sync so story.id is set for locking
       setLastSaved(new Date());
       setHasUnsaved(false);
     }, 20000);
@@ -496,7 +499,7 @@ export default function StoryEditorModal() {
         e.preventDefault();
         const f = formRef.current;
         const saved = { ...f, id: f.id || uid(), blocks: editor.document, updatedAt: new Date().toISOString() };
-        onSave(saved);
+        updateStory(saved); // does NOT close the editor
         setEdStory({ ...saved });
         setLastSaved(new Date());
         setHasUnsaved(false);
