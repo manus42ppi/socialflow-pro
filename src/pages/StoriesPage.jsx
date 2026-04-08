@@ -27,7 +27,7 @@ function countWords(blocks) {
 }
 
 // ── Story Card ─────────────────────────────────────────────────────────────
-function StoryCard({ story, onEdit, onDelete }) {
+function StoryCard({ story, onEdit, onDelete, posts, onOpenPost }) {
   const [hover, setHover] = useState(false);
   const status = STATUSES.find(s => s.id === story.status) || STATUSES[0];
   const catColor = CAT_COLOR[story.category] || C.textMid;
@@ -36,6 +36,10 @@ function StoryCard({ story, onEdit, onDelete }) {
   const materialCount = story.materials?.length || 0;
   const derivCount = story.derivatives?.length || 0;
   const targetChs = (story.targetChannels || []).map(id => STORY_CHANNELS.find(c => c.id === id)).filter(Boolean);
+  // Which channels already have a derivative post
+  const derivedChannels = (story.derivatives || [])
+    .map(d => ({ ...d, ch: STORY_CHANNELS.find(c => c.id === d.channel), post: posts?.find(p => p.id === d.postId && !p.deleted) }))
+    .filter(d => d.ch);
   const linkCount = (story.materials || []).filter(m => m.type === "link").length;
   const noteCount = (story.materials || []).filter(m => m.type === "note").length;
 
@@ -111,6 +115,27 @@ function StoryCard({ story, onEdit, onDelete }) {
           </div>
         )}
 
+        {/* Derived channel badges */}
+        {derivedChannels.length > 0 && (
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+            <span style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>Abgeleitet:</span>
+            {derivedChannels.map(d => (
+              <div key={d.id}
+                onClick={e => { e.stopPropagation(); if (d.post) onOpenPost(d.post); }}
+                title={d.post ? `${d.ch.label} – Post öffnen` : `${d.ch.label} – Post nicht gefunden`}
+                style={{
+                  display: "flex", alignItems: "center", gap: 3, padding: "2px 7px",
+                  borderRadius: 6, background: "#ECFDF3", border: `1px solid #BBF7D0`,
+                  cursor: d.post ? "pointer" : "default",
+                  opacity: d.post ? 1 : 0.5,
+                }}>
+                <ChIco id={d.ch.id} size={10} color={C.success} />
+                <span style={{ fontSize: 10, color: C.success, fontWeight: 700, fontFamily: FONT }}>{d.ch.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Stats row */}
         <div style={{
           display: "flex", gap: 14, fontSize: 11, color: C.textMute,
@@ -146,7 +171,7 @@ function StoryCard({ story, onEdit, onDelete }) {
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function StoriesPage() {
-  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete } = useApp();
+  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete, posts, setEdPost } = useApp();
   const [filt, setFilt] = useState("all");
   const [q, setQ] = useState("");
 
@@ -238,7 +263,7 @@ export default function StoriesPage() {
             gap: 16,
           }}>
             {filtered.map(story => (
-              <StoryCard key={story.id} story={story} onEdit={onEdit} onDelete={onDelete} />
+              <StoryCard key={story.id} story={story} onEdit={onEdit} onDelete={onDelete} posts={posts} onOpenPost={setEdPost} />
             ))}
           </div>
         )}

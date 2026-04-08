@@ -423,6 +423,7 @@ export default function StoryEditorModal() {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [autoSaved, setAutoSaved] = useState(null);
   const [deriving, setDeriving] = useState({}); // { [chId]: boolean }
+  const [derivPreview, setDerivPreview] = useState(null); // { chId, content, channel }
 
   const asRef = useRef();
   const formRef = useRef(form);
@@ -559,11 +560,17 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
       setDeriving(prev => ({ ...prev, [chId]: false }));
     }
 
+    // Show preview dialog before saving
+    setDerivPreview({ chId, content, channel });
+  }, [editor, setPosts]);
+
+  const confirmDerivative = useCallback((chId, channel, editedContent) => {
+    const f = formRef.current;
     const postId = uid();
     const post = {
       id: postId,
       title: f.title || "Story-Ableitung",
-      content,
+      content: editedContent,
       channels: chId === "website" || chId === "print" ? [] : [chId],
       status: "draft",
       scheduledDate: "", scheduledTime: "",
@@ -574,7 +581,8 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
       ...f2,
       derivatives: [...f2.derivatives, { id: uid(), channel: chId, postId, createdAt: new Date().toISOString() }],
     }));
-  }, [editor, setPosts]);
+    setDerivPreview(null);
+  }, [setPosts]);
 
   const currentStatus = STATUSES.find(s => s.id === form.status) || STATUSES[0];
   const catColor = CAT_COLOR[form.category] || C.textMid;
@@ -956,6 +964,80 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           </div>
         </div>
       </div>
+
+      {/* ── DERIVATIVE PREVIEW MODAL ─────────────────────────────────────────── */}
+      {derivPreview && <DerivativePreviewModal
+        chId={derivPreview.chId}
+        channel={derivPreview.channel}
+        initialContent={derivPreview.content}
+        onConfirm={(edited) => confirmDerivative(derivPreview.chId, derivPreview.channel, edited)}
+        onDiscard={() => setDerivPreview(null)}
+      />}
     </div>
+  );
+}
+
+// ── DERIVATIVE PREVIEW MODAL ────────────────────────────────────────────────
+function DerivativePreviewModal({ chId, channel, initialContent, onConfirm, onDiscard }) {
+  const [text, setText] = useState(initialContent);
+  const limit = CH_LIMITS[chId] || 500;
+  const over = text.length > limit;
+  return createPortal(
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 10000,
+      background: "rgba(0,0,0,.6)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontFamily: FONT,
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 16,
+        boxShadow: "0 24px 64px rgba(0,0,0,.28)",
+        width: "min(640px, 96vw)", display: "flex", flexDirection: "column",
+        overflow: "hidden", maxHeight: "85vh",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 20px", borderBottom: `1px solid ${C.border}` }}>
+          <ChIco id={chId} size={18} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{channel.label} – Entwurf prüfen</div>
+            <div style={{ fontSize: 11, color: C.textMute }}>Bearbeite den Text bevor du ihn als Post speicherst.</div>
+          </div>
+        </div>
+        {/* Textarea */}
+        <div style={{ padding: "16px 20px", flex: 1, overflow: "auto" }}>
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            style={{
+              width: "100%", minHeight: 220, resize: "vertical", boxSizing: "border-box",
+              padding: "12px 14px", borderRadius: 8, border: `1.5px solid ${over ? "#e53e3e" : C.border}`,
+              fontSize: 13, fontFamily: FONT, lineHeight: 1.7, color: C.text,
+              outline: "none", transition: "border-color .15s",
+            }}
+          />
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: over ? "#e53e3e" : C.textMute }}>
+              {text.length} / {limit.toLocaleString("de")}
+            </span>
+          </div>
+        </div>
+        {/* Footer */}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "12px 20px", borderTop: `1px solid ${C.border}` }}>
+          <button onClick={onDiscard} style={{
+            background: "none", border: `1.5px solid ${C.border}`, borderRadius: 8,
+            color: C.textSoft, fontWeight: 600, fontSize: 13, padding: "8px 18px",
+            cursor: "pointer", fontFamily: FONT,
+          }}>Verwerfen</button>
+          <button onClick={() => onConfirm(text)} style={{
+            background: C.accent, border: "none", borderRadius: 8,
+            color: "#fff", fontWeight: 700, fontSize: 13, padding: "8px 20px",
+            cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <Check size={13} strokeWidth={2.5} /> Als Post erstellen
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
