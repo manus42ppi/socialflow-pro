@@ -1,16 +1,65 @@
-# React + Vite
+# SocialFlow Pro
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Social Media Management Platform für Content-Teams. Planung, Erstellung, KI-Assistenz und Performance-Tracking in einer App.
 
-Currently, two official plugins are available:
+**Live:** https://socialflow-pro.pages.dev
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Layer | Technologie |
+|---|---|
+| Frontend | React 19 + Vite, Inline-Styles |
+| Auth | Clerk (Demo-Login ohne Account möglich) |
+| AI | Anthropic Claude (Proxy via Cloudflare Function) |
+| Storage | Cloudflare KV (Clerk-JWT gesichert) |
+| Deployment | Cloudflare Pages (auto-deploy bei Push auf `main`) |
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Features
+
+- **Publisher** – Kanban-Board (Entwurf → Freigabe → Geplant → Publiziert)
+- **Story-Workflow** – Content Hub mit BlockNote-Editor, KI-Ableitungen für alle Kanäle
+- **Kalender** – Monatsansicht + Agenda
+- **Planner** – Gantt-Timeline
+- **Medienbibliothek** – Upload, KI-Analyse, Fokuspunkt, Usage-Tracking
+- **Kampagnen** – Verwaltung mit Budget und Laufzeit
+- **Performance** – Analytics-Dashboard
+- **Instagram Monitoring** – fremde Accounts beobachten via Business Discovery API
+- **KI-Assistent** – Optimize, Hashtags, Varianten, Score, Hook, Ideas, Emojis
+
+---
+
+## Entwicklung
+
+```bash
+# Dev-Server (npm nicht im PATH → direkt node aufrufen)
+/usr/local/bin/node node_modules/vite/bin/vite.js
+
+# Build prüfen
+/usr/local/bin/node node_modules/vite/bin/vite.js build
+
+# Unit-Tests (Vitest)
+/usr/local/bin/node node_modules/.bin/vitest run
+
+# E2E-Tests (Playwright)
+/usr/local/bin/node node_modules/.bin/playwright test
+```
+
+---
+
+## Deployment
+
+Push auf `main` → Cloudflare Pages deployed automatisch (~30 Sekunden).
+
+Secrets werden im Cloudflare Dashboard gesetzt (niemals committen):
+- `ANTHROPIC_API_KEY`
+- Clerk Keys
+
+---
+
+## Dokumentation
+
+Vollständiger Projektkontext für Claude Code: **[CLAUDE.md](./CLAUDE.md)**

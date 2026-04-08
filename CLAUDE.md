@@ -228,18 +228,32 @@ für alle Kanäle (Social, Web, Print) per KI generiert werden.
 
 ### BlockNote (v0.47.3) – korrekte API
 ```jsx
-import { BlockNoteViewRaw, BlockNoteDefaultUI, useCreateBlockNote } from "@blocknote/react";
-// NICHT "BlockNoteView" – wird in dieser Version nicht exportiert!
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/react/style.css";
+import "@blocknote/ariakit/style.css";          // ← PFLICHT für Slash-Menü-Icons
+import { useCreateBlockNote, useBlockNoteEditor, FilePanelController } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/ariakit"; // ← NICHT aus @blocknote/react!
+import { createPortal } from "react-dom";
 
 const editor = useCreateBlockNote({ initialContent: blocks });
 
-<BlockNoteViewRaw editor={editor} theme="light" onChange={() => {
-  const text = blocksToText(editor.document || []);
-  setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
-}}>
-  <BlockNoteDefaultUI />
-</BlockNoteViewRaw>
+<BlockNoteView
+  editor={editor}
+  theme="light"
+  filePanel={false}                            // ← Standard-Panel deaktivieren
+  onChange={() => {
+    const text = blocksToText(editor.document || []);
+    setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
+  }}
+>
+  <FilePanelController filePanel={MediaLibraryFilePanel} />
+</BlockNoteView>
 ```
+
+**`MediaLibraryFilePanel` (`{ blockId }`)** – rendert via `createPortal` ein Vollbild-Modal:
+- `blockId: string` → `editor.updateBlock(blockId, { props: { url, name, caption } })`
+- Suchfeld (Name/Tags), Bild-Grid mit Usage-Badge, Hover-Overlay, Upload-Tab
+- `createPortal(..., document.body)` → `position:fixed; inset:0; zIndex:9999`
 
 ### KI-Ableitungen
 ```js
@@ -344,12 +358,14 @@ src/__tests__/
 | `.env` committen | Nur in Cloudflare Dashboard setzen |
 | `console.log` stehen lassen | Nur `console.error` in catch-Blöcken |
 | `CHANNELS` im Story-Editor nutzen | `STORY_CHANNELS` verwenden |
-| `BlockNoteView` importieren | `BlockNoteViewRaw` + `BlockNoteDefaultUI` |
+| `BlockNoteView` aus `@blocknote/react` | `BlockNoteView` aus `@blocknote/ariakit` |
+| `@blocknote/ariakit/style.css` weglassen | Immer importieren (Slash-Menü-Icons) |
+| `filePanel` direkt auf `BlockNoteView` | `<FilePanelController filePanel={...} />` als Kind |
 | `loadedRef`-Guard weglassen | Immer `if(!loadedRef.current) return` |
 
 ---
 
-## Entwicklungsstand (Stand: 02. April 2026)
+## Entwicklungsstand (Stand: 08. April 2026)
 
 ### ✅ Fertig & Live
 - Dashboard (Widgets, Timeline, Stats, Right Sidebar mit drag-barer Widget-Reihenfolge)
@@ -362,6 +378,9 @@ src/__tests__/
 - Admin (Kanal-Setup, Team, Instagram Token Guide)
 - Post-Editor (mit KI-Panel: Optimize, Hashtags, Varianten, Score, Hook, Ideas)
 - **Story-Workflow** (BlockNote-Editor, Materialien, KI-Ableitungen, Website/Print)
+  - Slash-Menü vollständig gestylt (`@blocknote/ariakit/style.css`)
+  - Bild-Einfügen öffnet Vollbild-Medienbibliothek-Modal (createPortal)
+  - Usage-Badge auf Bildern (Anzahl Posts die das Bild verwenden)
 - **Instagram Monitoring** (Business Discovery API, KV-Persistenz)
 - Papierkorb
 - Recherche-Seite
