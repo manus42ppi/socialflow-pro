@@ -27,13 +27,25 @@ export default function MediaPage(){
     for(const file of Array.from(files)){
       const url=await fileToDataURL(file);
       const id=uid();
-      const item={id,name:file.name,url,type:getMediaType(file),size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:true};
+      const mtype=getMediaType(file);
+      let width=0,height=0;
+      if(mtype==="image"){
+        try{
+          await new Promise(res=>{
+            const img=new Image();
+            img.onload=()=>{width=img.naturalWidth;height=img.naturalHeight;res();};
+            img.onerror=()=>res();
+            img.src=url;
+          });
+        }catch{}
+      }
+      const item={id,name:file.name,url,type:mtype,size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:mtype==="image",width,height};
       onUpload(item);
-      if(item.type==="image"){
+      if(mtype==="image"){
         const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
         Promise.race([AI.analyzeImg(url),timeout])
           .then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
-          .catch(()=>onUpdate({...item,analyzing:false}));
+          .catch(()=>onUpdate({...item,analyzing:false,aiError:true}));
       } else { onUpdate({...item,analyzing:false}); }
     }
   },[onUpload,onUpdate]);
@@ -49,7 +61,7 @@ export default function MediaPage(){
       const timeout2=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
       Promise.race([AI.analyzeImg(item.url),timeout2])
         .then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):(item.tags||""),description:r.description||item.description||"",altText:r.suggestedAlt||item.altText||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
-        .catch(()=>onUpdate({...item,analyzing:false}));
+        .catch(()=>onUpdate({...item,analyzing:false,aiError:true}));
     } else {
       onUpdate({...item,analyzing:false});
     }
@@ -120,10 +132,12 @@ export default function MediaPage(){
           ?<video src={item.url} style={{width:"100%",height:"auto",display:"block"}} muted/>
           :<img src={item.url} alt={item.name} style={{width:"100%",height:"auto",display:"block"}} loading="lazy"/>}
         {/* Analyzing overlay */}
-        {item.analyzing&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,borderRadius:10}}>
+        {item.analyzing&&<div style={{position:"absolute",inset:0,zIndex:1,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,borderRadius:10}}>
           <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
           <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
         </div>}
+        {/* KI-Fehler-Badge */}
+        {item.aiError&&!item.analyzing&&<div style={{position:"absolute",top:8,left:8,background:"rgba(196,81,30,.88)",color:"#fff",fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:10,backdropFilter:"blur(4px)",pointerEvents:"none"}}>KI ✕</div>}
         {/* Batch mode: checkbox top-left (always visible) */}
         {batchMode&&<div style={{position:"absolute",top:8,left:8,width:20,height:20,borderRadius:6,background:isSel?C.accent:"rgba(255,255,255,.85)",border:`2px solid ${isSel?C.accent:"rgba(0,0,0,.25)"}`,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",transition:"all .12s"}}>
           {isSel&&<Check size={12} color="#fff" strokeWidth={3}/>}
@@ -154,12 +168,22 @@ export default function MediaPage(){
             {item.tags&&<div style={{color:"rgba(255,255,255,.7)",fontSize:9.5,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.tags}</div>}
           </div>}
         </div>}
-        {/* Usage badge (always visible when used) */}
-        {!batchMode&&used.length>0&&!item.analyzing&&<div style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.68)",color:"#fff",fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:20,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3,pointerEvents:"none"}}>
+        {/* Usage badge – hidden on hover (hover overlay shows full label top-left) */}
+        {!batchMode&&used.length>0&&!item.analyzing&&!hov&&<div style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.68)",color:"#fff",fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:20,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3,pointerEvents:"none"}}>
           <Check size={8} strokeWidth={3}/>{used.length}
         </div>}
-        {/* Source badge (always visible, normal mode only) */}
-        {item.source&&!hov&&!batchMode&&<div style={{position:"absolute",bottom:8,left:8}}><SrcBadge source={item.source}/></div>}
+        {/* Bottom-left metadata row: source + type + resolution */}
+        {!batchMode&&!item.analyzing&&!hov&&(
+          <div style={{position:"absolute",bottom:8,left:8,display:"flex",gap:4,alignItems:"center",pointerEvents:"none",flexWrap:"nowrap"}}>
+            {item.source&&<SrcBadge source={item.source}/>}
+            <div style={{background:"rgba(0,0,0,.58)",color:"#fff",fontSize:8.5,fontWeight:800,padding:"2px 6px",borderRadius:10,backdropFilter:"blur(4px)",letterSpacing:".04em"}}>
+              {(item.name?.split(".").pop()||item.type||"").toUpperCase().slice(0,4)||item.type?.toUpperCase()}
+            </div>
+            {item.width>0&&item.height>0&&<div style={{background:"rgba(0,0,0,.45)",color:"rgba(255,255,255,.8)",fontSize:8,fontWeight:700,padding:"2px 6px",borderRadius:10,backdropFilter:"blur(4px)"}}>
+              {item.width}×{item.height}
+            </div>}
+          </div>
+        )}
       </div>
     );
   };

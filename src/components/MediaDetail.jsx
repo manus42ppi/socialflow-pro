@@ -11,7 +11,8 @@ export default function MediaDetail({item,onSave,onClose}){
   const [fp,setFp]=useState(item.focusPoint||{x:50,y:50});
   const [fmode,setFmode]=useState(false);
   const [aiLd,setAiLd]=useState(false);
-  const [aiData,setAiData]=useState(null);
+  const [aiData,setAiData]=useState(item.aiAnalysis||null);
+  const [aiFailed,setAiFailed]=useState(false);
   const [activeTab,setActiveTab]=useState("meta"); // "meta"|"score"|"platforms"
   const imgRef=useRef();
 
@@ -24,22 +25,22 @@ export default function MediaDetail({item,onSave,onClose}){
   const runAI=async()=>{
     if(!form.url||form.type==="video")return;
     setAiLd(true);
+    setAiFailed(false);
     try{
       const r=await AI.analyzeImg(form.url);
       setAiData(r);
-      // Auto-fill fields from AI analysis
       setForm(f=>({
         ...f,
         tags: r.tags?.join(", ")||f.tags,
         description: r.description||f.description,
         altText: r.suggestedAlt||f.altText,
         mood: r.mood||f.mood,
+        aiAnalysis: r,
       }));
-      // Auto-set AI-suggested focal point
       if(r.focalPoint){
         setFp({x:r.focalPoint.x, y:r.focalPoint.y});
       }
-    }catch(e){console.error(e);}
+    }catch(e){console.error(e); setAiFailed(true);}
     setAiLd(false);
   };
 
@@ -98,6 +99,12 @@ export default function MediaDetail({item,onSave,onClose}){
                   {aiLd?<><Sp/>Analysiere Bild…</>:<><Sparkles size={13} strokeWidth={2}/>KI-Vollanalyse</>}
                 </Btn>
               )}
+              {aiFailed&&!aiLd&&(
+                <div style={{fontSize:10.5,color:"#C4511E",background:"#FFF0E6",borderRadius:7,
+                  border:"1px solid #FDDCB5",padding:"5px 9px",lineHeight:1.4}}>
+                  ⚠️ KI nicht verfügbar (nur auf der Live-Site)
+                </div>
+              )}
 
               {/* AI subjects detected */}
               {aiData?.subjects?.length>0&&(
@@ -143,6 +150,21 @@ export default function MediaDetail({item,onSave,onClose}){
               {/* ── META TAB ── */}
               {activeTab==="meta"&&<>
                 <TIn label="Dateiname" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
+                {/* File info row: type, extension, resolution, size */}
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",padding:"8px 10px",
+                  background:C.bg,borderRadius:8,border:`1px solid ${C.border}`}}>
+                  <span style={{fontSize:10.5,fontWeight:700,color:C.textMid,background:C.borderLight,
+                    padding:"2px 8px",borderRadius:10,textTransform:"uppercase"}}>{form.type}</span>
+                  {form.name&&<span style={{fontSize:10.5,color:C.textSoft}}>
+                    {form.name.split(".").pop().toUpperCase()}
+                  </span>}
+                  {form.width>0&&form.height>0&&<span style={{fontSize:10.5,color:C.textSoft,fontWeight:600}}>
+                    {form.width} × {form.height} px
+                  </span>}
+                  {form.size>0&&<span style={{fontSize:10.5,color:C.textSoft}}>
+                    {form.size>=1048576?`${(form.size/1048576).toFixed(1)} MB`:`${Math.round(form.size/1024)} KB`}
+                  </span>}
+                </div>
                 <TIn label="Beschreibung" icon={FileText} textarea value={form.description||""} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Was zeigt dieses Medium?"/>
                 <TIn label="Alt-Text (Barrierefreiheit)" value={form.altText||""} onChange={e=>setForm({...form,altText:e.target.value})} placeholder="Beschreibung für Screenreader"/>
                 <TIn label="Tags (kommagetrennt)" icon={Tag} value={form.tags||""} onChange={e=>setForm({...form,tags:e.target.value})} placeholder="produkt, team, outdoor…"/>

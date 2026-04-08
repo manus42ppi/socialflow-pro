@@ -146,7 +146,9 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!mediaLoaded.current) return;
-    const index = items.map(({ url, analyzing, ...rest }) => rest);
+    const index = items
+      .filter(i => !i.analyzing)
+      .map(({ url, analyzing, aiError, ...rest }) => rest);
     storeSet("media:index", index);
     items.filter(i => !i.analyzing && i.url).forEach(i =>
       storeSet(`media:img:${i.id}`, { url: i.url })
