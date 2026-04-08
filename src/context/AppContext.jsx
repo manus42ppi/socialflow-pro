@@ -214,6 +214,18 @@ export function AppProvider({ children }) {
     );
     setEdStory(null);
   };
+  // updateStory: persist without closing the editor
+  const updateStory = s => {
+    setStories(prev =>
+      prev.find(x => x.id === s.id) ? prev.map(x => x.id === s.id ? s : x) : [...prev, s]
+    );
+  };
+  const lockStory = (storyId, lockData) => {
+    setStories(prev => prev.map(s => s.id === storyId ? { ...s, lockedBy: lockData } : s));
+  };
+  const unlockStory = (storyId) => {
+    setStories(prev => prev.map(s => s.id === storyId ? { ...s, lockedBy: null } : s));
+  };
   const delStory = id => setStories(prev => prev.filter(s => s.id !== id));
   const newStory = () => setEdStory({
     id: null, title: "", subtitle: "", coverMediaId: null,
@@ -222,6 +234,7 @@ export function AppProvider({ children }) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     tags: "",
+    lockedBy: null, comments: [], history: [],
   });
 
   // ── Media actions ─────────────────────────────────────────────────────────
@@ -288,6 +301,9 @@ export function AppProvider({ children }) {
     edStory,
     setEdStory,
     saveStory,
+    updateStory,
+    lockStory,
+    unlockStory,
     delStory,
     newStory,
     detailPost,

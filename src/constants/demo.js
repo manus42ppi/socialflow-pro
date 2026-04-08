@@ -107,6 +107,7 @@ export const DEMO_STORIES = [
     tags:"social media, kommunikation, digital",
     createdAt:"2024-03-15",
     updatedAt:"2024-03-15",
+    lockedBy:null, comments:[], history:[],
   },
   {
     id:"story-2",
@@ -125,5 +126,6 @@ export const DEMO_STORIES = [
     tags:"mode, frühling, kollektion",
     createdAt:"2024-04-01",
     updatedAt:"2024-04-01",
+    lockedBy:null, comments:[], history:[],
   },
 ];

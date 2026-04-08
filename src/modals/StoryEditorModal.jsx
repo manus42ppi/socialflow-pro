@@ -394,8 +394,11 @@ function DerivativeRow({ channel, derivative, onCreate, hasContent, loading }) {
 
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function StoryEditorModal() {
-  const { edStory: story, items, posts, saveStory: onSave, setEdStory, setPosts } = useApp();
-  const onClose = () => setEdStory(null);
+  const { edStory: story, items, posts, saveStory: onSave, updateStory, lockStory, unlockStory, setEdStory, setPosts, user } = useApp();
+  const onClose = () => {
+    if (story.id) unlockStory(story.id);
+    setEdStory(null);
+  };
 
   const initialBlocks = useMemo(() => {
     if (story.blocks?.length) return story.blocks;
@@ -412,9 +415,13 @@ export default function StoryEditorModal() {
     status: story.status || "idea",
     tags: story.tags || "",
     category: story.category || "",
+    comments: story.comments || [],
+    history: story.history || [],
   });
 
   const [rightTab, setRightTab] = useState("materials");
+  const [commentInput, setCommentInput] = useState("");
+  const [lastSaved, setLastSaved] = useState(null);
   const [linkInput, setLinkInput] = useState("");
   const [linkTitle, setLinkTitle] = useState("");
   const [noteInput, setNoteInput] = useState("");
@@ -445,6 +452,23 @@ export default function StoryEditorModal() {
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
   const hasContent = wordCount > 5;
 
+  // ── Concurrent edit lock ─────────────────────────────────────────────────
+  // Check if another user has this story open (lock expires after 30 min)
+  const lockedByOther = useMemo(() => {
+    const lb = story.lockedBy;
+    if (!lb || lb.userId === user?.id) return null;
+    const age = Date.now() - new Date(lb.since).getTime();
+    if (age > 30 * 60 * 1000) return null; // expired
+    return lb;
+  }, [story.lockedBy, user?.id]);
+
+  // Acquire lock on mount, release on unmount
+  useEffect(() => {
+    if (!story.id || !user) return;
+    lockStory(story.id, { userId: user.id, userName: user.name, since: new Date().toISOString() });
+    return () => { unlockStory(story.id); };
+  }, [story.id, user?.id]); // eslint-disable-line
+
   // ── Auto-save ─────────────────────────────────────────────────────────────
   useEffect(() => {
     clearTimeout(asRef.current);
@@ -466,13 +490,35 @@ export default function StoryEditorModal() {
     const text = blocksToText(editor.document || []);
     const wc = text.trim().split(/\s+/).filter(Boolean).length;
     setWordCount(wc);
+    const historyEntry = {
+      id: uid(), savedAt: new Date().toISOString(),
+      savedBy: user?.name || "Unbekannt", wordCount: wc, title: f.title,
+    };
+    const newHistory = [...(f.history || []), historyEntry].slice(-20);
+    setForm(prev => ({ ...prev, history: newHistory }));
+    setLastSaved(new Date());
     onSave({
       ...f,
       id: f.id || uid(),
       status: status || f.status,
       blocks: editor.document,
       updatedAt: new Date().toISOString(),
+      history: newHistory,
     });
+  };
+
+  // ── Comment actions ───────────────────────────────────────────────────────
+  const addComment = () => {
+    const text = commentInput.trim();
+    if (!text) return;
+    const comment = { id: uid(), text, authorId: user?.id, authorName: user?.name || "Ich",
+      createdAt: new Date().toISOString(), resolved: false };
+    setForm(f => ({ ...f, comments: [...(f.comments || []), comment] }));
+    setCommentInput("");
+  };
+
+  const resolveComment = (id) => {
+    setForm(f => ({ ...f, comments: f.comments.map(c => c.id === id ? { ...c, resolved: true } : c) }));
   };
 
   const addLink = () => {
@@ -641,11 +687,15 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           }}>
             {currentStatus.icon} {currentStatus.label}
           </span>
-          {autoSaved && (
+          {lastSaved ? (
+            <span style={{ fontSize: 10, color: C.success, fontFamily: FONT, display: "flex", alignItems: "center", gap: 3 }}>
+              <Check size={9} strokeWidth={3}/> Gespeichert {lastSaved.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}
+            </span>
+          ) : autoSaved ? (
             <span style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>
               · Auto-gespeichert {autoSaved}
             </span>
-          )}
+          ) : null}
 
           <div style={{ flex: 1 }} />
 
@@ -674,6 +724,19 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             <X size={20} strokeWidth={2} />
           </button>
         </div>
+
+        {/* ── LOCK WARNING BANNER ───────────────────────────────────────── */}
+        {lockedByOther && (
+          <div style={{
+            background: "#FFF9C4", borderBottom: `1px solid #F6E05E`,
+            padding: "8px 20px", display: "flex", alignItems: "center", gap: 8,
+            fontSize: 12, fontFamily: FONT, color: "#744210", flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 14 }}>⚠️</span>
+            <strong>{lockedByOther.userName}</strong> bearbeitet gerade diese Story.
+            Du kannst sie nur lesen, bis sie den Editor schließt.
+          </div>
+        )}
 
         {/* ── BODY ──────────────────────────────────────────────────────── */}
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
@@ -816,24 +879,26 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             {/* Tab bar */}
             <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
               {[
-                ["materials", "Materialien", form.materials.length],
-                ["derivatives", "Ableitungen", form.derivatives.length],
+                ["materials", "Material", form.materials.length],
+                ["derivatives", "Ableit.", form.derivatives.length],
+                ["comments", "Komm.", (form.comments||[]).filter(c=>!c.resolved).length],
+                ["history", "Verlauf", 0],
               ].map(([id, label, count]) => (
                 <button key={id} onClick={() => setRightTab(id)}
                   style={{
-                    flex: 1, padding: "12px 8px", border: "none", cursor: "pointer",
+                    flex: 1, padding: "10px 4px", border: "none", cursor: "pointer",
                     background: rightTab === id ? C.bg : "transparent",
                     borderBottom: rightTab === id ? `2px solid ${C.accent}` : "2px solid transparent",
                     color: rightTab === id ? C.accent : C.textMid,
-                    fontFamily: FONT, fontSize: 12, fontWeight: 700,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    fontFamily: FONT, fontSize: 11, fontWeight: 700,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
                   }}>
                   {label}
                   {count > 0 && (
                     <span style={{
                       background: rightTab === id ? C.accent : C.border,
                       color: rightTab === id ? "#fff" : C.textMid,
-                      borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 6px",
+                      borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px",
                     }}>{count}</span>
                   )}
                 </button>
@@ -957,6 +1022,74 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                     <p style={{ margin: "8px 0 0", fontSize: 10, color: C.textMute, fontFamily: FONT, textAlign: "center" }}>
                       Wähle Ziel-Kanäle links um die Auswahl einzugrenzen.
                     </p>
+                  )}
+                </div>
+              )}
+
+              {/* ── KOMMENTARE TAB ────────────────────────────────────── */}
+              {rightTab === "comments" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {/* Input */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <textarea
+                      value={commentInput}
+                      onChange={e => setCommentInput(e.target.value)}
+                      onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); addComment(); } }}
+                      placeholder="Kommentar schreiben… (Cmd+Enter senden)"
+                      rows={3}
+                      style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", color: C.text }}
+                    />
+                    <button onClick={addComment} disabled={!commentInput.trim()}
+                      style={{ alignSelf: "flex-end", background: commentInput.trim() ? C.accent : C.border, border: "none", borderRadius: 6, color: "#fff", fontSize: 11, fontWeight: 700, padding: "5px 12px", cursor: commentInput.trim() ? "pointer" : "default", fontFamily: FONT }}>
+                      Senden
+                    </button>
+                  </div>
+                  {/* Comment list */}
+                  {(form.comments || []).length === 0 ? (
+                    <p style={{ color: C.textMute, fontSize: 12, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Noch keine Kommentare.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {[...(form.comments || [])].reverse().map(c => (
+                        <div key={c.id} style={{ background: c.resolved ? C.borderLight : C.bg, borderRadius: 8, padding: "8px 10px", opacity: c.resolved ? 0.5 : 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.accent, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              {(c.authorName || "?").slice(0, 2).toUpperCase()}
+                            </div>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT }}>{c.authorName}</span>
+                            <span style={{ fontSize: 10, color: C.textMute, fontFamily: FONT, marginLeft: "auto" }}>
+                              {new Date(c.createdAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                          <p style={{ margin: "0 0 6px", fontSize: 12, color: C.text, fontFamily: FONT, lineHeight: 1.5 }}>{c.text}</p>
+                          {!c.resolved && (
+                            <button onClick={() => resolveComment(c.id)}
+                              style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, color: C.textMute, fontSize: 10, fontWeight: 600, padding: "2px 8px", cursor: "pointer", fontFamily: FONT }}>
+                              Erledigt
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── VERLAUF TAB ───────────────────────────────────────── */}
+              {rightTab === "history" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {(form.history || []).length === 0 ? (
+                    <p style={{ color: C.textMute, fontSize: 12, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Noch keine gespeicherten Versionen.</p>
+                  ) : (
+                    [...(form.history || [])].reverse().map((h, i) => (
+                      <div key={h.id} style={{ background: i === 0 ? C.accentLight : C.bg, borderRadius: 8, padding: "8px 10px", border: `1px solid ${i === 0 ? C.accent + "33" : C.border}` }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: i === 0 ? C.accent : C.text, fontFamily: FONT }}>
+                          {new Date(h.savedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short" })} · {new Date(h.savedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.textMute, fontFamily: FONT, marginTop: 2 }}>
+                          {h.savedBy} · {h.wordCount} Wörter
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               )}
