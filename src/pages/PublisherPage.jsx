@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Send, Plus, ArrowUpDown, Clock, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
+import { Send, Plus, Clock, RefreshCw, AlertCircle, CheckCircle, ChevronDown } from "lucide-react";
 import { C, T, FONT, IW } from "../constants/colors.js";
 import { CHANNELS, ROLES } from "../constants/demo.js";
 import { Btn, SBadge } from "../components/ui/index.jsx";
@@ -140,7 +140,7 @@ export default function PublisherPage() {
   const [originFilt, setOriginFilt] = useState("all"); // "all" | "direct" | "derived"
 
   const [view, setView] = useState("grid");
-  const [sort, setSort] = useState("date_asc");
+  const [sort, setSort] = useState("modified");
   const [syncState, setSyncState] = useState(null); // null | "loading" | "ok" | "error"
   const [syncMsg, setSyncMsg] = useState("");
   const can = p => ROLES[role]?.can.includes(p);
@@ -195,7 +195,11 @@ export default function PublisherPage() {
 
   const ST_ORDER = { scheduled: 0, pending: 1, draft: 2, published: 3 };
   const shown = [...filtered].sort((a, b) => {
-    if (sort === "date_asc") { const da = a.scheduledDate || "9999-99-99", db = b.scheduledDate || "9999-99-99"; return da < db ? -1 : da > db ? 1 : 0; }
+    if (sort === "modified") {
+      const da = a.updatedAt || a.id || ""; const db = b.updatedAt || b.id || "";
+      return da > db ? -1 : da < db ? 1 : 0;
+    }
+    if (sort === "date_asc")  { const da = a.scheduledDate || "9999-99-99", db = b.scheduledDate || "9999-99-99"; return da < db ? -1 : da > db ? 1 : 0; }
     if (sort === "date_desc") { const da = a.scheduledDate || "0000-00-00", db = b.scheduledDate || "0000-00-00"; return da > db ? -1 : da < db ? 1 : 0; }
     if (sort === "status") return (ST_ORDER[a.status] ?? 9) - (ST_ORDER[b.status] ?? 9);
     if (sort === "title") return (a.title || "").localeCompare(b.title || "", "de");
@@ -209,95 +213,100 @@ export default function PublisherPage() {
     <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
 
       {/* ── Toolbar ── */}
-      <div style={{ padding: "10px 20px", borderBottom: `1px solid ${C.border}`, background: C.surface, display: "flex", gap: 8, alignItems: "center", flexShrink: 0, flexWrap: "wrap", rowGap: 8 }}>
+      <div style={{ padding: "0 20px", borderBottom: `1px solid ${C.border}`, background: C.surface, display: "flex", gap: 0, alignItems: "center", flexShrink: 0, height: 48 }}>
 
-        {/* View toggle — hidden in published timeline view */}
+        {/* View toggle */}
         {!isPublishedView && (
-          <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
-            {[["grid", "⊞ Grid"], ["board", "⊟ Board"]].map(([v, l]) => (
-              <button key={v} onClick={() => setView(v)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: view === v ? C.surface : "transparent", color: view === v ? C.text : C.textSoft, fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: FONT, boxShadow: view === v ? "0 1px 3px rgba(0,0,0,.07)" : "none" }}>{l}</button>
-            ))}
-          </div>
+          <>
+            <div style={{ display: "flex", gap: 1 }}>
+              {[["grid", "Grid"], ["board", "Board"]].map(([v, l]) => (
+                <button key={v} onClick={() => setView(v)} style={{
+                  padding: "0 14px", height: 48, border: "none", borderBottom: `2px solid ${view === v ? C.accent : "transparent"}`,
+                  background: "transparent", color: view === v ? C.accent : C.textSoft,
+                  fontWeight: view === v ? 700 : 500, fontSize: 13, cursor: "pointer", fontFamily: FONT,
+                  transition: "all .12s",
+                }}>{l}</button>
+              ))}
+            </div>
+            <div style={{ width: 1, height: 24, background: C.border, margin: "0 14px", flexShrink: 0 }} />
+          </>
         )}
 
-        {(view === "grid" || isPublishedView) && <>
-          {!isPublishedView && <div style={{ width: 1, height: 20, background: C.border, flexShrink: 0 }} />}
+        {/* Status filter — segment style */}
+        <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
+          {[
+            ["all",       "Alle",           null,      livePosts.length],
+            ["draft",     "Entwürfe",       "#F59E0B", cnt("draft")],
+            ["pending",   "Freigabe",       "#2563EB", cnt("pending")],
+            ["scheduled", "Geplant",        "#10B981", cnt("scheduled")],
+            ["published", "Veröffentlicht", C.accent,  cnt("published")],
+          ].map(([v, l, dotColor, c]) => {
+            const on = filt === v;
+            return (
+              <button key={v} onClick={() => setFilt(v)} style={{
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "5px 11px", borderRadius: 6, border: "none",
+                background: on ? C.surface : "transparent",
+                color: on ? C.text : C.textSoft,
+                fontWeight: on ? 700 : 500, fontSize: 12,
+                cursor: "pointer", fontFamily: FONT,
+                boxShadow: on ? "0 1px 3px rgba(0,0,0,.07)" : "none",
+                transition: "all .1s", whiteSpace: "nowrap",
+              }}>
+                {dotColor && <span style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />}
+                {l}
+                <span style={{ fontSize: 10.5, fontWeight: 600, opacity: .6 }}>{c}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          {/* Status filter */}
-          <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
-            {[
-              ["all",       "Alle",          null,    livePosts.length],
-              ["draft",     "Entwürfe",      "#F59E0B", cnt("draft")],
-              ["pending",   "Freigabe",      "#175CD3", cnt("pending")],
-              ["scheduled", "Geplant",       "#027A48", cnt("scheduled")],
-              ["published", "Veröffentlicht", C.accent, cnt("published")],
-            ].map(([v, l, color, c]) => {
-              const on = filt === v;
+        {!isPublishedView && <>
+          <div style={{ width: 1, height: 24, background: C.border, margin: "0 14px", flexShrink: 0 }} />
+
+          {/* Channel filter — compact pills with icon + label */}
+          <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+            {["all", ...usedChs].map(cid => {
+              const ch = CHANNELS.find(x => x.id === cid);
+              const active = chFilt === cid;
               return (
-                <button key={v} onClick={() => setFilt(v)} style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "5px 10px", borderRadius: 6, border: "none",
-                  background: on ? (color ? color : C.surface) : "transparent",
-                  color: on ? (color ? "#fff" : C.text) : C.textSoft,
-                  fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: FONT, transition: "all .1s",
+                <button key={cid} onClick={() => setChFilt(cid)} style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  padding: "4px 10px", borderRadius: 6, border: "none",
+                  background: active ? C.text : "transparent",
+                  color: active ? "#fff" : C.textSoft,
+                  fontWeight: active ? 700 : 500, fontSize: 12,
+                  cursor: "pointer", fontFamily: FONT, transition: "all .12s",
                 }}>
-                  {l}{" "}<span style={{ opacity: on ? .75 : .6, fontWeight: 500 }}>{c}</span>
+                  {cid !== "all" && <ChIco id={cid} size={11} color={active ? "#fff" : C.textMute} />}
+                  {cid === "all" ? "Alle" : ch?.label}
                 </button>
               );
             })}
           </div>
-
-          {!isPublishedView && <>
-            <div style={{ width: 1, height: 20, background: C.border, flexShrink: 0 }} />
-
-            {/* Channel filter pills */}
-            <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-              {["all", ...usedChs].map(cid => {
-                const ch = CHANNELS.find(x => x.id === cid);
-                const active = chFilt === cid;
-                return (
-                  <button key={cid} onClick={() => setChFilt(cid)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 11px", borderRadius: 20, border: "none", background: active ? C.text : C.borderLight, color: active ? C.surface : C.textSoft, fontWeight: 600, fontSize: 11.5, cursor: "pointer", fontFamily: FONT, transition: "all .12s", lineHeight: 1 }}>
-                    {cid === "all" ? <>Alle Kanäle</> : <><ChIco id={cid} size={11} color={active ? "#fff" : C.textMute} />{ch?.label}</>}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ width: 1, height: 20, background: C.border, flexShrink: 0 }} />
-
-            {/* Origin filter: direct vs story-derived */}
-            <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
-              {[
-                ["all",     "Alle"],
-                ["direct",  "Direktpost"],
-                ["derived", "Story-Ableitung"],
-              ].map(([v, l]) => (
-                <button key={v} onClick={() => setOriginFilt(v)} style={{
-                  padding: "5px 10px", borderRadius: 6, border: "none",
-                  background: originFilt === v ? C.surface : "transparent",
-                  color: originFilt === v ? C.text : C.textSoft,
-                  fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: FONT,
-                  boxShadow: originFilt === v ? "0 1px 3px rgba(0,0,0,.07)" : "none",
-                }}>{l}</button>
-              ))}
-            </div>
-
-            <div style={{ width: 1, height: 20, background: C.border, flexShrink: 0 }} />
-
-            {/* Sort */}
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <ArrowUpDown size={13} strokeWidth={2} color={C.textMute} />
-              <select value={sort} onChange={e => setSort(e.target.value)} style={{ border: "none", background: "transparent", fontSize: 12, color: C.textSoft, fontWeight: 600, cursor: "pointer", fontFamily: FONT, outline: "none" }}>
-                <option value="date_asc">Datum ↑</option>
-                <option value="date_desc">Datum ↓</option>
-                <option value="status">Status</option>
-                <option value="title">Titel A–Z</option>
-              </select>
-            </div>
-          </>}
         </>}
 
         <div style={{ flex: 1 }} />
+
+        {/* Sort — right side, compact */}
+        {!isPublishedView && (
+          <div style={{ display: "flex", alignItems: "center", gap: 3, marginRight: 10 }}>
+            <select value={sort} onChange={e => setSort(e.target.value)} style={{
+              border: `1px solid ${C.border}`, borderRadius: 7, background: C.surface,
+              padding: "5px 28px 5px 10px", fontSize: 12, color: C.textMid,
+              fontWeight: 500, cursor: "pointer", fontFamily: FONT, outline: "none",
+              appearance: "none", WebkitAppearance: "none",
+            }}>
+              <option value="modified">Zuletzt geändert</option>
+              <option value="date_asc">Datum ↑</option>
+              <option value="date_desc">Datum ↓</option>
+              <option value="status">Status</option>
+              <option value="title">Titel A–Z</option>
+            </select>
+            <ChevronDown size={12} strokeWidth={2} color={C.textMute} style={{ marginLeft: -22, pointerEvents: "none" }} />
+          </div>
+        )}
+
         {can("write") && <Btn onClick={onNew}><Plus size={14} strokeWidth={2.5} />Neuer Post</Btn>}
       </div>
 

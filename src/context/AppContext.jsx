@@ -187,13 +187,15 @@ export function AppProvider({ children }) {
 
   // ── Post actions ──────────────────────────────────────────────────────────
   const save = p => {
+    const saved = { ...p, updatedAt: new Date().toISOString() };
     setPosts(prev =>
-      prev.find(x => x.id === p.id) ? prev.map(x => x.id === p.id ? p : x) : [...prev, p]
+      prev.find(x => x.id === saved.id) ? prev.map(x => x.id === saved.id ? saved : x) : [...prev, saved]
     );
     setEdPost(null);
   };
   const saveSch = p => {
-    setPosts(prev => prev.map(x => x.id === p.id ? p : x));
+    const saved = { ...p, updatedAt: new Date().toISOString() };
+    setPosts(prev => prev.map(x => x.id === saved.id ? saved : x));
     setSchPost(null);
   };
   const del = id => setPosts(prev => prev.map(p => p.id === id ? { ...p, deleted: true } : p));
