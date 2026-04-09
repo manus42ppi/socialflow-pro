@@ -60,24 +60,49 @@ function StatusBadge({ status }) {
   );
 }
 
-// ── Story list row ───────────────────────────────────────────────────────────
+// Column layout: title(1fr) | status(110px) | channels(150px) | derivatives(90px) | words(80px) | date(76px) | actions(72px)
+const COL = "1fr 110px 150px 90px 80px 76px 72px";
+
+// ── Table header ─────────────────────────────────────────────────────────────
+function TableHeader() {
+  const cell = (label, align = "left") => (
+    <div style={{ fontSize: 10.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", textAlign: align, fontFamily: FONT }}>
+      {label}
+    </div>
+  );
+  return (
+    <div style={{
+      display: "grid", gridTemplateColumns: COL,
+      padding: "0 16px 0 20px", gap: 12, alignItems: "center",
+      height: 34, borderBottom: `1px solid ${C.border}`,
+      background: C.bg,
+    }}>
+      {cell("Titel")}
+      {cell("Status")}
+      {cell("Kanäle")}
+      {cell("Ableitungen", "center")}
+      {cell("Wörter", "center")}
+      {cell("Datum", "center")}
+      <div />
+    </div>
+  );
+}
+
+// ── Story table row ───────────────────────────────────────────────────────────
 function StoryRow({ story, onEdit, onDelete, posts, onOpenPost }) {
   const [hover, setHover] = useState(false);
-  const status  = STATUSES.find(s => s.id === story.status) || STATUSES[0];
-  const catColor = CAT_COLOR[story.category] || C.textMid;
+  const status    = STATUSES.find(s => s.id === story.status) || STATUSES[0];
+  const catColor  = CAT_COLOR[story.category] || C.textMid;
   const wordCount = useMemo(() => countWords(story.blocks), [story.blocks]);
-  const preview   = useMemo(() => extractPreview(story.blocks), [story.blocks]);
-  const derivCount  = story.derivatives?.length || 0;
-  const linkCount   = (story.materials || []).filter(m => m.type === "link").length;
-  const noteCount   = (story.materials || []).filter(m => m.type === "note").length;
-  const targetChs   = (story.targetChannels || []).map(id => STORY_CHANNELS.find(c => c.id === id)).filter(Boolean);
-  const derivedChs  = (story.derivatives || [])
+  const preview   = useMemo(() => extractPreview(story.blocks, 100), [story.blocks]);
+  const derivCount = story.derivatives?.length || 0;
+  const targetChs  = (story.targetChannels || []).map(id => STORY_CHANNELS.find(c => c.id === id)).filter(Boolean);
+  const derivedChs = (story.derivatives || [])
     .map(d => ({ ...d, ch: STORY_CHANNELS.find(c => c.id === d.channel), post: posts?.find(p => p.id === d.postId && !p.deleted) }))
     .filter(d => d.ch);
-
   const updatedLabel = story.updatedAt
     ? new Date(story.updatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short" })
-    : null;
+    : "–";
 
   return (
     <div
@@ -85,144 +110,99 @@ function StoryRow({ story, onEdit, onDelete, posts, onOpenPost }) {
       onMouseLeave={() => setHover(false)}
       onClick={() => onEdit(story)}
       style={{
-        display: "flex", alignItems: "stretch",
-        background: C.surface,
-        border: `1px solid ${hover ? C.accent + "44" : C.border}`,
-        borderRadius: 10, overflow: "hidden", cursor: "pointer",
-        transition: "box-shadow .15s, border-color .15s",
-        boxShadow: hover ? T.shadowSm : "none",
+        display: "grid", gridTemplateColumns: COL, gap: 12,
+        alignItems: "center", padding: "0 16px 0 0",
+        background: hover ? T.brand25 : C.surface,
+        borderBottom: `1px solid ${C.borderLight}`,
+        cursor: "pointer", transition: "background .1s",
+        minHeight: 60,
       }}
     >
-      {/* Status stripe */}
-      <div style={{ width: 4, flexShrink: 0, background: status.color }} />
-
-      {/* Main content */}
-      <div style={{ flex: 1, padding: "14px 18px", minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          {/* Left: text */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Category + title row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-              {story.category && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 4,
-                  background: catColor + "14", color: catColor, fontFamily: FONT,
-                }}>
-                  {story.category}
-                </span>
-              )}
-              <h3 style={{
-                margin: 0, fontFamily: FONT, fontWeight: 700,
-                fontSize: 14, color: C.text, lineHeight: 1.4,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                flex: 1, minWidth: 0,
-              }}>
-                {story.title || "Kein Titel"}
-              </h3>
-            </div>
-
-            {/* Subtitle or preview text */}
-            {(story.subtitle || preview) && (
-              <p style={{
-                margin: "0 0 10px", fontSize: 12.5, color: C.textSoft, fontFamily: FONT, lineHeight: 1.55,
-                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-              }}>
-                {story.subtitle || preview}
-              </p>
-            )}
-
-            {/* Meta row */}
-            <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-              {/* Word count */}
-              <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.textMute, fontFamily: FONT }}>
-                <BookOpen size={11} strokeWidth={IW} />
-                {wordCount > 0 ? `${wordCount} Wörter` : "Leer"}
+      {/* ── Col 1: Status stripe + Title + preview ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 0, minWidth: 0 }}>
+        {/* Status color stripe */}
+        <div style={{ width: 3, alignSelf: "stretch", background: status.color, flexShrink: 0, borderRadius: "2px 0 0 2px" }} />
+        <div style={{ padding: "12px 12px 12px 14px", minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+            {story.category && (
+              <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: catColor + "14", color: catColor, fontFamily: FONT, flexShrink: 0 }}>
+                {story.category}
               </span>
-
-              {/* Materials */}
-              {linkCount > 0 && (
-                <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: C.textMute }}>
-                  <LinkIcon size={11} strokeWidth={IW} /> {linkCount} Link{linkCount !== 1 ? "s" : ""}
-                </span>
-              )}
-              {noteCount > 0 && (
-                <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: C.textMute }}>
-                  <StickyNote size={11} strokeWidth={IW} /> {noteCount}
-                </span>
-              )}
-
-              {/* Derivatives */}
-              {derivCount > 0 && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.accent, fontWeight: 600 }}>
-                  <Layers size={11} strokeWidth={IW} />
-                  {derivCount} Ableit{derivCount !== 1 ? "ungen" : "ung"}
-                </span>
-              )}
-
-              {/* Date */}
-              {updatedLabel && (
-                <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: C.textMute }}>
-                  <Clock size={10} strokeWidth={IW} /> {updatedLabel}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Right: status + channels + actions */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
-            <StatusBadge status={story.status} />
-
-            {/* Target channels */}
-            {targetChs.length > 0 && (
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {targetChs.map(ch => (
-                  <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 5, border: `1px solid ${ch.color}30`, background: ch.color + "0c" }}>
-                    <ChIco id={ch.id} size={10} color={ch.color} />
-                    <span style={{ fontSize: 10, color: ch.color, fontWeight: 600, fontFamily: FONT }}>{ch.label}</span>
-                  </div>
-                ))}
-              </div>
             )}
-
-            {/* Derived channel pills */}
-            {derivedChs.length > 0 && (
-              <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {derivedChs.map(d => (
-                  <div key={d.id}
-                    onClick={e => { e.stopPropagation(); if (d.post) onOpenPost(d.post); }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 3, padding: "2px 6px",
-                      borderRadius: 5, background: C.success + "12", border: `1px solid ${C.success}30`,
-                      cursor: d.post ? "pointer" : "default", opacity: d.post ? 1 : 0.5,
-                    }}>
-                    <ChIco id={d.ch.id} size={9} color={C.success} />
-                    <span style={{ fontSize: 9.5, color: C.success, fontWeight: 700, fontFamily: FONT }}>{d.ch.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div style={{ display: "flex", gap: 4, opacity: hover ? 1 : 0, transition: "opacity .12s" }}>
-              <button
-                onClick={e => { e.stopPropagation(); onEdit(story); }}
-                style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textSoft, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "55"; e.currentTarget.style.color = C.accent; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSoft; }}
-              >
-                <Edit2 size={11} strokeWidth={IW} /> Öffnen
-              </button>
-              <button
-                onClick={e => { e.stopPropagation(); if (window.confirm("Story löschen?")) onDelete(story.id); }}
-                style={{ display: "flex", alignItems: "center", padding: "4px 7px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textMute, cursor: "pointer" }}
-                onMouseEnter={e => { e.currentTarget.style.color = "#e53e3e"; e.currentTarget.style.borderColor = "#e53e3e44"; }}
-                onMouseLeave={e => { e.currentTarget.style.color = C.textMute; e.currentTarget.style.borderColor = C.border; }}
-              >
-                <Trash2 size={11} strokeWidth={IW} />
-              </button>
-            </div>
+            <span style={{ fontWeight: 700, fontSize: 13, color: C.text, fontFamily: FONT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {story.title || "Kein Titel"}
+            </span>
           </div>
+          {(story.subtitle || preview) && (
+            <div style={{ fontSize: 11.5, color: C.textSoft, fontFamily: FONT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {story.subtitle || preview}
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* ── Col 2: Status badge ── */}
+      <div><StatusBadge status={story.status} /></div>
+
+      {/* ── Col 3: Target channels ── */}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+        {targetChs.length > 0 ? targetChs.map(ch => (
+          <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, border: `1px solid ${ch.color}28`, background: ch.color + "0c" }}>
+            <ChIco id={ch.id} size={10} color={ch.color} />
+            <span style={{ fontSize: 10, color: ch.color, fontWeight: 600, fontFamily: FONT }}>{ch.label}</span>
+          </div>
+        )) : <span style={{ fontSize: 11, color: C.textMute, fontFamily: FONT }}>–</span>}
+      </div>
+
+      {/* ── Col 4: Derivatives ── */}
+      <div style={{ textAlign: "center" }}>
+        {derivedChs.length > 0 ? (
+          <div style={{ display: "flex", gap: 3, justifyContent: "center", flexWrap: "wrap" }}>
+            {derivedChs.map(d => (
+              <div key={d.id}
+                onClick={e => { e.stopPropagation(); if (d.post) onOpenPost(d.post); }}
+                style={{ display: "flex", alignItems: "center", gap: 2, padding: "2px 5px", borderRadius: 4, background: C.success + "12", border: `1px solid ${C.success}28`, cursor: d.post ? "pointer" : "default", opacity: d.post ? 1 : 0.5 }}>
+                <ChIco id={d.ch.id} size={9} color={C.success} />
+              </div>
+            ))}
+          </div>
+        ) : derivCount > 0 ? (
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{derivCount}</span>
+        ) : (
+          <span style={{ fontSize: 11, color: C.borderLight }}>–</span>
+        )}
+      </div>
+
+      {/* ── Col 5: Word count ── */}
+      <div style={{ textAlign: "center" }}>
+        <span style={{ fontSize: 12, color: wordCount > 0 ? C.textSoft : C.border, fontFamily: FONT, fontWeight: wordCount > 0 ? 500 : 400 }}>
+          {wordCount > 0 ? wordCount.toLocaleString("de") : "–"}
+        </span>
+      </div>
+
+      {/* ── Col 6: Date ── */}
+      <div style={{ textAlign: "center" }}>
+        <span style={{ fontSize: 11.5, color: C.textMute, fontFamily: FONT }}>{updatedLabel}</span>
+      </div>
+
+      {/* ── Col 7: Actions ── */}
+      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", opacity: hover ? 1 : 0, transition: "opacity .12s" }}>
+        <button
+          onClick={e => { e.stopPropagation(); onEdit(story); }}
+          style={{ display: "flex", alignItems: "center", padding: "5px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textSoft, cursor: "pointer" }}
+          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = C.accent + "44"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = C.textSoft; e.currentTarget.style.borderColor = C.border; }}
+        >
+          <Edit2 size={12} strokeWidth={IW} />
+        </button>
+        <button
+          onClick={e => { e.stopPropagation(); if (window.confirm("Story löschen?")) onDelete(story.id); }}
+          style={{ display: "flex", alignItems: "center", padding: "5px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textMute, cursor: "pointer" }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#e53e3e"; e.currentTarget.style.borderColor = "#e53e3e44"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = C.textMute; e.currentTarget.style.borderColor = C.border; }}
+        >
+          <Trash2 size={12} strokeWidth={IW} />
+        </button>
       </div>
     </div>
   );
@@ -357,8 +337,9 @@ export default function StoriesPage() {
             {!q && filt === "all" && <Btn onClick={onNew}><Plus size={14} strokeWidth={IW} /> Erste Story erstellen</Btn>}
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {filtered.map(story => (
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+            <TableHeader />
+            {filtered.map((story, i) => (
               <StoryRow key={story.id} story={story} onEdit={onEdit} onDelete={onDelete} posts={posts} onOpenPost={setEdPost} />
             ))}
           </div>
