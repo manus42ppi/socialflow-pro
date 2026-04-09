@@ -46,10 +46,11 @@ function AppShell() {
   if (!user) return <Login onLogin={u => setDemoUser(u)} />;
 
   const TITLE = {
-    dashboard: "Dashboard", publisher: "Publisher", drafts: "Entwürfe",
+    dashboard: "Dashboard", publisher: "Publisher",
     trash: "Papierkorb", stories: "Storys", campaigns: "Kampagnen",
     media: "Medienbibliothek", calendar: "Kalender", planner: "Planner",
-    performance: "Performance", admin: "Admin",
+    performance: "Performance", research: "Recherche",
+    monitoring: "Instagram Monitoring", admin: "Admin",
   };
 
   return (
@@ -60,9 +61,9 @@ function AppShell() {
         <TopBar title={TITLE[nav] || "SocialFlow"} />
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
           <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            {nav === "dashboard"                     && <Dashboard />}
-            {(nav === "publisher" || nav === "drafts") && <PublisherPage />}
-            {nav === "trash"                         && <TrashPage />}
+            {nav === "dashboard"   && <Dashboard />}
+            {nav === "publisher"  && <PublisherPage />}
+            {nav === "trash"      && <TrashPage />}
             {nav === "campaigns"                     && <CampaignsPage />}
             {nav === "media"                         && <MediaPage />}
             {nav === "calendar"                      && <CalendarPage />}

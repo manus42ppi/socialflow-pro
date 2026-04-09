@@ -24,7 +24,6 @@ export default function Sidebar() {
   const chCounts  = CHANNELS
     .map(ch => ({ ...ch, n: livePosts.filter(p => p.channels?.includes(ch.id)).length }))
     .filter(c => c.n > 0);
-  const draftsCount = livePosts.filter(p => p.status === "draft").length;
   const trashCount  = posts.filter(p => p.deleted).length;
 
   const [open, setOpen] = useState(() => {
@@ -233,7 +232,7 @@ export default function Sidebar() {
               <div key={id}>
                 <NavBtn
                   id={id} label={label} I={I}
-                  badge={id === "publisher" ? pend : id === "drafts" ? draftsCount : 0}
+                  badge={id === "publisher" ? pend : 0}
                 />
 
                 {/* Channel quick-links unter Publisher (nur aufgeklappt) */}

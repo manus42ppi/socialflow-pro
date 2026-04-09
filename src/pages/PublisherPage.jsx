@@ -135,11 +135,8 @@ function TimelineView({ posts, campaigns, onOpen }) {
 
 // ── Publisher Page ─────────────────────────────────────────────────────────
 export default function PublisherPage() {
-  const { posts, items, campaigns, setEdPost: onEdit, setSchPost: onSched, del: onDel, approve: onApprove, chSt: onStatus, chCamp: onCampaign, newPost: onNew, user, filt: filtCtx, setFilt: setFiltCtx, chFilt, setChFilt, nav, setDetailPost } = useApp();
+  const { posts, items, campaigns, setEdPost: onEdit, setSchPost: onSched, del: onDel, approve: onApprove, chSt: onStatus, chCamp: onCampaign, newPost: onNew, user, filt, setFilt, chFilt, setChFilt, setDetailPost } = useApp();
   const role = user?.role;
-  // In drafts view, enforce filt="draft"
-  const filt = nav === "drafts" ? "draft" : filtCtx;
-  const setFilt = nav === "drafts" ? () => {} : setFiltCtx;
 
   const [view, setView] = useState("grid");
   const [sort, setSort] = useState("date_asc");
@@ -223,16 +220,25 @@ export default function PublisherPage() {
           {/* Status filter */}
           <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
             {[
-              ["all", "Alle", posts.length],
-              ["scheduled", "Geplant", cnt("scheduled")],
-              ["draft", "Entwürfe", cnt("draft")],
-              ["pending", "Freigabe", cnt("pending")],
-              ["published", "Veröffentlicht", cnt("published")],
-            ].map(([v, l, c]) => (
-              <button key={v} onClick={() => setFilt(v)} style={{ padding: "5px 10px", borderRadius: 6, border: "none", background: filt === v ? (v === "published" ? C.accent : C.surface) : "transparent", color: filt === v ? (v === "published" ? "#fff" : C.text) : C.textSoft, fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: FONT, transition: "all .1s" }}>
-                {l}{" "}<span style={{ opacity: .6, fontWeight: 500 }}>{c}</span>
-              </button>
-            ))}
+              ["all",       "Alle",          null,    livePosts.length],
+              ["draft",     "Entwürfe",      "#F59E0B", cnt("draft")],
+              ["pending",   "Freigabe",      "#175CD3", cnt("pending")],
+              ["scheduled", "Geplant",       "#027A48", cnt("scheduled")],
+              ["published", "Veröffentlicht", C.accent, cnt("published")],
+            ].map(([v, l, color, c]) => {
+              const on = filt === v;
+              return (
+                <button key={v} onClick={() => setFilt(v)} style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "5px 10px", borderRadius: 6, border: "none",
+                  background: on ? (color ? color : C.surface) : "transparent",
+                  color: on ? (color ? "#fff" : C.text) : C.textSoft,
+                  fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: FONT, transition: "all .1s",
+                }}>
+                  {l}{" "}<span style={{ opacity: on ? .75 : .6, fontWeight: 500 }}>{c}</span>
+                </button>
+              );
+            })}
           </div>
 
           {!isPublishedView && <>

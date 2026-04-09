@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
-  Flag, Trash2, BookOpen, CalendarRange, PenLine, TrendingUp, Eye,
+  Flag, Trash2, BookOpen, CalendarRange, Compass, Eye,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -30,9 +30,9 @@ export const NAV_GROUPS = [
   {
     label: "CONTENT CREATION",
     items: [
-      { id:"publisher",   label:"Publisher",         I:Send         },
-      { id:"drafts",      label:"Entwürfe",          I:PenLine      },
+      { id:"research",    label:"Recherche",         I:Compass      },
       { id:"stories",     label:"Storys",            I:BookOpen     },
+      { id:"publisher",   label:"Publisher",         I:Send         },
     ],
   },
   {
@@ -53,7 +53,6 @@ export const NAV_GROUPS = [
     label: "ANALYSE",
     items: [
       { id:"performance",  label:"Performance",       I:BarChart2    },
-      { id:"research",     label:"Research",          I:TrendingUp   },
       { id:"monitoring",   label:"Monitoring",        I:Eye          },
     ],
   },
@@ -74,7 +73,6 @@ export const NAV = [
 export const TITLE = {
   dashboard:    "Dashboard",
   publisher:    "Publisher",
-  drafts:       "Entwürfe",
   trash:        "Papierkorb",
   stories:      "Storys",
   campaigns:    "Kampagnen",
@@ -82,7 +80,7 @@ export const TITLE = {
   calendar:     "Kalender",
   planner:      "Planner",
   performance:  "Performance",
-  research:     "Research",
+  research:     "Recherche",
   monitoring:   "Instagram Monitoring",
   admin:        "Admin",
 };
