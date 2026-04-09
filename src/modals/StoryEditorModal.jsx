@@ -470,6 +470,7 @@ function DerivativeRow({ channel, derivative, onCreate, hasContent, loading }) {
 function UnifiedFormattingToolbar() {
   const [mode, setMode] = useState("format"); // "format" | "ai" | "loading" | "result"
   const [aiResult, setAiResult] = useState("");
+  const [resultPos, setResultPos] = useState(null); // { x, y } for the result panel
   const selRef = useRef(null);
 
   const AI_ACTIONS = [
@@ -493,14 +494,23 @@ function UnifiedFormattingToolbar() {
     const text = window.getSelection()?.toString().trim();
     if (!text || text.length < 5) return;
     const sel = window.getSelection();
-    selRef.current = sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+    // Save selection range and position
+    if (sel.rangeCount) {
+      const range = sel.getRangeAt(0);
+      selRef.current = range.cloneRange();
+      const rect = range.getBoundingClientRect();
+      setResultPos({
+        x: Math.max(200, Math.min(window.innerWidth - 420, rect.left + rect.width / 2 - 200)),
+        y: rect.bottom + 12,
+      });
+    }
     setMode("loading");
     try {
       const r = await aiCall([{ role: "user", content: PROMPTS[id](text) }], 900);
       setAiResult(r.trim());
       setMode("result");
     } catch {
-      setAiResult("⚠ KI nicht verfügbar");
+      setAiResult("⚠ KI nicht verfügbar (nur auf der Live-Site)");
       setMode("result");
     }
   };
@@ -513,8 +523,10 @@ function UnifiedFormattingToolbar() {
       sel.addRange(selRef.current);
       document.execCommand("insertText", false, aiResult);
     } catch {}
-    setMode("format"); setAiResult("");
+    setMode("format"); setAiResult(""); setResultPos(null);
   };
+
+  const dismiss = () => { setMode("format"); setAiResult(""); setResultPos(null); };
 
   const btnBase = {
     padding: "3px 9px", borderRadius: 5, border: "none",
@@ -524,97 +536,168 @@ function UnifiedFormattingToolbar() {
   };
 
   return (
-    <FormattingToolbar>
-      {/* ── Standard format buttons (always visible unless AI mode active) ── */}
-      {mode === "format" && <>
-        <BlockTypeSelect key="blockTypeSelect" />
-        <BasicTextStyleButton basicTextStyle="bold"      key="bold" />
-        <BasicTextStyleButton basicTextStyle="italic"    key="italic" />
-        <BasicTextStyleButton basicTextStyle="underline" key="underline" />
-        <BasicTextStyleButton basicTextStyle="strike"    key="strike" />
-        <TextAlignButton textAlignment="left"   key="alignLeft" />
-        <TextAlignButton textAlignment="center" key="alignCenter" />
-        <TextAlignButton textAlignment="right"  key="alignRight" />
-        <ColorStyleButton key="color" />
-        <NestBlockButton   key="nest" />
-        <UnnestBlockButton key="unnest" />
-        <CreateLinkButton  key="link" />
-        {/* KI toggle */}
-        <div key="sep" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
-        <button key="ai-open"
-          onMouseDown={e => e.preventDefault()}
-          onClick={() => setMode("ai")}
-          style={{ ...btnBase, background: "rgba(255,255,255,.12)", color: "rgba(255,255,255,.9)" }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.22)"}
-          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.12)"}>
-          <Wand2 size={11} strokeWidth={IW} /> KI
-        </button>
-      </>}
-
-      {/* ── AI action buttons ── */}
-      {mode === "ai" && <>
-        <button key="back"
-          onMouseDown={e => e.preventDefault()}
-          onClick={() => setMode("format")}
-          style={{ ...btnBase, background: "rgba(255,255,255,.08)", color: "rgba(255,255,255,.5)" }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.16)"}
-          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.08)"}>
-          ← Zurück
-        </button>
-        <div key="sep2" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
-        {AI_ACTIONS.map(({ id, label }) => (
-          <button key={id}
+    <>
+      <FormattingToolbar>
+        {/* ── Standard format buttons ── */}
+        {(mode === "format") && <>
+          <BlockTypeSelect key="blockTypeSelect" />
+          <BasicTextStyleButton basicTextStyle="bold"      key="bold" />
+          <BasicTextStyleButton basicTextStyle="italic"    key="italic" />
+          <BasicTextStyleButton basicTextStyle="underline" key="underline" />
+          <BasicTextStyleButton basicTextStyle="strike"    key="strike" />
+          <TextAlignButton textAlignment="left"   key="alignLeft" />
+          <TextAlignButton textAlignment="center" key="alignCenter" />
+          <TextAlignButton textAlignment="right"  key="alignRight" />
+          <ColorStyleButton key="color" />
+          <NestBlockButton   key="nest" />
+          <UnnestBlockButton key="unnest" />
+          <CreateLinkButton  key="link" />
+          <div key="sep" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
+          <button key="ai-open"
             onMouseDown={e => e.preventDefault()}
-            onClick={() => handleAI(id)}
-            style={{ ...btnBase, background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.88)" }}
+            onClick={() => setMode("ai")}
+            style={{ ...btnBase, background: "rgba(255,255,255,.12)", color: "rgba(255,255,255,.9)" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.22)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.12)"}>
+            <Wand2 size={11} strokeWidth={IW} /> KI
+          </button>
+        </>}
+
+        {/* ── AI action buttons ── */}
+        {mode === "ai" && <>
+          <button key="back"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => setMode("format")}
+            style={{ ...btnBase, background: "rgba(255,255,255,.08)", color: "rgba(255,255,255,.5)" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.16)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.08)"}>
+            ← Zurück
+          </button>
+          <div key="sep2" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
+          {AI_ACTIONS.map(({ id, label }) => (
+            <button key={id}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => handleAI(id)}
+              style={{ ...btnBase, background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.88)" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.2)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.1)"}>
+              {label}
+            </button>
+          ))}
+        </>}
+
+        {/* ── Loading ── */}
+        {mode === "loading" && (
+          <div key="loading" style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 10px", color: "rgba(255,255,255,.8)", fontSize: 12, fontFamily: FONT }}>
+            <div style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,.25)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin .7s linear infinite", flexShrink: 0 }} />
+            KI schreibt…
+          </div>
+        )}
+
+        {/* ── Result: compact toolbar indicator only ── */}
+        {mode === "result" && <>
+          <div key="ri" style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 10px", color: "rgba(255,255,255,.7)", fontSize: 11.5, fontFamily: FONT }}>
+            <Check size={12} strokeWidth={2.5} color="#a5f3c0" /> KI-Ergebnis bereit ↓
+          </div>
+          <div key="sep3" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
+          <button key="apply-tb"
+            onMouseDown={e => e.preventDefault()}
+            onClick={apply}
+            style={{ ...btnBase, background: "rgba(99,102,241,.7)", color: "#fff" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(99,102,241,.9)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(99,102,241,.7)"}>
+            <Check size={11} strokeWidth={2.5} /> Übernehmen
+          </button>
+          <button key="retry-tb"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => setMode("ai")}
+            style={{ ...btnBase, background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.75)" }}
             onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.2)"}
             onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.1)"}>
-            {label}
+            ↺
           </button>
-        ))}
-      </>}
+          <button key="discard-tb"
+            onMouseDown={e => e.preventDefault()}
+            onClick={dismiss}
+            style={{ ...btnBase, background: "transparent", color: "rgba(255,255,255,.4)", padding: "3px 6px" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.08)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+            ✕
+          </button>
+        </>}
+      </FormattingToolbar>
 
-      {/* ── Loading ── */}
-      {mode === "loading" && (
-        <div key="loading" style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 8px", color: "rgba(255,255,255,.8)", fontSize: 12, fontFamily: FONT }}>
-          <div style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,.25)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin .7s linear infinite", flexShrink: 0 }} />
-          KI schreibt…
-        </div>
+      {/* ── Full result panel (portal, positioned below the selection) ── */}
+      {mode === "result" && resultPos && createPortal(
+        <div
+          onMouseDown={e => e.preventDefault()}
+          style={{
+            position: "fixed",
+            left: resultPos.x,
+            top: resultPos.y,
+            zIndex: 9500,
+            width: 400,
+            background: "#1a1a2e",
+            borderRadius: 12,
+            boxShadow: "0 16px 48px rgba(0,0,0,.4)",
+            fontFamily: FONT,
+            overflow: "hidden",
+          }}
+        >
+          {/* Caret */}
+          <div style={{ position: "absolute", top: -6, left: 40, width: 12, height: 6, overflow: "hidden" }}>
+            <div style={{ width: 12, height: 12, background: "#1a1a2e", transform: "rotate(45deg)", transformOrigin: "bottom right", marginTop: 3 }} />
+          </div>
+          {/* Header */}
+          <div style={{ padding: "10px 14px 6px", borderBottom: "1px solid rgba(255,255,255,.1)", display: "flex", alignItems: "center", gap: 6 }}>
+            <Wand2 size={12} strokeWidth={IW} color="#a5b4fc" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#a5b4fc" }}>KI-Vorschlag</span>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)", marginLeft: "auto" }}>Markierten Text ersetzen</span>
+          </div>
+          {/* Full result text */}
+          <div style={{
+            padding: "12px 14px",
+            maxHeight: 260,
+            overflowY: "auto",
+            fontSize: 13.5,
+            lineHeight: 1.7,
+            color: "rgba(255,255,255,.88)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          }}>
+            {aiResult}
+          </div>
+          {/* Action bar */}
+          <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,.1)", display: "flex", gap: 6 }}>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={apply}
+              style={{ flex: 1, padding: "8px 0", borderRadius: 7, border: "none", background: "#6366F1", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
+              onMouseEnter={e => e.currentTarget.style.background = "#4F46E5"}
+              onMouseLeave={e => e.currentTarget.style.background = "#6366F1"}>
+              <Check size={13} strokeWidth={2.5} /> Übernehmen
+            </button>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => setMode("ai")}
+              style={{ padding: "8px 14px", borderRadius: 7, border: "none", background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.75)", fontSize: 12, cursor: "pointer", fontFamily: FONT }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.18)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.1)"}>
+              ↺ Neu
+            </button>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={dismiss}
+              style={{ padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "rgba(255,255,255,.35)", fontSize: 14, cursor: "pointer" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.08)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              ✕
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
-
-      {/* ── Result ── */}
-      {mode === "result" && <>
-        <div key="preview" style={{
-          maxWidth: 320, fontSize: 11.5, color: "rgba(255,255,255,.8)", fontFamily: FONT,
-          padding: "3px 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>{aiResult}</div>
-        <div key="sep3" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
-        <button key="apply"
-          onMouseDown={e => e.preventDefault()}
-          onClick={apply}
-          style={{ ...btnBase, background: "rgba(99,102,241,.7)", color: "#fff" }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(99,102,241,.9)"}
-          onMouseLeave={e => e.currentTarget.style.background = "rgba(99,102,241,.7)"}>
-          <Check size={11} strokeWidth={2.5} /> Übernehmen
-        </button>
-        <button key="retry"
-          onMouseDown={e => e.preventDefault()}
-          onClick={() => setMode("ai")}
-          style={{ ...btnBase, background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.75)" }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.2)"}
-          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.1)"}>
-          ↺ Neu
-        </button>
-        <button key="discard"
-          onMouseDown={e => e.preventDefault()}
-          onClick={() => { setMode("format"); setAiResult(""); }}
-          style={{ ...btnBase, background: "transparent", color: "rgba(255,255,255,.4)" }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.08)"}
-          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-          ✕
-        </button>
-      </>}
-    </FormattingToolbar>
+    </>
   );
 }
 
