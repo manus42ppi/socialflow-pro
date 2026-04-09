@@ -3,7 +3,6 @@ import { Plus, Calendar } from "lucide-react";
 import { C, T, FONT, IW } from "../../constants/colors.js";
 import { CHANNELS, STAGES } from "../../constants/demo.js";
 import { fmtDate, fpos } from "../../utils/store.js";
-import { Btn } from "../ui/index.jsx";
 import ChIco from "../ui/ChIco.jsx";
 
 function KCard({post,items,onEdit,onDS,isDrag,isDrop}){
@@ -34,7 +33,7 @@ function KCard({post,items,onEdit,onDS,isDrag,isDrop}){
 }
 
 // ── KANBAN BOARD ───────────────────────────────────────────────────────────
-function Board({posts,items,campaigns,onStatus,onCampaign,onEdit,onNew,canW}){
+function Board({posts,items,campaigns,onStatus,onCampaign,onEdit}){
   const [dId,setDId]=useState(null); const [dSt,setDSt]=useState(null);
   const [over,setOver]=useState(null); const [dropped,setDropped]=useState(null);
   const [mode,setMode]=useState("status"); // "status"|"campaign"
@@ -68,7 +67,6 @@ function Board({posts,items,campaigns,onStatus,onCampaign,onEdit,onNew,canW}){
               <button key={v} onClick={()=>setMode(v)} style={{padding:"5px 11px",borderRadius:6,border:"none",background:mode===v?C.surface:"transparent",color:mode===v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,boxShadow:mode===v?"0 1px 3px rgba(0,0,0,.07)":"none"}}>{l}</button>
             ))}
           </div>
-          {canW&&<Btn onClick={onNew}><Plus size={14} strokeWidth={2.5}/>Neuer Post</Btn>}
         </div>
       </div>
 

@@ -210,7 +210,7 @@ function StoryRow({ story, onEdit, onDelete, posts, onOpenPost }) {
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function StoriesPage() {
-  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete, posts, setEdPost, newPost, goNav } = useApp();
+  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete, posts, goNav } = useApp();
   const [filt, setFilt] = useState("all");
   const [q, setQ] = useState("");
 
@@ -239,14 +239,6 @@ export default function StoriesPage() {
           </p>
         </div>
         <div style={{ flex: 1 }} />
-        <button
-          onClick={() => { newPost(); goNav("publisher"); }}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.textSoft, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: FONT, transition: "all .12s" }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "55"; e.currentTarget.style.color = C.accent; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSoft; }}
-        >
-          <Send size={13} strokeWidth={IW} /> Direktpost
-        </button>
         <Btn onClick={onNew}><Plus size={14} strokeWidth={IW} /> Neue Story</Btn>
       </div>
 

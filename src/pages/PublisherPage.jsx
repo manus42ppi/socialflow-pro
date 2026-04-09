@@ -307,7 +307,6 @@ export default function PublisherPage() {
           </div>
         )}
 
-        {can("write") && <Btn onClick={onNew}><Plus size={14} strokeWidth={2.5} />Neuer Post</Btn>}
       </div>
 
       {/* ── Content ── */}
@@ -373,7 +372,7 @@ export default function PublisherPage() {
           )}
         </div>
       ) : (
-        <Board posts={posts} items={items} campaigns={campaigns} onStatus={onStatus} onCampaign={onCampaign} onEdit={onEdit} onNew={onNew} canW={can("write")} />
+        <Board posts={posts} items={items} campaigns={campaigns} onStatus={onStatus} onCampaign={onCampaign} onEdit={onEdit} />
       )}
     </div>
   );
