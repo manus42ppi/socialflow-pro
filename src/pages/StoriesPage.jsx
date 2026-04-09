@@ -210,7 +210,7 @@ function StoryRow({ story, onEdit, onDelete, posts, onOpenPost }) {
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function StoriesPage() {
-  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete, posts, goNav } = useApp();
+  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete, posts, setEdPost, goNav } = useApp();
   const [filt, setFilt] = useState("all");
   const [q, setQ] = useState("");
 
