@@ -1074,16 +1074,75 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
         .bn-side-menu button { color: ${C.textMute} !important; border-radius: 5px !important; }
         .bn-side-menu button:hover { color: ${C.text} !important; background: ${C.borderLight} !important; }
 
-        /* Inline toolbar (bubble menu) */
-        .bn-toolbar { background: ${C.text} !important; border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,.25) !important; border: none !important; padding: 4px !important; z-index: 1200 !important; }
-        .bn-toolbar button { color: rgba(255,255,255,.75) !important; border-radius: 5px !important; }
+        /* ── Inline toolbar (formatting bar) ── */
+        .bn-toolbar { background: #1a1a2e !important; border-radius: 10px !important; box-shadow: 0 8px 32px rgba(0,0,0,.35) !important; border: 1px solid rgba(255,255,255,.1) !important; padding: 4px 6px !important; z-index: 1200 !important; }
+        .bn-toolbar button { color: rgba(255,255,255,.72) !important; border-radius: 5px !important; }
         .bn-toolbar button:hover { background: rgba(255,255,255,.12) !important; color: #fff !important; }
-        .bn-toolbar button[data-active="true"] { background: rgba(255,255,255,.2) !important; color: #fff !important; }
+        .bn-toolbar button[data-active="true"] { background: rgba(255,255,255,.18) !important; color: #fff !important; }
+        /* Dividers inside toolbar */
+        .bn-toolbar [role="separator"], .bn-toolbar hr { background: rgba(255,255,255,.15) !important; }
 
-        /* Slash menu */
-        .bn-suggestion-menu { background: ${C.surface} !important; border: 1px solid ${C.border} !important; border-radius: 10px !important; box-shadow: 0 8px 32px rgba(0,0,0,.14) !important; z-index: 1200 !important; }
-        .bn-suggestion-menu-item { border-radius: 6px !important; }
-        .bn-suggestion-menu-item:hover, .bn-suggestion-menu-item[data-selected="true"] { background: ${C.bg} !important; }
+        /* ── Slash / suggestion menu ── */
+        .bn-suggestion-menu {
+          background: #1a1a2e !important;
+          border: 1px solid rgba(255,255,255,.12) !important;
+          border-radius: 12px !important;
+          box-shadow: 0 16px 48px rgba(0,0,0,.45) !important;
+          z-index: 1200 !important;
+          min-width: 220px !important;
+          max-width: 256px !important;
+          padding: 5px !important;
+          overflow: hidden !important;
+        }
+        /* Group labels / section headers */
+        .bn-suggestion-menu-label,
+        [data-suggestion-menu-label] {
+          font-size: 9px !important;
+          font-weight: 800 !important;
+          text-transform: uppercase !important;
+          letter-spacing: .08em !important;
+          color: rgba(255,255,255,.28) !important;
+          padding: 10px 10px 3px !important;
+          font-family: ${FONT} !important;
+        }
+        /* Individual items */
+        .bn-suggestion-menu-item {
+          border-radius: 7px !important;
+          padding: 7px 10px !important;
+          gap: 10px !important;
+          transition: background .1s !important;
+        }
+        .bn-suggestion-menu-item:hover,
+        .bn-suggestion-menu-item[data-selected="true"],
+        .bn-suggestion-menu-item[aria-selected="true"] {
+          background: rgba(255,255,255,.1) !important;
+        }
+        /* Item title */
+        .bn-suggestion-menu-item-title {
+          font-size: 12.5px !important;
+          font-weight: 600 !important;
+          color: rgba(255,255,255,.88) !important;
+          font-family: ${FONT} !important;
+        }
+        /* Hide verbose subtitle — reduces clutter */
+        .bn-suggestion-menu-item-subtitle { display: none !important; }
+        /* Icon */
+        .bn-suggestion-menu-item-icon svg,
+        .bn-suggestion-menu-item > svg {
+          color: rgba(255,255,255,.45) !important;
+          width: 15px !important; height: 15px !important;
+        }
+        /* Keyboard shortcut badge */
+        .bn-suggestion-menu-item kbd,
+        .bn-suggestion-menu-item [data-key] {
+          background: rgba(255,255,255,.07) !important;
+          color: rgba(255,255,255,.3) !important;
+          border: none !important;
+          font-size: 9px !important;
+          border-radius: 4px !important;
+          padding: 1px 5px !important;
+          font-family: ${FONT} !important;
+        }
 
         /* Image */
         .bn-block[data-content-type="image"] img { border-radius: 6px !important; }
