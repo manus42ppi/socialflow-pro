@@ -433,9 +433,15 @@ export default function StoryEditorModal() {
   const [deriving, setDeriving] = useState({}); // { [chId]: boolean }
   const [derivPreview, setDerivPreview] = useState(null); // { chId, content, channel }
   const [showSettings, setShowSettings] = useState(false);
+  const [aiMenu, setAiMenu]     = useState(null); // { x, y, text }
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult]   = useState(null);
 
-  const asRef = useRef();
-  const formRef = useRef(form);
+  const asRef        = useRef();
+  const formRef      = useRef(form);
+  const titleRef     = useRef();
+  const subtitleRef  = useRef();
+  const aiSelRef     = useRef(null); // saved selection range for apply
   formRef.current = form;
 
   // ── BlockNote editor ──────────────────────────────────────────────────────
@@ -508,6 +514,71 @@ export default function StoryEditorModal() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []); // eslint-disable-line
+
+  // ── Title/subtitle auto-expand on mount ──────────────────────────────────
+  useEffect(() => {
+    [titleRef, subtitleRef].forEach(r => {
+      if (r.current) { r.current.style.height = "auto"; r.current.style.height = r.current.scrollHeight + "px"; }
+    });
+  }, []); // eslint-disable-line
+
+  // ── AI selection menu ─────────────────────────────────────────────────────
+  useEffect(() => {
+    let timer = null;
+    const handler = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+        const text = sel.toString().trim();
+        if (text.length < 5) { setAiMenu(null); return; }
+        try {
+          const range = sel.getRangeAt(0);
+          const rect  = range.getBoundingClientRect();
+          if (!rect.width) return;
+          aiSelRef.current = range.cloneRange();
+          setAiMenu({
+            x: Math.max(160, Math.min(window.innerWidth - 160, rect.left + rect.width / 2)),
+            y: rect.top,
+            text,
+          });
+          setAiResult(null);
+        } catch {}
+      }, 300);
+    };
+    document.addEventListener("selectionchange", handler);
+    return () => { document.removeEventListener("selectionchange", handler); clearTimeout(timer); };
+  }, []);
+
+  const runAIAction = async (type) => {
+    if (!aiMenu) return;
+    setAiLoading(true); setAiResult(null);
+    const t = aiMenu.text;
+    const PROMPTS = {
+      improve:   `Verbessere diesen Text stilistisch (Klarheit, Fluss, Prägnanz). Gib NUR den verbesserten Text zurück:\n\n${t}`,
+      shorten:   `Kürze diesen Text auf das Wesentliche, ohne wichtige Aussagen zu verlieren. Gib NUR den gekürzten Text zurück:\n\n${t}`,
+      expand:    `Erweitere diesen Text mit mehr Details, Kontext und Beispielen. Gib NUR den erweiterten Text zurück:\n\n${t}`,
+      spell:     `Korrigiere alle Rechtschreib- und Grammatikfehler in diesem Text. Gib NUR den korrigierten Text zurück:\n\n${t}`,
+      formal:    `Schreibe diesen Text formeller und professioneller um. Gib NUR den Text zurück:\n\n${t}`,
+      translate: `Übersetze diesen deutschen Text ins Englische. Gib NUR die englische Übersetzung zurück:\n\n${t}`,
+    };
+    try {
+      const r = await aiCall([{ role: "user", content: PROMPTS[type] }], 900);
+      setAiResult(r.trim());
+    } catch { setAiResult("⚠ KI nicht verfügbar (nur auf der Live-Site)"); }
+    setAiLoading(false);
+  };
+
+  const applyAIResult = () => {
+    if (!aiResult || !aiSelRef.current) return;
+    try {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(aiSelRef.current);
+      document.execCommand("insertText", false, aiResult);
+    } catch {}
+    setAiMenu(null); setAiResult(null);
+  };
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleSave = (status) => {
@@ -690,32 +761,31 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           line-height: 1.8 !important;
           color: ${C.text} !important;
         }
-        /* Block spacing: whitespace IS the separator (no borders) */
-        .bn-block-outer { margin: 0 !important; padding: 1px 0 !important; }
+        /* Block layout */
+        .bn-block-outer { margin: 0 !important; padding: 0 !important; }
+        .bn-block-outer + .bn-block-outer { border-top: 1px solid rgba(0,0,0,0.045) !important; }
         .bn-block { border-radius: 4px !important; transition: background .1s !important; }
-        .bn-block:hover { background: rgba(0,0,0,.025) !important; }
-        .bn-block-content { padding: 3px 0 !important; }
+        .bn-block:hover { background: rgba(7,93,242,0.03) !important; }
+        .bn-block-content { padding: 4px 2px !important; }
 
         /* Headings */
-        .bn-block[data-content-type="heading"] h1 { font-size: 30px !important; font-weight: 800 !important; line-height: 1.2 !important; margin: 20px 0 4px !important; color: ${C.text} !important; font-family: ${FONT} !important; }
-        .bn-block[data-content-type="heading"] h2 { font-size: 22px !important; font-weight: 700 !important; line-height: 1.3 !important; margin: 16px 0 3px !important; color: ${C.text} !important; font-family: ${FONT} !important; }
-        .bn-block[data-content-type="heading"] h3 { font-size: 17px !important; font-weight: 600 !important; line-height: 1.4 !important; margin: 12px 0 2px !important; color: ${C.textMid} !important; font-family: ${FONT} !important; }
+        .bn-block[data-content-type="heading"] h1 { font-size: 30px !important; font-weight: 800 !important; line-height: 1.2 !important; margin: 18px 0 2px !important; color: ${C.text} !important; font-family: ${FONT} !important; }
+        .bn-block[data-content-type="heading"] h2 { font-size: 22px !important; font-weight: 700 !important; line-height: 1.3 !important; margin: 14px 0 2px !important; color: ${C.text} !important; font-family: ${FONT} !important; }
+        .bn-block[data-content-type="heading"] h3 { font-size: 17px !important; font-weight: 600 !important; line-height: 1.4 !important; margin: 10px 0 1px !important; color: ${C.textMid} !important; font-family: ${FONT} !important; }
 
         /* Paragraph */
         .bn-block[data-content-type="paragraph"] p { margin: 0 !important; }
 
         /* Quote */
-        .bn-block[data-content-type="quote"] { border-left: 3px solid ${C.accent}55 !important; padding-left: 16px !important; margin: 8px 0 !important; }
+        .bn-block[data-content-type="quote"] { border-left: 3px solid ${C.accent}55 !important; padding-left: 16px !important; }
         .bn-block[data-content-type="quote"] p { font-style: italic !important; color: ${C.textMid} !important; }
 
         /* Lists */
         .bn-block[data-content-type="bulletListItem"],
         .bn-block[data-content-type="numberedListItem"] { padding-left: 4px !important; }
 
-        /* Side menu (drag handle + plus button) */
-        .bn-side-menu { opacity: 0; transition: opacity .1s; }
-        .bn-block:hover .bn-side-menu { opacity: 1; }
-        .bn-side-menu button { color: ${C.textMute} !important; }
+        /* Side menu — let BlockNote control visibility */
+        .bn-side-menu button { color: ${C.textMute} !important; border-radius: 5px !important; }
         .bn-side-menu button:hover { color: ${C.text} !important; background: ${C.borderLight} !important; }
 
         /* Inline toolbar (bubble menu) */
@@ -748,7 +818,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
       <div style={{
         width: "100%", height: "100%", display: "flex", flexDirection: "column",
-        background: C.bg,
+        background: C.surface,
       }}>
 
         {/* ── THIN TOP BAR (48px) ────────────────────────────────────────── */}
@@ -931,7 +1001,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
           {/* ── CENTER: Title + Editor ─────────────────────────────────── */}
-          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", position: "relative" }}>
+          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", position: "relative", background: C.surface }}>
 
             {/* Title + Subtitle area */}
             <div style={{ padding: "52px 0 0", maxWidth: 752, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingLeft: 80, paddingRight: 32 }}>
@@ -954,8 +1024,9 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 </div>
               )}
               <textarea
+                ref={titleRef}
                 value={form.title}
-                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                onChange={e => { setForm(f => ({ ...f, title: e.target.value })); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
                 placeholder="Titel…"
                 rows={1}
                 style={{
@@ -963,22 +1034,21 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   fontSize: 36, fontFamily: FONT, fontWeight: 800,
                   color: C.text, background: "transparent", lineHeight: 1.2,
                   marginBottom: 10, padding: 0, fontStyle: "normal",
-                  overflow: "hidden",
+                  overflow: "hidden", display: "block",
                 }}
-                onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
               />
               <textarea
+                ref={subtitleRef}
                 value={form.subtitle || ""}
-                onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))}
+                onChange={e => { setForm(f => ({ ...f, subtitle: e.target.value })); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
                 placeholder="Untertitel oder Lead-Satz (optional)…"
                 rows={1}
                 style={{
                   width: "100%", resize: "none", border: "none", outline: "none",
                   fontFamily: FONT, fontSize: 19, color: C.textSoft,
                   background: "transparent", marginBottom: 32, padding: 0,
-                  fontStyle: "normal", fontWeight: 400, lineHeight: 1.5, overflow: "hidden",
+                  fontStyle: "normal", fontWeight: 400, lineHeight: 1.5, overflow: "hidden", display: "block",
                 }}
-                onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
               />
               <div style={{ borderTop: `1px solid ${C.borderLight}`, marginBottom: 24 }} />
             </div>
@@ -1260,6 +1330,91 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           </div>
         </div>
       </div>
+
+      {/* ── AI SELECTION BUBBLE ──────────────────────────────────────────────── */}
+      {aiMenu && createPortal(
+        <div
+          onMouseDown={e => e.preventDefault()}
+          style={{
+            position: "fixed",
+            left: aiMenu.x, top: aiMenu.y - 10,
+            transform: "translateX(-50%) translateY(-100%)",
+            zIndex: 9000,
+            background: "#1a1a2e",
+            borderRadius: 12,
+            boxShadow: "0 12px 40px rgba(0,0,0,.35)",
+            padding: aiResult ? "12px 14px" : "6px",
+            display: "flex", flexDirection: "column", gap: 6,
+            minWidth: aiResult ? 300 : "auto",
+            maxWidth: 380,
+            fontFamily: FONT,
+          }}
+        >
+          {/* Caret */}
+          <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 12, height: 6, overflow: "hidden" }}>
+            <div style={{ width: 12, height: 12, background: "#1a1a2e", transform: "rotate(45deg)", transformOrigin: "top left", marginLeft: 0, marginTop: 3 }} />
+          </div>
+
+          {!aiResult && !aiLoading && (
+            <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+              {[
+                ["improve",   "✦ Verbessern"],
+                ["shorten",   "↓ Kürzen"],
+                ["expand",    "↑ Erweitern"],
+                ["spell",     "✓ Korrektur"],
+                ["formal",    "≡ Formeller"],
+                ["translate", "⇄ Übersetzen"],
+              ].map(([type, label]) => (
+                <button key={type}
+                  onMouseDown={e => { e.preventDefault(); runAIAction(type); }}
+                  style={{
+                    padding: "5px 10px", borderRadius: 6, border: "none",
+                    background: "rgba(255,255,255,.09)", color: "rgba(255,255,255,.88)",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT,
+                    transition: "background .1s",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.18)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.09)"}
+                >{label}</button>
+              ))}
+              <button onMouseDown={e => { e.preventDefault(); setAiMenu(null); }}
+                style={{ marginLeft: 2, padding: "5px 8px", borderRadius: 6, border: "none", background: "transparent", color: "rgba(255,255,255,.3)", fontSize: 14, cursor: "pointer" }}>
+                ✕
+              </button>
+            </div>
+          )}
+
+          {aiLoading && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", color: "rgba(255,255,255,.8)", fontSize: 12 }}>
+              <div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,.25)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin .7s linear infinite", flexShrink: 0 }} />
+              KI schreibt…
+            </div>
+          )}
+
+          {aiResult && !aiLoading && (
+            <>
+              <div style={{ fontSize: 12.5, color: "rgba(255,255,255,.88)", lineHeight: 1.6, fontFamily: FONT, borderBottom: "1px solid rgba(255,255,255,.1)", paddingBottom: 10, marginBottom: 2, maxHeight: 180, overflowY: "auto" }}>
+                {aiResult}
+              </div>
+              <div style={{ display: "flex", gap: 5 }}>
+                <button onMouseDown={e => { e.preventDefault(); applyAIResult(); }}
+                  style={{ flex: 1, padding: "7px 12px", borderRadius: 7, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
+                  Übernehmen
+                </button>
+                <button onMouseDown={e => { e.preventDefault(); setAiResult(null); }}
+                  style={{ padding: "7px 12px", borderRadius: 7, border: "none", background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.8)", fontSize: 12, cursor: "pointer", fontFamily: FONT }}>
+                  Neu
+                </button>
+                <button onMouseDown={e => { e.preventDefault(); setAiMenu(null); setAiResult(null); }}
+                  style={{ padding: "7px 10px", borderRadius: 7, border: "none", background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.4)", fontSize: 13, cursor: "pointer" }}>
+                  ✕
+                </button>
+              </div>
+            </>
+          )}
+        </div>,
+        document.body
+      )}
 
       {/* ── DERIVATIVE PREVIEW MODAL ─────────────────────────────────────────── */}
       {derivPreview && <DerivativePreviewModal
