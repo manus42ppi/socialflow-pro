@@ -215,10 +215,10 @@ function Dashboard(){
   // Widget content map
   const heroContent=(
     <div style={{...card,borderRadius:T.rLg,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
-      <div style={{background:C.text,padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:148}}>
+      <div style={{background:`linear-gradient(135deg, ${T.brand600} 0%, ${T.brand500} 100%)`,padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:148}}>
         <div style={{fontFamily:FONT,fontSize:38,fontWeight:200,color:"#fff",lineHeight:1,letterSpacing:"2px"}}>{timeStr}</div>
-        <div style={{fontSize:9,fontWeight:400,color:"rgba(255,255,255,.35)",textTransform:"uppercase",letterSpacing:".8px",marginTop:6}}>KW {kw}</div>
-        <div style={{fontSize:11.5,fontWeight:300,color:"rgba(255,255,255,.65)",marginTop:5,lineHeight:1.5}}>{dateStr}</div>
+        <div style={{fontSize:9,fontWeight:600,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:".8px",marginTop:6}}>KW {kw}</div>
+        <div style={{fontSize:11.5,fontWeight:300,color:"rgba(255,255,255,.8)",marginTop:5,lineHeight:1.5}}>{dateStr}</div>
       </div>
       <div style={{padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
         <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
