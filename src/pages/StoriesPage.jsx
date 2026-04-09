@@ -1,47 +1,83 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Trash2, BookOpen, Link as LinkIcon, StickyNote, Layers, Send, ArrowRight } from "lucide-react";
+import { Plus, Search, Trash2, BookOpen, Link as LinkIcon, StickyNote, Layers,
+         Send, Compass, PenLine, Share2, ChevronRight, X, Clock, Edit2 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
-import { fmtDate, uid } from "../utils/store.js";
 import { Btn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
+// ── Status config (no emojis) ────────────────────────────────────────────────
 const STATUSES = [
-  { id:"idea",      label:"Idee",           color:"#6366F1", icon:"💡" },
-  { id:"draft",     label:"Entwurf",        color:"#F59E0B", icon:"✏️" },
-  { id:"ready",     label:"Bereit",         color:"#10B981", icon:"✅" },
-  { id:"published", label:"Veröffentlicht", color:"#0EA5E9", icon:"🚀" },
+  { id:"idea",      label:"Idee",           color:"#6366F1" },
+  { id:"draft",     label:"Entwurf",        color:"#F59E0B" },
+  { id:"ready",     label:"Bereit",         color:"#10B981" },
+  { id:"published", label:"Veröffentlicht", color:"#0EA5E9" },
 ];
 
-const CAT_COLOR = {Marketing:"#E1306C",Tech:"#8B5CF6",Lifestyle:"#EC4899",Wirtschaft:"#10B981",Politik:"#3B82F6",Kultur:"#6366F1",Gesundheit:"#EF4444",Reise:"#14B8A6",Bildung:"#F97316",Andere:"#6B7280"};
+const CAT_COLOR = {
+  Marketing:"#E1306C", Tech:"#8B5CF6", Lifestyle:"#EC4899", Wirtschaft:"#10B981",
+  Politik:"#3B82F6", Kultur:"#6366F1", Gesundheit:"#EF4444", Reise:"#14B8A6",
+  Bildung:"#F97316", Andere:"#6B7280",
+};
+
+// Extract plain-text preview from BlockNote blocks
+function extractPreview(blocks, maxChars = 160) {
+  if (!blocks?.length) return "";
+  const parts = [];
+  for (const b of blocks) {
+    if (!b.content) continue;
+    for (const c of b.content) {
+      if (c.type === "text" && c.text) parts.push(c.text);
+    }
+    if (parts.join(" ").length > maxChars) break;
+  }
+  const text = parts.join(" ").trim();
+  return text.length > maxChars ? text.slice(0, maxChars) + "…" : text;
+}
 
 function countWords(blocks) {
   if (!blocks?.length) return 0;
-  const extract = (content) => {
-    if (!content || !Array.isArray(content)) return "";
-    return content.map(item => item.type === "text" ? (item.text || "") : "").join(" ");
-  };
-  const text = blocks.map(b => extract(b.content)).join(" ");
+  const text = blocks.map(b =>
+    (b.content || []).filter(c => c.type === "text").map(c => c.text || "").join(" ")
+  ).join(" ");
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-// ── Story Card ─────────────────────────────────────────────────────────────
-function StoryCard({ story, onEdit, onDelete, posts, onOpenPost }) {
+// ── Status dot + label ───────────────────────────────────────────────────────
+function StatusBadge({ status }) {
+  const s = STATUSES.find(x => x.id === status) || STATUSES[0];
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      fontSize: 11, fontWeight: 600, color: s.color,
+      background: s.color + "12", padding: "3px 9px", borderRadius: 6,
+      fontFamily: FONT, whiteSpace: "nowrap",
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+      {s.label}
+    </span>
+  );
+}
+
+// ── Story list row ───────────────────────────────────────────────────────────
+function StoryRow({ story, onEdit, onDelete, posts, onOpenPost }) {
   const [hover, setHover] = useState(false);
-  const status = STATUSES.find(s => s.id === story.status) || STATUSES[0];
+  const status  = STATUSES.find(s => s.id === story.status) || STATUSES[0];
   const catColor = CAT_COLOR[story.category] || C.textMid;
   const wordCount = useMemo(() => countWords(story.blocks), [story.blocks]);
-  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
-  const materialCount = story.materials?.length || 0;
-  const derivCount = story.derivatives?.length || 0;
-  const targetChs = (story.targetChannels || []).map(id => STORY_CHANNELS.find(c => c.id === id)).filter(Boolean);
-  // Which channels already have a derivative post
-  const derivedChannels = (story.derivatives || [])
+  const preview   = useMemo(() => extractPreview(story.blocks), [story.blocks]);
+  const derivCount  = story.derivatives?.length || 0;
+  const linkCount   = (story.materials || []).filter(m => m.type === "link").length;
+  const noteCount   = (story.materials || []).filter(m => m.type === "note").length;
+  const targetChs   = (story.targetChannels || []).map(id => STORY_CHANNELS.find(c => c.id === id)).filter(Boolean);
+  const derivedChs  = (story.derivatives || [])
     .map(d => ({ ...d, ch: STORY_CHANNELS.find(c => c.id === d.channel), post: posts?.find(p => p.id === d.postId && !p.deleted) }))
     .filter(d => d.ch);
-  const linkCount = (story.materials || []).filter(m => m.type === "link").length;
-  const noteCount = (story.materials || []).filter(m => m.type === "note").length;
+
+  const updatedLabel = story.updatedAt
+    ? new Date(story.updatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short" })
+    : null;
 
   return (
     <div
@@ -49,127 +85,150 @@ function StoryCard({ story, onEdit, onDelete, posts, onOpenPost }) {
       onMouseLeave={() => setHover(false)}
       onClick={() => onEdit(story)}
       style={{
+        display: "flex", alignItems: "stretch",
         background: C.surface,
         border: `1px solid ${hover ? C.accent + "44" : C.border}`,
-        borderRadius: 12, overflow: "hidden", cursor: "pointer",
-        transition: "all .15s",
-        transform: hover ? "translateY(-2px)" : "none",
-        boxShadow: hover ? "0 8px 24px rgba(0,0,0,.1)" : "0 1px 3px rgba(0,0,0,.04)",
+        borderRadius: 10, overflow: "hidden", cursor: "pointer",
+        transition: "box-shadow .15s, border-color .15s",
+        boxShadow: hover ? T.shadowSm : "none",
       }}
     >
-      {/* Color accent bar */}
-      <div style={{ height: 3, background: status.color }} />
+      {/* Status stripe */}
+      <div style={{ width: 4, flexShrink: 0, background: status.color }} />
 
-      <div style={{ padding: "16px 18px" }}>
-        {/* Header: category + status */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-          {story.category && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-              background: catColor + "15", color: catColor, fontFamily: FONT,
-            }}>{story.category}</span>
-          )}
-          <span style={{
-            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-            background: status.color + "15", color: status.color, fontFamily: FONT,
-            display: "flex", alignItems: "center", gap: 3,
-          }}>
-            {status.icon} {status.label}
-          </span>
-          <div style={{ flex: 1 }} />
-          <button
-            onClick={e => { e.stopPropagation(); if (window.confirm("Story löschen?")) onDelete(story.id); }}
-            style={{ background: "none", border: "none", cursor: "pointer", color: C.textMute, padding: "2px 4px", opacity: hover ? 1 : 0, transition: "opacity .12s" }}>
-            <Trash2 size={13} strokeWidth={IW} />
-          </button>
-        </div>
-
-        {/* Title */}
-        <h3 style={{
-          margin: "0 0 4px", fontFamily: FONT, fontWeight: 800,
-          fontSize: 15, color: C.text, lineHeight: 1.3,
-          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-        }}>
-          {story.title || "Kein Titel"}
-        </h3>
-        {story.subtitle && (
-          <p style={{
-            margin: "0 0 12px", fontSize: 12, color: C.textMid, fontFamily: FONT, lineHeight: 1.5,
-            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-          }}>{story.subtitle}</p>
-        )}
-
-        {/* Target channels */}
-        {targetChs.length > 0 && (
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 }}>
-            {targetChs.map(ch => (
-              <div key={ch.id} style={{
-                display: "flex", alignItems: "center", gap: 4, padding: "3px 8px",
-                borderRadius: 6, border: `1px solid ${ch.color}33`,
-                background: ch.color + "0d",
-              }}>
-                <ChIco id={ch.id} size={11} color={ch.color} />
-                <span style={{ fontSize: 10, color: ch.color, fontWeight: 600, fontFamily: FONT }}>{ch.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Derived channel badges */}
-        {derivedChannels.length > 0 && (
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
-            <span style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>Abgeleitet:</span>
-            {derivedChannels.map(d => (
-              <div key={d.id}
-                onClick={e => { e.stopPropagation(); if (d.post) onOpenPost(d.post); }}
-                title={d.post ? `${d.ch.label} – Post öffnen` : `${d.ch.label} – Post nicht gefunden`}
-                style={{
-                  display: "flex", alignItems: "center", gap: 3, padding: "2px 7px",
-                  borderRadius: 6, background: "#ECFDF3", border: `1px solid #BBF7D0`,
-                  cursor: d.post ? "pointer" : "default",
-                  opacity: d.post ? 1 : 0.5,
+      {/* Main content */}
+      <div style={{ flex: 1, padding: "14px 18px", minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+          {/* Left: text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Category + title row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+              {story.category && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 4,
+                  background: catColor + "14", color: catColor, fontFamily: FONT,
                 }}>
-                <ChIco id={d.ch.id} size={10} color={C.success} />
-                <span style={{ fontSize: 10, color: C.success, fontWeight: 700, fontFamily: FONT }}>{d.ch.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
+                  {story.category}
+                </span>
+              )}
+              <h3 style={{
+                margin: 0, fontFamily: FONT, fontWeight: 700,
+                fontSize: 14, color: C.text, lineHeight: 1.4,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                flex: 1, minWidth: 0,
+              }}>
+                {story.title || "Kein Titel"}
+              </h3>
+            </div>
 
-        {/* Stats row */}
-        <div style={{
-          display: "flex", gap: 14, fontSize: 11, color: C.textMute,
-          fontFamily: FONT, paddingTop: 10, borderTop: `1px solid ${C.borderLight}`,
-          flexWrap: "wrap",
-        }}>
-          <span title="Wörter" style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <BookOpen size={11} strokeWidth={IW} />
-            {wordCount > 0 ? `${wordCount} Wörter · ${readingTime} Min.` : "Noch kein Text"}
-          </span>
-          {materialCount > 0 && (
-            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              {linkCount > 0 && <><LinkIcon size={11} strokeWidth={IW} /> {linkCount}</>}
-              {noteCount > 0 && <><StickyNote size={11} strokeWidth={IW} /> {noteCount}</>}
-            </span>
-          )}
-          {derivCount > 0 && (
-            <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <Layers size={11} strokeWidth={IW} />
-              {derivCount} Ableitungen
-            </span>
-          )}
-          {story.updatedAt && (
-            <span style={{ marginLeft: "auto", color: C.textMute }}>
-              {new Date(story.updatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short" })}
-            </span>
-          )}
+            {/* Subtitle or preview text */}
+            {(story.subtitle || preview) && (
+              <p style={{
+                margin: "0 0 10px", fontSize: 12.5, color: C.textSoft, fontFamily: FONT, lineHeight: 1.55,
+                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+              }}>
+                {story.subtitle || preview}
+              </p>
+            )}
+
+            {/* Meta row */}
+            <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+              {/* Word count */}
+              <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.textMute, fontFamily: FONT }}>
+                <BookOpen size={11} strokeWidth={IW} />
+                {wordCount > 0 ? `${wordCount} Wörter` : "Leer"}
+              </span>
+
+              {/* Materials */}
+              {linkCount > 0 && (
+                <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: C.textMute }}>
+                  <LinkIcon size={11} strokeWidth={IW} /> {linkCount} Link{linkCount !== 1 ? "s" : ""}
+                </span>
+              )}
+              {noteCount > 0 && (
+                <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: C.textMute }}>
+                  <StickyNote size={11} strokeWidth={IW} /> {noteCount}
+                </span>
+              )}
+
+              {/* Derivatives */}
+              {derivCount > 0 && (
+                <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.accent, fontWeight: 600 }}>
+                  <Layers size={11} strokeWidth={IW} />
+                  {derivCount} Ableit{derivCount !== 1 ? "ungen" : "ung"}
+                </span>
+              )}
+
+              {/* Date */}
+              {updatedLabel && (
+                <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: C.textMute }}>
+                  <Clock size={10} strokeWidth={IW} /> {updatedLabel}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Right: status + channels + actions */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+            <StatusBadge status={story.status} />
+
+            {/* Target channels */}
+            {targetChs.length > 0 && (
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {targetChs.map(ch => (
+                  <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 5, border: `1px solid ${ch.color}30`, background: ch.color + "0c" }}>
+                    <ChIco id={ch.id} size={10} color={ch.color} />
+                    <span style={{ fontSize: 10, color: ch.color, fontWeight: 600, fontFamily: FONT }}>{ch.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Derived channel pills */}
+            {derivedChs.length > 0 && (
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {derivedChs.map(d => (
+                  <div key={d.id}
+                    onClick={e => { e.stopPropagation(); if (d.post) onOpenPost(d.post); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 3, padding: "2px 6px",
+                      borderRadius: 5, background: C.success + "12", border: `1px solid ${C.success}30`,
+                      cursor: d.post ? "pointer" : "default", opacity: d.post ? 1 : 0.5,
+                    }}>
+                    <ChIco id={d.ch.id} size={9} color={C.success} />
+                    <span style={{ fontSize: 9.5, color: C.success, fontWeight: 700, fontFamily: FONT }}>{d.ch.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div style={{ display: "flex", gap: 4, opacity: hover ? 1 : 0, transition: "opacity .12s" }}>
+              <button
+                onClick={e => { e.stopPropagation(); onEdit(story); }}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textSoft, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "55"; e.currentTarget.style.color = C.accent; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSoft; }}
+              >
+                <Edit2 size={11} strokeWidth={IW} /> Öffnen
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); if (window.confirm("Story löschen?")) onDelete(story.id); }}
+                style={{ display: "flex", alignItems: "center", padding: "4px 7px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textMute, cursor: "pointer" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#e53e3e"; e.currentTarget.style.borderColor = "#e53e3e44"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = C.textMute; e.currentTarget.style.borderColor = C.border; }}
+              >
+                <Trash2 size={11} strokeWidth={IW} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Main Page ───────────────────────────────────────────────────────────────
+// ── Main Page ────────────────────────────────────────────────────────────────
 export default function StoriesPage() {
   const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete, posts, setEdPost, newPost, goNav } = useApp();
   const [filt, setFilt] = useState("all");
@@ -182,8 +241,8 @@ export default function StoriesPage() {
   }), [stories, filt, q]);
 
   const counts = useMemo(() => {
-    const c = { all: stories.length };
-    STATUSES.forEach(s => { c[s.id] = stories.filter(x => x.status === s.id).length; });
+    const c = { all: stories.filter(s => !s.deleted).length };
+    STATUSES.forEach(s => { c[s.id] = stories.filter(x => x.status === s.id && !x.deleted).length; });
     return c;
   }, [stories]);
 
@@ -191,116 +250,116 @@ export default function StoriesPage() {
     <div style={{ flex: 1, overflowY: "auto", background: C.bg }}>
       <style>{CSS}</style>
 
-      {/* Header */}
-      <div style={{ padding: "24px 28px 0", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+      {/* ── Top bar ── */}
+      <div style={{ padding: "20px 28px 0", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ margin: 0, fontFamily: FONT, fontWeight: 800, fontSize: 22, color: C.text }}>
-            Storys
-          </h1>
-          <p style={{ margin: "3px 0 0", fontSize: 13, color: C.textMid, fontFamily: FONT }}>
-            Ideen sammeln, Inhalte schreiben, für alle Kanäle ableiten
+          <h1 style={{ margin: 0, fontFamily: FONT, fontWeight: 700, fontSize: 20, color: C.text }}>Storys</h1>
+          <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.textSoft, fontFamily: FONT }}>
+            Inhalte schreiben und für alle Kanäle ableiten
           </p>
         </div>
         <div style={{ flex: 1 }} />
-        {/* Secondary: direct post shortcut */}
-        <button onClick={() => { newPost(); goNav("publisher"); }}
+        <button
+          onClick={() => { newPost(); goNav("publisher"); }}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.textSoft, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: FONT, transition: "all .12s" }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "66"; e.currentTarget.style.color = C.accent; }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "55"; e.currentTarget.style.color = C.accent; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSoft; }}
         >
           <Send size={13} strokeWidth={IW} /> Direktpost
         </button>
-        <Btn onClick={onNew}>
-          <Plus size={15} strokeWidth={IW} /> Neue Story
-        </Btn>
+        <Btn onClick={onNew}><Plus size={14} strokeWidth={IW} /> Neue Story</Btn>
       </div>
 
-      {/* Workflow info banner */}
-      <div style={{ margin: "16px 28px 0", padding: "12px 16px", borderRadius: 10, background: C.accent + "08", border: `1px solid ${C.accent}22`, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flex: 1 }}>
-          {[
-            { icon: "💡", label: "Recherche", sub: "Inspiration & Quellen" },
-            { icon: "→" },
-            { icon: "✍️", label: "Story schreiben", sub: "Artikel / Blogpost" },
-            { icon: "→" },
-            { icon: "📲", label: "Ableiten", sub: "Instagram · LinkedIn · Print …" },
-            { icon: "→" },
-            { icon: "📅", label: "Publisher", sub: "Planen & veröffentlichen" },
-          ].map((step, i) => step.label ? (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ fontSize: 15 }}>{step.icon}</span>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT }}>{step.label}</div>
-                <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>{step.sub}</div>
-              </div>
+      {/* ── Workflow banner ── */}
+      <div style={{ margin: "14px 28px 0", padding: "11px 16px", borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        {[
+          { Icon: Compass,  label: "Recherche",      sub: "Inspiration" },
+          null,
+          { Icon: PenLine,  label: "Story schreiben", sub: "Artikel / Blog" },
+          null,
+          { Icon: Share2,   label: "Ableiten",        sub: "Alle Kanäle" },
+          null,
+          { Icon: Send,     label: "Publisher",       sub: "Planen & publizieren" },
+        ].map((step, i) => step ? (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <step.Icon size={13} strokeWidth={IW} color={C.textSoft} />
             </div>
-          ) : (
-            <ArrowRight key={i} size={12} color={C.accent} strokeWidth={2} style={{ flexShrink: 0 }} />
-          ))}
-        </div>
-        <button onClick={() => goNav("research")}
-          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 6, border: `1px solid ${C.accent}33`, background: C.accent + "10", color: C.accent, fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: FONT, flexShrink: 0 }}>
-          Zur Recherche <ArrowRight size={11} strokeWidth={2.5} />
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT, lineHeight: 1.2 }}>{step.label}</div>
+              <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>{step.sub}</div>
+            </div>
+          </div>
+        ) : (
+          <ChevronRight key={i} size={12} strokeWidth={2} color={C.border} style={{ flexShrink: 0 }} />
+        ))}
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={() => goNav("research")}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 6, border: `1px solid ${C.border}`, background: "none", color: C.textSoft, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}
+          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = C.accent + "44"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = C.textSoft; e.currentTarget.style.borderColor = C.border; }}
+        >
+          Zur Recherche <ChevronRight size={11} strokeWidth={2.5} />
         </button>
       </div>
 
-      {/* Filter bar */}
-      <div style={{ padding: "16px 28px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      {/* ── Filter bar ── */}
+      <div style={{ padding: "14px 28px 12px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         {/* Search */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: 8, padding: "0 12px", minWidth: 220,
-        }}>
-          <Search size={14} strokeWidth={IW} color={C.textMute} />
+        <div style={{ position: "relative", minWidth: 220 }}>
+          <Search size={13} color={C.textMute} strokeWidth={IW} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
           <input
             value={q} onChange={e => setQ(e.target.value)}
             placeholder="Suchen…"
-            style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, fontFamily: FONT, color: C.text, padding: "8px 0", width: "100%" }}
+            style={{ padding: "7px 30px 7px 30px", borderRadius: 8, border: `1.5px solid ${q ? C.accent : C.border}`, fontSize: 12.5, outline: "none", fontFamily: FONT, background: C.surface, color: C.text, width: "100%", boxSizing: "border-box" }}
           />
+          {q && (
+            <button onClick={() => setQ("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.textMute, padding: 2, display: "flex", alignItems: "center" }}>
+              <X size={12} strokeWidth={2.5} />
+            </button>
+          )}
         </div>
 
-        {/* Status filter pills */}
-        {[["all", "Alle", null], ...STATUSES.map(s => [s.id, `${s.icon} ${s.label}`, s.color])].map(([id, label, color]) => (
-          <button key={id} onClick={() => setFilt(id)}
-            style={{
-              padding: "6px 14px", borderRadius: 20, fontFamily: FONT, fontSize: 12, fontWeight: 600,
-              border: `1.5px solid ${filt === id ? (color || C.accent) : C.border}`,
-              background: filt === id ? (color || C.accent) + "12" : "transparent",
-              color: filt === id ? (color || C.accent) : C.textMid,
-              cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
-            }}>
-            {label}
-            <span style={{
-              background: filt === id ? (color || C.accent) : C.borderLight,
-              color: filt === id ? (color || C.accent) : C.textMute,
-              borderRadius: 10, fontSize: 10, padding: "0 5px", fontWeight: 700,
-            }}>{counts[id] || 0}</span>
-          </button>
-        ))}
+        {/* Status filter — consistent pill style */}
+        <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
+          {[{ id: "all", label: "Alle", color: null }, ...STATUSES].map(s => {
+            const on = filt === s.id;
+            return (
+              <button key={s.id} onClick={() => setFilt(s.id)} style={{
+                display: "flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 6,
+                border: "none", fontFamily: FONT, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                background: on ? C.surface : "transparent",
+                color: on ? (s.color || C.text) : C.textSoft,
+                boxShadow: on ? "0 1px 3px rgba(0,0,0,.07)" : "none",
+                transition: "all .1s",
+              }}>
+                {s.color && <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0 }} />}
+                {s.label}
+                <span style={{ fontSize: 10, fontWeight: 700, opacity: .65 }}>{counts[s.id] || 0}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Grid */}
+      {/* ── Story list ── */}
       <div style={{ padding: "0 28px 32px" }}>
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 20px", color: C.textMute }}>
-            <BookOpen size={48} strokeWidth={1.2} style={{ margin: "0 auto 16px", display: "block", color: C.border }} />
-            <p style={{ margin: 0, fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.textSoft }}>
+          <div style={{ textAlign: "center", padding: "60px 20px" }}>
+            <BookOpen size={40} strokeWidth={1.2} color={C.border} style={{ margin: "0 auto 14px", display: "block" }} />
+            <p style={{ margin: 0, fontFamily: FONT, fontSize: 15, fontWeight: 700, color: C.textSoft }}>
               {q || filt !== "all" ? "Keine Storys gefunden" : "Noch keine Storys"}
             </p>
-            <p style={{ margin: "8px 0 20px", fontSize: 13, fontFamily: FONT }}>
-              {q || filt !== "all" ? "Andere Filter probieren" : "Erstelle deine erste Story – schreibe einen Artikel und leite Social-Media-Posts ab."}
+            <p style={{ margin: "8px 0 20px", fontSize: 13, color: C.textMute, fontFamily: FONT }}>
+              {q || filt !== "all" ? "Filter anpassen oder Suche ändern" : "Schreibe deine erste Story und leite Posts für alle Kanäle ab."}
             </p>
             {!q && filt === "all" && <Btn onClick={onNew}><Plus size={14} strokeWidth={IW} /> Erste Story erstellen</Btn>}
           </div>
         ) : (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: 16,
-          }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {filtered.map(story => (
-              <StoryCard key={story.id} story={story} onEdit={onEdit} onDelete={onDelete} posts={posts} onOpenPost={setEdPost} />
+              <StoryRow key={story.id} story={story} onEdit={onEdit} onDelete={onDelete} posts={posts} onOpenPost={setEdPost} />
             ))}
           </div>
         )}
