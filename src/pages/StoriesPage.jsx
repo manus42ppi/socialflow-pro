@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Trash2, BookOpen, Link as LinkIcon, StickyNote, PenLine, Layers } from "lucide-react";
-import { C, FONT, IW, CSS } from "../constants/colors.js";
+import { Plus, Search, Trash2, BookOpen, Link as LinkIcon, StickyNote, Layers, Send, ArrowRight } from "lucide-react";
+import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
 import { fmtDate, uid } from "../utils/store.js";
 import { Btn } from "../components/ui/index.jsx";
@@ -171,7 +171,7 @@ function StoryCard({ story, onEdit, onDelete, posts, onOpenPost }) {
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function StoriesPage() {
-  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete, posts, setEdPost } = useApp();
+  const { stories, setEdStory: onEdit, newStory: onNew, delStory: onDelete, posts, setEdPost, newPost, goNav } = useApp();
   const [filt, setFilt] = useState("all");
   const [q, setQ] = useState("");
 
@@ -202,9 +202,46 @@ export default function StoriesPage() {
           </p>
         </div>
         <div style={{ flex: 1 }} />
+        {/* Secondary: direct post shortcut */}
+        <button onClick={() => { newPost(); goNav("publisher"); }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.textSoft, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: FONT, transition: "all .12s" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "66"; e.currentTarget.style.color = C.accent; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSoft; }}
+        >
+          <Send size={13} strokeWidth={IW} /> Direktpost
+        </button>
         <Btn onClick={onNew}>
           <Plus size={15} strokeWidth={IW} /> Neue Story
         </Btn>
+      </div>
+
+      {/* Workflow info banner */}
+      <div style={{ margin: "16px 28px 0", padding: "12px 16px", borderRadius: 10, background: C.accent + "08", border: `1px solid ${C.accent}22`, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flex: 1 }}>
+          {[
+            { icon: "💡", label: "Recherche", sub: "Inspiration & Quellen" },
+            { icon: "→" },
+            { icon: "✍️", label: "Story schreiben", sub: "Artikel / Blogpost" },
+            { icon: "→" },
+            { icon: "📲", label: "Ableiten", sub: "Instagram · LinkedIn · Print …" },
+            { icon: "→" },
+            { icon: "📅", label: "Publisher", sub: "Planen & veröffentlichen" },
+          ].map((step, i) => step.label ? (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 15 }}>{step.icon}</span>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT }}>{step.label}</div>
+                <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>{step.sub}</div>
+              </div>
+            </div>
+          ) : (
+            <ArrowRight key={i} size={12} color={C.accent} strokeWidth={2} style={{ flexShrink: 0 }} />
+          ))}
+        </div>
+        <button onClick={() => goNav("research")}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 6, border: `1px solid ${C.accent}33`, background: C.accent + "10", color: C.accent, fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: FONT, flexShrink: 0 }}>
+          Zur Recherche <ArrowRight size={11} strokeWidth={2.5} />
+        </button>
       </div>
 
       {/* Filter bar */}

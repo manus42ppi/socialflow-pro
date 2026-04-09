@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Edit2, Calendar, Check, X, Clock } from "lucide-react";
+import { Edit2, Calendar, Check, X, Clock, BookOpen } from "lucide-react";
 import { C, T, FONT, IW } from "../constants/colors.js";
 import { CHANNELS, ROLES } from "../constants/demo.js";
 import { fmtDate } from "../utils/store.js";
@@ -7,13 +7,15 @@ import { Btn, Card, SBadge } from "./ui/index.jsx";
 import ChIco from "./ui/ChIco.jsx";
 import { PREV } from "./previews/index.jsx";
 
-export default function PostCard({post,items,campaigns,onEdit,onSched,onDel,onApprove,role}){
+export default function PostCard({post,items,campaigns,stories,onEdit,onSched,onDel,onApprove,role}){
   const [tab,setTab]=useState(post.channels?.[0]||"instagram");
   const media=items.find(m=>m.id===post.mediaId);
   const camp=campaigns?.find(c=>c.id===post.campaignId);
   const PC=PREV[tab]||PREV.instagram;
   const can=p=>ROLES[role]?.can.includes(p);
   const chs=post.channels?.length>0?post.channels:["instagram"];
+  // Find parent story if this post is a derivative
+  const parentStory = stories?.find(s => s.derivatives?.some(d => d.postId === post.id));
 
   return(
     <Card style={{overflow:"hidden",transition:"box-shadow .18s",display:"flex",flexDirection:"column",height:388,boxShadow:T.shadowSm,borderRadius:T.rLg,border:`1px solid ${C.border}`}}
@@ -24,7 +26,16 @@ export default function PostCard({post,items,campaigns,onEdit,onSched,onDel,onAp
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"10px 12px 8px",flexShrink:0,minHeight:44}}>
         <div style={{minWidth:0,flex:1}}>
           <div style={{fontWeight:700,fontSize:13,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{post.title||"Kein Titel"}</div>
-          {camp?<div style={{fontSize:10.5,color:C.textSoft,marginTop:2,display:"flex",alignItems:"center",gap:3}}><span>{camp.emoji}</span>{camp.name}</div>:<div style={{height:14}}/>}
+          <div style={{display:"flex",alignItems:"center",gap:5,marginTop:2,height:14}}>
+            {parentStory
+              ? <span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:10,fontWeight:700,color:C.accent,background:C.accent+"12",padding:"0 6px",borderRadius:4}}>
+                  <BookOpen size={9} strokeWidth={2.2}/>{parentStory.title?.slice(0,22)||(parentStory.title?"…":"")||"Story"}
+                </span>
+              : camp
+                ? <span style={{fontSize:10.5,color:C.textSoft,display:"flex",alignItems:"center",gap:3}}><span>{camp.emoji}</span>{camp.name}</span>
+                : null
+            }
+          </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,marginLeft:8,paddingTop:1}}>
           <SBadge status={post.status}/>

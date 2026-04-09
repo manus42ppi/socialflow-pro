@@ -135,8 +135,9 @@ function TimelineView({ posts, campaigns, onOpen }) {
 
 // ── Publisher Page ─────────────────────────────────────────────────────────
 export default function PublisherPage() {
-  const { posts, items, campaigns, setEdPost: onEdit, setSchPost: onSched, del: onDel, approve: onApprove, chSt: onStatus, chCamp: onCampaign, newPost: onNew, user, filt, setFilt, chFilt, setChFilt, setDetailPost } = useApp();
+  const { posts, items, campaigns, stories, setEdPost: onEdit, setSchPost: onSched, del: onDel, approve: onApprove, chSt: onStatus, chCamp: onCampaign, newPost: onNew, user, filt, setFilt, chFilt, setChFilt, setDetailPost } = useApp();
   const role = user?.role;
+  const [originFilt, setOriginFilt] = useState("all"); // "all" | "direct" | "derived"
 
   const [view, setView] = useState("grid");
   const [sort, setSort] = useState("date_asc");
@@ -180,11 +181,16 @@ export default function PublisherPage() {
 
   const livePosts = posts.filter(p => !p.deleted);
   const usedChs = [...new Set(livePosts.flatMap(p => p.channels || []))];
+  // Build set of postIds that are story derivatives
+  const derivedPostIds = new Set((stories || []).flatMap(s => (s.derivatives || []).map(d => d.postId)));
 
   const filtered = livePosts.filter(p => {
     const stOk = filt === "all" || p.status === filt;
     const chOk = chFilt === "all" || p.channels?.includes(chFilt);
-    return stOk && chOk;
+    const orOk = originFilt === "all"
+      || (originFilt === "derived" && derivedPostIds.has(p.id))
+      || (originFilt === "direct"  && !derivedPostIds.has(p.id));
+    return stOk && chOk && orOk;
   });
 
   const ST_ORDER = { scheduled: 0, pending: 1, draft: 2, published: 3 };
@@ -255,6 +261,25 @@ export default function PublisherPage() {
                   </button>
                 );
               })}
+            </div>
+
+            <div style={{ width: 1, height: 20, background: C.border, flexShrink: 0 }} />
+
+            {/* Origin filter: direct vs story-derived */}
+            <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
+              {[
+                ["all",     "Alle"],
+                ["direct",  "Direktpost"],
+                ["derived", "Story-Ableitung"],
+              ].map(([v, l]) => (
+                <button key={v} onClick={() => setOriginFilt(v)} style={{
+                  padding: "5px 10px", borderRadius: 6, border: "none",
+                  background: originFilt === v ? C.surface : "transparent",
+                  color: originFilt === v ? C.text : C.textSoft,
+                  fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: FONT,
+                  boxShadow: originFilt === v ? "0 1px 3px rgba(0,0,0,.07)" : "none",
+                }}>{l}</button>
+              ))}
             </div>
 
             <div style={{ width: 1, height: 20, background: C.border, flexShrink: 0 }} />
@@ -334,7 +359,7 @@ export default function PublisherPage() {
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(295px,1fr))", gap: 18, alignItems: "start" }}>
-              {shown.map(p => <PostCard key={p.id} post={p} items={items} campaigns={campaigns} onEdit={onEdit} onSched={onSched} onDel={onDel} onApprove={onApprove} role={role} />)}
+              {shown.map(p => <PostCard key={p.id} post={p} items={items} campaigns={campaigns} stories={stories} onEdit={onEdit} onSched={onSched} onDel={onDel} onApprove={onApprove} role={role} />)}
             </div>
           )}
         </div>
