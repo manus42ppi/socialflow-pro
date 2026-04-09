@@ -9,6 +9,7 @@ import {
   X, Save, Check, Link as LinkIcon, StickyNote,
   Trash2, Wand2, Loader, Image as ImageIcon,
   ChevronLeft, Settings2, AlignLeft,
+  BarChart2, Hash, Tag, RefreshCw,
 } from "lucide-react";
 import { C, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
@@ -69,6 +70,73 @@ function sectionsToBlocks(sections) {
 function getDomain(url) {
   try { return new URL(url).hostname.replace("www.", ""); }
   catch { return url; }
+}
+
+// ── READABILITY ────────────────────────────────────────────────────────────
+function computeReadability(text) {
+  if (!text || text.trim().length < 20) return null;
+  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 3);
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!sentences.length || !words.length) return null;
+  const asl = words.length / sentences.length; // avg sentence length
+  const acw = words.reduce((s, w) => s + w.replace(/[^a-zäöüA-ZÄÖÜ]/g, "").length, 0) / words.length; // avg char per word
+  // Approximated Flesch for German: FRE = 180 − ASL − (58.5 × ASW); ASW ≈ chars/word/5
+  const asw = acw / 5;
+  const fre = Math.max(0, Math.min(100, Math.round(180 - asl - 58.5 * asw)));
+  const longSentences = sentences.filter(s => s.split(/\s+/).length > 25).length;
+  let level, color;
+  if (fre >= 70)      { level = "Sehr leicht"; color = "#10B981"; }
+  else if (fre >= 55) { level = "Leicht";      color = "#22C55E"; }
+  else if (fre >= 40) { level = "Mittel";      color = "#F59E0B"; }
+  else if (fre >= 25) { level = "Schwer";      color = "#EF4444"; }
+  else                { level = "Sehr schwer"; color = "#DC2626"; }
+  return { fre, level, color, asl: Math.round(asl * 10) / 10, acw: Math.round(acw * 10) / 10, longSentences };
+}
+
+// ── SEO CHECKS ─────────────────────────────────────────────────────────────
+function computeSEOChecks({ text, title, subtitle, keyword, wordCount, metaDesc, blocks }) {
+  const kw = (keyword || "").toLowerCase().trim();
+  const titleL = (title || "").toLowerCase();
+  const subL = (subtitle || "").toLowerCase();
+  const textL = (text || "").toLowerCase();
+  const checks = [];
+
+  // Title
+  checks.push({ ok: !!title && title.length >= 10, label: "Titel vorhanden (≥10 Zeichen)", weight: 10 });
+  if (kw) checks.push({ ok: titleL.includes(kw), label: `Keyword "${keyword}" im Titel`, weight: 15 });
+
+  // Subtitle / intro
+  checks.push({ ok: !!subtitle && subtitle.length > 10, label: "Untertitel / Lead vorhanden", weight: 7 });
+  if (kw) checks.push({ ok: subL.includes(kw) || textL.slice(0, 300).includes(kw), label: `Keyword in Einleitung`, weight: 10 });
+
+  // Keyword density
+  if (kw && wordCount > 10) {
+    const kwWords = kw.split(/\s+/).length;
+    const occ = (textL.match(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"), "g")) || []).length;
+    const density = (occ * kwWords / wordCount) * 100;
+    checks.push({ ok: density >= 0.5 && density <= 2.5, label: `Keyword-Dichte ${density.toFixed(1)}% (Ziel: 0.5–2.5%)`, weight: 12 });
+  }
+
+  // Word count
+  checks.push({ ok: wordCount >= 300, label: `Wortanzahl ${wordCount} (empfohlen ≥300)`, weight: 10 });
+  checks.push({ ok: wordCount >= 600, label: `Tiefe: ${wordCount} Wörter (optimal ≥600)`, weight: 5 });
+
+  // Structure
+  const hasH2 = blocks?.some(b => b.type === "heading" && b.props?.level === 2);
+  checks.push({ ok: !!hasH2, label: "Zwischenüberschriften (H2) vorhanden", weight: 8 });
+
+  // Meta description
+  checks.push({ ok: !!metaDesc && metaDesc.length >= 50 && metaDesc.length <= 160, label: `Meta-Beschreibung ${metaDesc ? metaDesc.length + "/160" : "fehlt"}`, weight: 8 });
+  if (kw && metaDesc) checks.push({ ok: (metaDesc||"").toLowerCase().includes(kw), label: "Keyword in Meta-Beschreibung", weight: 7 });
+
+  // Images
+  const hasImg = blocks?.some(b => b.type === "image");
+  checks.push({ ok: !!hasImg, label: "Mindestens ein Bild im Artikel", weight: 8 });
+
+  const totalWeight = checks.reduce((s, c) => s + c.weight, 0);
+  const earned = checks.filter(c => c.ok).reduce((s, c) => s + c.weight, 0);
+  const score = Math.round((earned / totalWeight) * 100);
+  return { checks, score };
 }
 
 // ── IMAGE PICKER MODAL (für Materialien-Tab) ──────────────────────────────
@@ -418,6 +486,10 @@ export default function StoryEditorModal() {
     category: story.category || "",
     comments: story.comments || [],
     history: story.history || [],
+    metaTitle: story.metaTitle || "",
+    metaDesc: story.metaDesc || "",
+    seoKeyword: story.seoKeyword || "",
+    hashtags: story.hashtags || "",
   });
 
   const [rightTab, setRightTab] = useState("materials");
@@ -436,6 +508,9 @@ export default function StoryEditorModal() {
   const [aiMenu, setAiMenu]     = useState(null); // { x, y, text }
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult]   = useState(null);
+  const [articleText, setArticleText] = useState(() => blocksToText(story.blocks || []));
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [hashtagLoading, setHashtagLoading] = useState(false);
 
   const asRef        = useRef();
   const formRef      = useRef(form);
@@ -462,7 +537,7 @@ export default function StoryEditorModal() {
   // ── Mark unsaved on form change ───────────────────────────────────────────
   useEffect(() => {
     setHasUnsaved(true);
-  }, [form.title, form.subtitle, form.status, form.category, form.tags, form.targetChannels]);
+  }, [form.title, form.subtitle, form.status, form.category, form.tags, form.targetChannels, form.seoKeyword, form.metaTitle, form.metaDesc, form.hashtags]);
 
   // ── Concurrent edit lock ─────────────────────────────────────────────────
   const lockedByOther = useMemo(() => {
@@ -738,6 +813,42 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
     setForm(f => ({ ...f, status: next.id }));
   };
 
+  // ── SEO + readability memos ───────────────────────────────────────────────
+  const readability = useMemo(() => computeReadability(articleText), [articleText]);
+  const seoResult = useMemo(() => computeSEOChecks({
+    text: articleText, title: form.title, subtitle: form.subtitle,
+    keyword: form.seoKeyword, wordCount, metaDesc: form.metaDesc,
+    blocks: editor.document,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [articleText, form.title, form.subtitle, form.seoKeyword, form.metaDesc, wordCount]);
+
+  const seoScore = seoResult?.score ?? 0;
+  const seoColor = seoScore >= 70 ? "#10B981" : seoScore >= 40 ? "#F59E0B" : "#EF4444";
+
+  // ── AI: auto-generate tags ────────────────────────────────────────────────
+  const generateTags = async () => {
+    const text = blocksToText(editor.document || []);
+    if (!text && !form.title) return;
+    setTagsLoading(true);
+    try {
+      const r = await aiCall([{ role: "user", content: `Analysiere diesen Artikel und gib 5–8 passende Tags zurück, kommagetrennt, lowercase, keine #-Zeichen:\n\nTitel: ${form.title||""}\n\n${text}` }], 300);
+      setForm(f => ({ ...f, tags: r.trim() }));
+    } catch { /* ignore */ }
+    setTagsLoading(false);
+  };
+
+  // ── AI: hashtag suggestions ───────────────────────────────────────────────
+  const generateHashtags = async () => {
+    const text = blocksToText(editor.document || []);
+    if (!text && !form.title) return;
+    setHashtagLoading(true);
+    try {
+      const r = await aiCall([{ role: "user", content: `Generiere 10–15 relevante Social-Media-Hashtags für diesen Artikel. Gib NUR die Hashtags zurück, leerzeichen-getrennt, mit #:\n\nTitel: ${form.title||""}\n\n${text}` }], 400);
+      setForm(f => ({ ...f, hashtags: r.trim() }));
+    } catch { /* ignore */ }
+    setHashtagLoading(false);
+  };
+
   const saveStatusLabel = hasUnsaved
     ? { text: "● Nicht gespeichert", color: "#F59E0B" }
     : lastSaved
@@ -1006,7 +1117,10 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               {(form.category || form.targetChannels.length > 0) && (
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
                   {form.category && (
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: (CAT_COLOR[form.category] || C.textMid) + "14", color: CAT_COLOR[form.category] || C.textMid }}>
+                    <span
+                      onClick={() => setShowSettings(v => !v)}
+                      title="Kategorie ändern (Einstellungen öffnen)"
+                      style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: (CAT_COLOR[form.category] || C.textMid) + "14", color: CAT_COLOR[form.category] || C.textMid, cursor: "pointer", userSelect: "none" }}>
                       {form.category}
                     </span>
                   )}
@@ -1060,6 +1174,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 onChange={() => {
                   const text = blocksToText(editor.document || []);
                   setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
+                  setArticleText(text);
                   setHasUnsaved(true);
                 }}
               >
@@ -1113,26 +1228,27 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             {/* Tab bar */}
             <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
               {[
-                ["materials", "Material", form.materials.length],
-                ["derivatives", "Ableit.", form.derivatives.length],
-                ["comments", "Komm.", (form.comments||[]).filter(c=>!c.resolved).length],
-                ["history", "Verlauf", 0],
+                ["materials",   "Material",   form.materials.length],
+                ["derivatives", "Ableit.",    form.derivatives.length],
+                ["seo",         "SEO",        seoScore < 50 ? "!" : 0],
+                ["comments",    "Komm.",      (form.comments||[]).filter(c=>!c.resolved).length],
+                ["history",     "Verlauf",    0],
               ].map(([id, label, count]) => (
                 <button key={id} onClick={() => setRightTab(id)}
                   style={{
-                    flex: 1, padding: "10px 4px", border: "none", cursor: "pointer",
+                    flex: 1, padding: "10px 2px", border: "none", cursor: "pointer",
                     background: rightTab === id ? C.bg : "transparent",
                     borderBottom: rightTab === id ? `2px solid ${C.accent}` : "2px solid transparent",
                     color: rightTab === id ? C.accent : C.textMute,
-                    fontFamily: FONT, fontSize: 11, fontWeight: rightTab === id ? 700 : 500,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                    fontFamily: FONT, fontSize: 10.5, fontWeight: rightTab === id ? 700 : 500,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
                     transition: "color .12s",
                   }}>
                   {label}
-                  {count > 0 && (
+                  {count && count !== 0 && (
                     <span style={{
-                      background: rightTab === id ? C.accent : C.borderLight,
-                      color: rightTab === id ? "#fff" : C.textMute,
+                      background: id === "seo" ? (rightTab === id ? C.accent : "#EF4444") : (rightTab === id ? C.accent : C.borderLight),
+                      color: rightTab === id || id === "seo" ? "#fff" : C.textMute,
                       borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px",
                     }}>{count}</span>
                   )}
@@ -1253,6 +1369,172 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                       Wähle Ziel-Kanäle in der Sidebar um die Auswahl einzugrenzen.
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* ── SEO TAB ──────────────────────────────────────────── */}
+              {rightTab === "seo" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+                  {/* SEO Score */}
+                  <div style={{ background: C.bg, borderRadius: 10, padding: "12px 14px", border: `1px solid ${C.border}` }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
+                        <BarChart2 size={13} strokeWidth={IW} color={seoColor} /> SEO-Score
+                      </span>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: seoColor, fontFamily: FONT }}>{seoScore}</span>
+                    </div>
+                    <div style={{ height: 6, background: C.borderLight, borderRadius: 10, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${seoScore}%`, background: seoColor, borderRadius: 10, transition: "width .4s" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 10 }}>
+                      {(seoResult?.checks || []).map((chk, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                          <span style={{ flexShrink: 0, marginTop: 1, fontSize: 10, color: chk.ok ? "#10B981" : "#EF4444", fontWeight: 800 }}>
+                            {chk.ok ? "✓" : "✗"}
+                          </span>
+                          <span style={{ fontSize: 10.5, color: chk.ok ? C.textMid : C.text, fontFamily: FONT, lineHeight: 1.4 }}>{chk.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Focus Keyword */}
+                  <div>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Focus-Keyword</div>
+                    <input
+                      value={form.seoKeyword}
+                      onChange={e => setForm(f => ({ ...f, seoKeyword: e.target.value }))}
+                      placeholder="z.B. social media strategie"
+                      style={{ width: "100%", boxSizing: "border-box", padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, fontFamily: FONT, outline: "none" }}
+                    />
+                    <div style={{ fontSize: 10, color: C.textMute, marginTop: 3, fontFamily: FONT }}>Keyword, für das du ranken möchtest.</div>
+                  </div>
+
+                  {/* Readability */}
+                  {readability && (
+                    <div style={{ background: C.bg, borderRadius: 10, padding: "12px 14px", border: `1px solid ${C.border}` }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT }}>Lesbarkeit</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: readability.color, fontFamily: FONT }}>{readability.level}</span>
+                      </div>
+                      <div style={{ height: 5, background: C.borderLight, borderRadius: 10, overflow: "hidden", marginBottom: 9 }}>
+                        <div style={{ height: "100%", width: `${readability.fre}%`, background: readability.color, borderRadius: 10, transition: "width .4s" }} />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {[
+                          [`Flesch-Score: ${readability.fre}/100`, readability.fre >= 40],
+                          [`Ø Satzlänge: ${readability.asl} Wörter ${readability.asl > 20 ? "⚠ zu lang" : ""}`, readability.asl <= 20],
+                          [`Ø Wortlänge: ${readability.acw} Zeichen`, readability.acw <= 7],
+                          [`Lange Sätze (>25 W.): ${readability.longSentences}`, readability.longSentences === 0],
+                        ].map(([label, ok], i) => (
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                            <span style={{ fontSize: 10, color: ok ? "#10B981" : "#F59E0B", fontWeight: 800, flexShrink: 0 }}>{ok ? "✓" : "!"}</span>
+                            <span style={{ fontSize: 10.5, color: C.textMid, fontFamily: FONT }}>{label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Auto-Tags */}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Tag size={10} strokeWidth={2} /> Tags
+                      </div>
+                      <button onClick={generateTags} disabled={tagsLoading || !hasContent}
+                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.accent}44`, background: "transparent", color: C.accent, fontSize: 10.5, fontWeight: 600, cursor: hasContent ? "pointer" : "default", opacity: hasContent ? 1 : 0.4, fontFamily: FONT }}>
+                        {tagsLoading ? <Loader size={10} style={{ animation: "spin 1s linear infinite" }} /> : <RefreshCw size={10} strokeWidth={2} />}
+                        KI-Tags
+                      </button>
+                    </div>
+                    <input
+                      value={form.tags}
+                      onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+                      placeholder="tag1, tag2, tag3…"
+                      style={{ width: "100%", boxSizing: "border-box", padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, fontFamily: FONT, outline: "none" }}
+                    />
+                    {/* Tag pills */}
+                    {form.tags && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                        {form.tags.split(",").map(t => t.trim()).filter(Boolean).map((t, i) => (
+                          <span key={i} style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 10, background: C.accentLight, color: C.accent, fontFamily: FONT, fontWeight: 600 }}>{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Hashtags */}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Hash size={10} strokeWidth={2} /> Hashtags
+                      </div>
+                      <button onClick={generateHashtags} disabled={hashtagLoading || !hasContent}
+                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.accent}44`, background: "transparent", color: C.accent, fontSize: 10.5, fontWeight: 600, cursor: hasContent ? "pointer" : "default", opacity: hasContent ? 1 : 0.4, fontFamily: FONT }}>
+                        {hashtagLoading ? <Loader size={10} style={{ animation: "spin 1s linear infinite" }} /> : <RefreshCw size={10} strokeWidth={2} />}
+                        Vorschläge
+                      </button>
+                    </div>
+                    <textarea
+                      value={form.hashtags}
+                      onChange={e => setForm(f => ({ ...f, hashtags: e.target.value }))}
+                      placeholder="#social #marketing …"
+                      rows={3}
+                      style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, fontFamily: FONT, outline: "none" }}
+                    />
+                    {/* Hashtag pills */}
+                    {form.hashtags && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                        {form.hashtags.split(/[\s,]+/).map(h => h.trim()).filter(h => h.startsWith("#")).map((h, i) => (
+                          <span key={i} style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 10, background: "#6366F114", color: "#6366F1", fontFamily: FONT, fontWeight: 600 }}>{h}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Meta (Web) */}
+                  <div style={{ background: C.bg, borderRadius: 10, padding: "12px 14px", border: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>Meta (Web)</div>
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.textMid, fontFamily: FONT, marginBottom: 4 }}>SEO-Titel</div>
+                      <input
+                        value={form.metaTitle}
+                        onChange={e => setForm(f => ({ ...f, metaTitle: e.target.value }))}
+                        placeholder={form.title || "Seitentitel für Google…"}
+                        maxLength={70}
+                        style={{ width: "100%", boxSizing: "border-box", padding: "6px 10px", borderRadius: 6, border: `1px solid ${(form.metaTitle||form.title||"").length > 60 ? "#EF4444" : C.border}`, background: C.surface, color: C.text, fontSize: 11.5, fontFamily: FONT, outline: "none" }}
+                      />
+                      <div style={{ fontSize: 9.5, color: (form.metaTitle||form.title||"").length > 60 ? "#EF4444" : C.textMute, textAlign: "right", marginTop: 2, fontFamily: FONT }}>{(form.metaTitle||form.title||"").length}/70</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.textMid, fontFamily: FONT, marginBottom: 4 }}>Meta-Beschreibung</div>
+                      <textarea
+                        value={form.metaDesc}
+                        onChange={e => setForm(f => ({ ...f, metaDesc: e.target.value }))}
+                        placeholder="Kurzbeschreibung für Suchergebnisse (50–160 Zeichen)…"
+                        rows={3}
+                        maxLength={160}
+                        style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "6px 10px", borderRadius: 6, border: `1px solid ${form.metaDesc && (form.metaDesc.length < 50 || form.metaDesc.length > 160) ? "#EF4444" : C.border}`, background: C.surface, color: C.text, fontSize: 11.5, fontFamily: FONT, outline: "none" }}
+                      />
+                      <div style={{ fontSize: 9.5, color: form.metaDesc && (form.metaDesc.length < 50 || form.metaDesc.length > 160) ? "#EF4444" : C.textMute, textAlign: "right", marginTop: 2, fontFamily: FONT }}>{(form.metaDesc||"").length}/160</div>
+                    </div>
+                    {/* Google preview */}
+                    {(form.metaTitle || form.title) && (
+                      <div style={{ marginTop: 10, padding: "10px 12px", background: C.surface, borderRadius: 8, border: `1px solid ${C.borderLight}` }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Google-Vorschau</div>
+                        <div style={{ fontSize: 14, color: "#1a0dab", fontFamily: "Arial,sans-serif", lineHeight: 1.3, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {form.metaTitle || form.title}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#006621", fontFamily: "Arial,sans-serif", marginBottom: 2 }}>socialflow-pro.pages.dev</div>
+                        <div style={{ fontSize: 11.5, color: "#545454", fontFamily: "Arial,sans-serif", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                          {form.metaDesc || form.subtitle || "Keine Meta-Beschreibung gesetzt."}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               )}
 
