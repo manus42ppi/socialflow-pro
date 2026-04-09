@@ -614,7 +614,7 @@ export default function StoryEditorModal() {
           aiSelRef.current = range.cloneRange();
           setAiMenu({
             x: Math.max(160, Math.min(window.innerWidth - 160, rect.left + rect.width / 2)),
-            y: rect.top,
+            y: rect.bottom, // position BELOW selection so it doesn't overlap the BlockNote toolbar above
             text,
           });
           setAiResult(null);
@@ -1616,8 +1616,9 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           onMouseDown={e => e.preventDefault()}
           style={{
             position: "fixed",
-            left: aiMenu.x, top: aiMenu.y - 10,
-            transform: "translateX(-50%) translateY(-100%)",
+            left: aiMenu.x,
+            top: aiMenu.y + 10, // below the selection
+            transform: "translateX(-50%)",
             zIndex: 9000,
             background: "#1a1a2e",
             borderRadius: 12,
@@ -1629,9 +1630,9 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             fontFamily: FONT,
           }}
         >
-          {/* Caret */}
-          <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 12, height: 6, overflow: "hidden" }}>
-            <div style={{ width: 12, height: 12, background: "#1a1a2e", transform: "rotate(45deg)", transformOrigin: "top left", marginLeft: 0, marginTop: 3 }} />
+          {/* Caret pointing UP (bubble is below selection) */}
+          <div style={{ position: "absolute", top: -6, left: "50%", transform: "translateX(-50%)", width: 12, height: 6, overflow: "hidden" }}>
+            <div style={{ width: 12, height: 12, background: "#1a1a2e", transform: "rotate(45deg)", transformOrigin: "bottom right", marginLeft: 0, marginTop: 3 }} />
           </div>
 
           {!aiResult && !aiLoading && (
