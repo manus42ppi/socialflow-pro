@@ -72,7 +72,7 @@ function Board({posts,items,campaigns,onStatus,onCampaign,onEdit,onNew,canW}){
         </div>
       </div>
 
-      <div onDragEnd={endDrag} style={{display:"flex",gap:14,overflowX:"auto",alignItems:"start",paddingBottom:8,minHeight:400}}>
+      <div onDragEnd={endDrag} style={{display:"flex",gap:14,alignItems:"start",paddingBottom:8,minHeight:400,width:"100%"}}>
         {cols.map(col=>{
           const isO=over===col.id; const isS=dSt===col.id;
           return(
@@ -80,7 +80,7 @@ function Board({posts,items,campaigns,onStatus,onCampaign,onEdit,onNew,canW}){
               onDragOver={e=>{e.preventDefault();if(dId&&!isS)setOver(col.id);}}
               onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOver(null);}}
               onDrop={e=>{e.preventDefault();drop(col.id);}}
-              style={{flex:"0 0 232px",borderRadius:T.rLg,border:`1.5px solid ${isO?C.accent:T.gray200}`,background:isO?T.brand50:T.white,transition:"all .18s",opacity:dId&&isS?.5:1,minHeight:280,boxShadow:T.shadowXs}}>
+              style={{flex:"1 1 0",minWidth:180,borderRadius:T.rLg,border:`1.5px solid ${isO?C.accent:T.gray200}`,background:isO?T.brand50:T.white,transition:"all .18s",opacity:dId&&isS?.5:1,minHeight:280,boxShadow:T.shadowXs}}>
               {/* Column header – monochrome, dot keeps semantic color */}
               <div style={{padding:"10px 13px",background:C.surface,borderRadius:"10px 10px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${C.border}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:7}}>
