@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Search, Upload, Settings, Image, Check, Trash2, Edit2, AlertTriangle, CheckSquare } from "lucide-react";
+import { Search, Upload, Settings, Image, Check, Trash2, Edit2, AlertTriangle, CheckSquare, X, BookmarkPlus, Bookmark, ChevronDown } from "lucide-react";
 import { C, FONT, IW } from "../constants/colors.js";
 import { AI } from "../utils/store.js";
 import { uid, fileToDataURL, getMediaType, fpos } from "../utils/store.js";
@@ -21,7 +21,25 @@ export default function MediaPage(){
   const [batchMode,setBatchMode]=useState(false);
   const [sel,setSel]=useState(new Set());
   const [delConfirm,setDelConfirm]=useState(null); // {ids,futurePosts}
+  const [showFilterRow,setShowFilterRow]=useState(true);
+  const [savedPresets,setSavedPresets]=useState(()=>{try{return JSON.parse(localStorage.getItem("media_filter_presets")||"[]");}catch{return[];}});
+  const [presetName,setPresetName]=useState("");
+  const [showPresetInput,setShowPresetInput]=useState(false);
   const ref=useRef(); const timer=useRef();
+
+  const savePreset=()=>{
+    const name=presetName.trim()||`Filter ${savedPresets.length+1}`;
+    const next=[...savedPresets,{id:Date.now(),name,flt:{...flt},f}];
+    setSavedPresets(next);
+    localStorage.setItem("media_filter_presets",JSON.stringify(next));
+    setPresetName("");setShowPresetInput(false);
+  };
+  const deletePreset=id=>{
+    const next=savedPresets.filter(p=>p.id!==id);
+    setSavedPresets(next);
+    localStorage.setItem("media_filter_presets",JSON.stringify(next));
+  };
+  const applyPreset=p=>{setFlt(p.flt);setF(p.f);};
 
   const upload=useCallback(async files=>{
     for(const file of Array.from(files)){
@@ -124,7 +142,7 @@ export default function MediaPage(){
       else{setDet(item);}
     };
     return(
-      <div style={{borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:10,background:C.borderLight,outline:isSel?`2.5px solid ${C.accent}`:"none"}}
+      <div style={{borderRadius:8,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:8,background:C.borderLight,outline:isSel?`2.5px solid ${C.accent}`:"none"}}
         onClick={handleClick}
         onMouseEnter={()=>setHov(true)}
         onMouseLeave={()=>setHov(false)}>
@@ -245,9 +263,16 @@ export default function MediaPage(){
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
         {/* Search input */}
         <div style={{position:"relative",flex:1,minWidth:220}}>
-          <Search size={13} color={C.textMute} strokeWidth={IW} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}}/>
-          {anyLdg&&<div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,border:`2px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>}
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Suche in Bibliothek, Unsplash, Pexels & Pixabay…" style={{width:"100%",padding:"8px 34px 8px 30px",borderRadius:8,border:`1.5px solid ${searching?C.accent:C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box",transition:"border-color .15s"}}/>
+          <Search size={13} color={C.textMute} strokeWidth={IW} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}/>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Suche in Bibliothek, Unsplash, Pexels & Pixabay…"
+            style={{width:"100%",padding:"8px 34px 8px 30px",borderRadius:8,border:`1.5px solid ${searching?C.accent:C.border}`,fontSize:12,outline:"none",fontFamily:FONT,boxSizing:"border-box",transition:"border-color .15s",background:C.surface,color:C.text}}/>
+          {/* Clear button or loading spinner */}
+          {anyLdg
+            ?<div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",width:13,height:13,border:`2px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+            :q&&<button onClick={()=>setQ("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",padding:2,display:"flex",alignItems:"center",color:C.textMute,borderRadius:4}} title="Löschen"
+              onMouseEnter={e=>e.currentTarget.style.color=C.text} onMouseLeave={e=>e.currentTarget.style.color=C.textMute}>
+              <X size={13} strokeWidth={2.5}/>
+            </button>}
         </div>
         {/* Type filter tabs */}
         <div style={{display:"flex",gap:3,background:C.borderLight,borderRadius:7,padding:3,flexShrink:0}}>
@@ -255,6 +280,11 @@ export default function MediaPage(){
             <button key={t} onClick={()=>setF(t)} style={{padding:"5px 11px",borderRadius:5,border:"none",background:f===t?C.surface:"transparent",color:f===t?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>{l}</button>
           ))}
         </div>
+        {/* Filter toggle */}
+        <button onClick={()=>setShowFilterRow(v=>!v)} style={{background:showFilterRow?C.accent+"12":"none",border:`1px solid ${showFilterRow?C.accent+"44":C.border}`,borderRadius:7,color:showFilterRow?C.accent:C.textSoft,cursor:"pointer",padding:"6px 11px",fontSize:11,fontWeight:600,display:"flex",alignItems:"center",gap:5,fontFamily:FONT,flexShrink:0}}>
+          <Settings size={12} strokeWidth={2}/>Filter
+          <ChevronDown size={11} strokeWidth={2.5} style={{transform:showFilterRow?"rotate(180deg)":"none",transition:"transform .15s"}}/>
+        </button>
         {/* API-Keys button */}
         <button onClick={()=>setShowKeys(s=>!s)} style={{background:showKeys?C.borderLight:"none",border:`1px solid ${C.border}`,borderRadius:7,color:showKeys?C.text:C.textSoft,cursor:"pointer",padding:"6px 11px",fontSize:11,fontWeight:600,display:"flex",alignItems:"center",gap:5,fontFamily:FONT,flexShrink:0}}>
           <Settings size={12} strokeWidth={2}/>API-Keys
@@ -280,17 +310,57 @@ export default function MediaPage(){
       {/* ── API key panel ── */}
       {showKeys&&<div style={{marginBottom:12}}><StockKeyPanel keys={keys} onSave={saveKey}/></div>}
 
-      {/* ── Search filter row (only when searching) ── */}
-      {searching&&<div style={{display:"flex",gap:8,alignItems:"center",overflowX:"auto",paddingBottom:10,flexShrink:0}}>
-        <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>TYP</span>
-        <FP val={flt.type} onChange={v=>setFlt(f=>({...f,type:v}))} opts={[{v:"",l:"Alle"},{v:"photo",l:"📷 Foto"},{v:"video",l:"🎬 Video"},{v:"illustration",l:"🎨 Illustration"},{v:"vector",l:"📐 Vektor"}]}/>
-        <div style={{width:1,height:14,background:C.border,flexShrink:0,marginInline:2}}/>
-        <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>FORMAT</span>
-        <FP val={flt.orient} onChange={v=>setFlt(f=>({...f,orient:v}))} opts={[{v:"",l:"Alle"},{v:"landscape",l:"⬜ Quer"},{v:"portrait",l:"▭ Hoch"},{v:"square",l:"◻ Quadrat"}]}/>
-        <div style={{width:1,height:14,background:C.border,flexShrink:0,marginInline:2}}/>
-        <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>SORTIERUNG</span>
-        <FP val={flt.sort} onChange={v=>setFlt(f=>({...f,sort:v}))} opts={[{v:"relevant",l:"Relevant"},{v:"popular",l:"🔥 Beliebt"},{v:"latest",l:"🕐 Neu"}]}/>
-      </div>}
+      {/* ── Filter row (collapsible, always available) ── */}
+      {showFilterRow&&(
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:12,flexShrink:0}}>
+          {/* Saved presets row */}
+          {savedPresets.length>0&&(
+            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${C.borderLight}`}}>
+              <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>GESPEICHERT</span>
+              {savedPresets.map(p=>(
+                <div key={p.id} style={{display:"flex",alignItems:"center",gap:0,borderRadius:20,overflow:"hidden",border:`1px solid ${C.border}`}}>
+                  <button onClick={()=>applyPreset(p)} style={{padding:"3px 10px",background:C.bg,border:"none",fontSize:11,fontWeight:600,color:C.textMid,cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:4}}>
+                    <Bookmark size={9} strokeWidth={2.5}/>{p.name}
+                  </button>
+                  <button onClick={()=>deletePreset(p.id)} style={{padding:"3px 7px",background:C.bg,border:"none",borderLeft:`1px solid ${C.border}`,cursor:"pointer",color:C.textMute,display:"flex",alignItems:"center"}}
+                    onMouseEnter={e=>e.currentTarget.style.color="#e53e3e"} onMouseLeave={e=>e.currentTarget.style.color=C.textMute}>
+                    <X size={9} strokeWidth={3}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Filter controls */}
+          <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>TYP</span>
+            <FP val={flt.type} onChange={v=>setFlt(f=>({...f,type:v}))} opts={[{v:"",l:"Alle"},{v:"photo",l:"📷 Foto"},{v:"video",l:"🎬 Video"},{v:"illustration",l:"🎨 Illustration"},{v:"vector",l:"📐 Vektor"}]}/>
+            <div style={{width:1,height:14,background:C.border,flexShrink:0}}/>
+            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>FORMAT</span>
+            <FP val={flt.orient} onChange={v=>setFlt(f=>({...f,orient:v}))} opts={[{v:"",l:"Alle"},{v:"landscape",l:"⬜ Quer"},{v:"portrait",l:"▭ Hoch"},{v:"square",l:"◻ Quadrat"}]}/>
+            <div style={{width:1,height:14,background:C.border,flexShrink:0}}/>
+            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>SORTIERUNG</span>
+            <FP val={flt.sort} onChange={v=>setFlt(f=>({...f,sort:v}))} opts={[{v:"relevant",l:"Relevant"},{v:"popular",l:"🔥 Beliebt"},{v:"latest",l:"🕐 Neu"}]}/>
+            <div style={{flex:1}}/>
+            {/* Save preset */}
+            {showPresetInput?(
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <input value={presetName} onChange={e=>setPresetName(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter")savePreset();if(e.key==="Escape"){setShowPresetInput(false);setPresetName("");}}}
+                  placeholder="Filter-Name…" autoFocus
+                  style={{padding:"4px 10px",borderRadius:6,border:`1.5px solid ${C.accent}`,fontSize:12,outline:"none",fontFamily:FONT,color:C.text,width:130}}/>
+                <button onClick={savePreset} style={{background:C.accent,border:"none",borderRadius:6,color:"#fff",fontSize:11,fontWeight:700,padding:"5px 11px",cursor:"pointer",fontFamily:FONT}}>Speichern</button>
+                <button onClick={()=>{setShowPresetInput(false);setPresetName("");}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,color:C.textSoft,fontSize:11,padding:"5px 9px",cursor:"pointer",fontFamily:FONT}}><X size={11} strokeWidth={2.5}/></button>
+              </div>
+            ):(
+              <button onClick={()=>setShowPresetInput(true)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.textSoft,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent+"66";e.currentTarget.style.color=C.accent;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textSoft;}}>
+                <BookmarkPlus size={12} strokeWidth={2}/>Als Filter speichern
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Drop zone + content ── */}
       <div style={{flex:1}} onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);upload(e.dataTransfer.files);}}>
@@ -314,7 +384,7 @@ export default function MediaPage(){
             ):(
               list.length===0&&searching
                 ?<div style={{padding:"20px 0",color:C.textMute,fontSize:12}}>Keine lokalen Treffer für „{q}"</div>
-                :<div style={{columns:"4 180px",columnGap:10}}>
+                :<div style={{columns:"5 140px",columnGap:8}}>
                   {list.map(item=><LibTile key={item.id} item={item}/>)}
                 </div>
             )}
@@ -343,7 +413,7 @@ export default function MediaPage(){
                 </div>
                 {isLdg?<Skeletons/>
                   :res?.length===0?<div style={{padding:"14px 12px",color:C.textMute,fontSize:12,textAlign:"center",background:C.bg,borderRadius:8}}>Keine Treffer für „{q}"</div>
-                  :<div style={{columns:"4 160px",columnGap:10}}>
+                  :<div style={{columns:"5 140px",columnGap:8}}>
                     {(res||[]).map(item=><ExtTile key={item.id} item={item}/>)}
                   </div>}
               </div>
