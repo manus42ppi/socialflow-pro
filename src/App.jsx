@@ -61,24 +61,28 @@ function AppShell() {
         <TopBar title={TITLE[nav] || "SocialFlow"} />
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
           <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            {nav === "dashboard"   && <Dashboard />}
-            {nav === "publisher"  && <PublisherPage />}
-            {nav === "trash"      && <TrashPage />}
-            {nav === "campaigns"                     && <CampaignsPage />}
-            {nav === "media"                         && <MediaPage />}
-            {nav === "calendar"                      && <CalendarPage />}
-            {nav === "planner"                       && <PlannerPage />}
-            {nav === "performance"                   && <PerformancePage />}
-            {nav === "research"                      && <ResearchPage />}
-            {nav === "monitoring"                    && <MonitoringPage />}
-            {nav === "stories"                       && <StoriesPage />}
-            {nav === "admin" && <AdminPage />}
+            {edStory
+              ? <StoryEditorModal />
+              : <>
+                  {nav === "dashboard"   && <Dashboard />}
+                  {nav === "publisher"   && <PublisherPage />}
+                  {nav === "trash"       && <TrashPage />}
+                  {nav === "campaigns"   && <CampaignsPage />}
+                  {nav === "media"       && <MediaPage />}
+                  {nav === "calendar"    && <CalendarPage />}
+                  {nav === "planner"     && <PlannerPage />}
+                  {nav === "performance" && <PerformancePage />}
+                  {nav === "research"    && <ResearchPage />}
+                  {nav === "monitoring"  && <MonitoringPage />}
+                  {nav === "stories"     && <StoriesPage />}
+                  {nav === "admin"       && <AdminPage />}
+                </>
+            }
           </div>
-          <GlobalRightSidebar />
+          {!edStory && <GlobalRightSidebar />}
         </div>
       </div>
       {edPost  && <Editor />}
-      {edStory && <StoryEditorModal />}
       {schPost && <SchedModal />}
       {detailPost && <PostDetailDrawer />}
     </div>

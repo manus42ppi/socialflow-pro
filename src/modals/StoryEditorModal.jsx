@@ -746,10 +746,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(0,0,0,.6)", display: "flex",
-    }}>
+    <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
       <style>{CSS}</style>
       <style>{`
         /* ── BlockNote base ── */
@@ -817,7 +814,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
       )}
 
       <div style={{
-        width: "100%", height: "100%", display: "flex", flexDirection: "column",
+        flex: 1, display: "flex", flexDirection: "column", overflow: "hidden",
         background: C.surface,
       }}>
 
