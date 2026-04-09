@@ -333,14 +333,14 @@ export default function MediaPage(){
 
           {/* Filter controls */}
           <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>TYP</span>
-            <FP val={flt.type} onChange={v=>setFlt(f=>({...f,type:v}))} opts={[{v:"",l:"Alle"},{v:"photo",l:"📷 Foto"},{v:"video",l:"🎬 Video"},{v:"illustration",l:"🎨 Illustration"},{v:"vector",l:"📐 Vektor"}]}/>
-            <div style={{width:1,height:14,background:C.border,flexShrink:0}}/>
-            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>FORMAT</span>
-            <FP val={flt.orient} onChange={v=>setFlt(f=>({...f,orient:v}))} opts={[{v:"",l:"Alle"},{v:"landscape",l:"⬜ Quer"},{v:"portrait",l:"▭ Hoch"},{v:"square",l:"◻ Quadrat"}]}/>
-            <div style={{width:1,height:14,background:C.border,flexShrink:0}}/>
-            <span style={{fontSize:10,fontWeight:800,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>SORTIERUNG</span>
-            <FP val={flt.sort} onChange={v=>setFlt(f=>({...f,sort:v}))} opts={[{v:"relevant",l:"Relevant"},{v:"popular",l:"🔥 Beliebt"},{v:"latest",l:"🕐 Neu"}]}/>
+            <span style={{fontSize:11,fontWeight:600,color:C.textSoft,flexShrink:0}}>Typ</span>
+            <FP val={flt.type} onChange={v=>setFlt(f=>({...f,type:v}))} opts={[{v:"",l:"Alle"},{v:"photo",l:"Foto"},{v:"video",l:"Video"},{v:"illustration",l:"Illustration"},{v:"vector",l:"Vektor"}]}/>
+            <div style={{width:1,height:16,background:C.border,flexShrink:0}}/>
+            <span style={{fontSize:11,fontWeight:600,color:C.textSoft,flexShrink:0}}>Format</span>
+            <FP val={flt.orient} onChange={v=>setFlt(f=>({...f,orient:v}))} opts={[{v:"",l:"Alle"},{v:"landscape",l:"Quer"},{v:"portrait",l:"Hoch"},{v:"square",l:"Quadrat"}]}/>
+            <div style={{width:1,height:16,background:C.border,flexShrink:0}}/>
+            <span style={{fontSize:11,fontWeight:600,color:C.textSoft,flexShrink:0}}>Sortierung</span>
+            <FP val={flt.sort} onChange={v=>setFlt(f=>({...f,sort:v}))} opts={[{v:"relevant",l:"Relevant"},{v:"popular",l:"Beliebt"},{v:"latest",l:"Neueste"}]}/>
             <div style={{flex:1}}/>
             {/* Save preset */}
             {showPresetInput?(

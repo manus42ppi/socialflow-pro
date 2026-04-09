@@ -79,8 +79,8 @@ export function SrcBadge({source}){
 }
 
 export function FP({opts,val,onChange}){
-  return <div style={{display:"flex",gap:2}}>
-    {opts.map(o=><button key={o.v} onClick={()=>onChange(o.v===val?"":o.v)} style={{padding:"3px 10px",borderRadius:20,border:"none",background:val===o.v?C.text:C.borderLight,color:val===o.v?"#fff":C.textSoft,fontWeight:600,fontSize:11,cursor:"pointer",fontFamily:FONT,transition:"all .1s",whiteSpace:"nowrap"}}>{o.l}</button>)}
+  return <div style={{display:"flex",gap:2,background:C.borderLight,borderRadius:7,padding:3}}>
+    {opts.map(o=><button key={o.v} onClick={()=>onChange(o.v===val?"":o.v)} style={{padding:"4px 11px",borderRadius:5,border:"none",background:val===o.v?C.surface:"transparent",color:val===o.v?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .1s",whiteSpace:"nowrap",boxShadow:val===o.v?"0 1px 3px rgba(0,0,0,.07)":"none"}}>{o.l}</button>)}
   </div>;
 }
 
