@@ -1,10 +1,15 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/react/style.css";
 import "@blocknote/ariakit/style.css";
-import { useCreateBlockNote, useBlockNoteEditor, FilePanelController } from "@blocknote/react";
+import {
+  useCreateBlockNote, useBlockNoteEditor, FilePanelController,
+  FormattingToolbarController, FormattingToolbar,
+  BlockTypeSelect, BasicTextStyleButton, TextAlignButton,
+  ColorStyleButton, NestBlockButton, UnnestBlockButton, CreateLinkButton,
+} from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/ariakit";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { createPortal } from "react-dom";
+import { createPortal } from "react-dom"; // still used by MediaLibraryFilePanel + DerivativePreviewModal
 import {
   X, Save, Check, Link as LinkIcon, StickyNote,
   Trash2, Wand2, Loader, Image as ImageIcon,
@@ -461,6 +466,158 @@ function DerivativeRow({ channel, derivative, onCreate, hasContent, loading }) {
   );
 }
 
+// ── UNIFIED FORMATTING TOOLBAR (formatting + KI in one bar) ───────────────
+function UnifiedFormattingToolbar() {
+  const [mode, setMode] = useState("format"); // "format" | "ai" | "loading" | "result"
+  const [aiResult, setAiResult] = useState("");
+  const selRef = useRef(null);
+
+  const AI_ACTIONS = [
+    { id: "improve",   label: "✦ Verbessern" },
+    { id: "shorten",   label: "↓ Kürzen"     },
+    { id: "expand",    label: "↑ Erweitern"  },
+    { id: "spell",     label: "✓ Korrektur"  },
+    { id: "formal",    label: "≡ Formell"    },
+    { id: "translate", label: "⇄ Englisch"   },
+  ];
+  const PROMPTS = {
+    improve:   t => `Verbessere diesen Text stilistisch (Klarheit, Fluss, Prägnanz). Gib NUR den verbesserten Text zurück:\n\n${t}`,
+    shorten:   t => `Kürze diesen Text auf das Wesentliche. Gib NUR den gekürzten Text zurück:\n\n${t}`,
+    expand:    t => `Erweitere diesen Text mit mehr Details und Beispielen. Gib NUR den erweiterten Text zurück:\n\n${t}`,
+    spell:     t => `Korrigiere alle Rechtschreib- und Grammatikfehler. Gib NUR den korrigierten Text zurück:\n\n${t}`,
+    formal:    t => `Schreibe diesen Text formeller und professioneller um. Gib NUR den Text zurück:\n\n${t}`,
+    translate: t => `Übersetze diesen deutschen Text ins Englische. Gib NUR die englische Übersetzung zurück:\n\n${t}`,
+  };
+
+  const handleAI = async (id) => {
+    const text = window.getSelection()?.toString().trim();
+    if (!text || text.length < 5) return;
+    const sel = window.getSelection();
+    selRef.current = sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+    setMode("loading");
+    try {
+      const r = await aiCall([{ role: "user", content: PROMPTS[id](text) }], 900);
+      setAiResult(r.trim());
+      setMode("result");
+    } catch {
+      setAiResult("⚠ KI nicht verfügbar");
+      setMode("result");
+    }
+  };
+
+  const apply = () => {
+    if (!aiResult || !selRef.current) return;
+    try {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(selRef.current);
+      document.execCommand("insertText", false, aiResult);
+    } catch {}
+    setMode("format"); setAiResult("");
+  };
+
+  const btnBase = {
+    padding: "3px 9px", borderRadius: 5, border: "none",
+    fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+    fontFamily: FONT, transition: "background .1s",
+    display: "flex", alignItems: "center", gap: 3,
+  };
+
+  return (
+    <FormattingToolbar>
+      {/* ── Standard format buttons (always visible unless AI mode active) ── */}
+      {mode === "format" && <>
+        <BlockTypeSelect key="blockTypeSelect" />
+        <BasicTextStyleButton basicTextStyle="bold"      key="bold" />
+        <BasicTextStyleButton basicTextStyle="italic"    key="italic" />
+        <BasicTextStyleButton basicTextStyle="underline" key="underline" />
+        <BasicTextStyleButton basicTextStyle="strike"    key="strike" />
+        <TextAlignButton textAlignment="left"   key="alignLeft" />
+        <TextAlignButton textAlignment="center" key="alignCenter" />
+        <TextAlignButton textAlignment="right"  key="alignRight" />
+        <ColorStyleButton key="color" />
+        <NestBlockButton   key="nest" />
+        <UnnestBlockButton key="unnest" />
+        <CreateLinkButton  key="link" />
+        {/* KI toggle */}
+        <div key="sep" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
+        <button key="ai-open"
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => setMode("ai")}
+          style={{ ...btnBase, background: "rgba(255,255,255,.12)", color: "rgba(255,255,255,.9)" }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.22)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.12)"}>
+          <Wand2 size={11} strokeWidth={IW} /> KI
+        </button>
+      </>}
+
+      {/* ── AI action buttons ── */}
+      {mode === "ai" && <>
+        <button key="back"
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => setMode("format")}
+          style={{ ...btnBase, background: "rgba(255,255,255,.08)", color: "rgba(255,255,255,.5)" }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.16)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.08)"}>
+          ← Zurück
+        </button>
+        <div key="sep2" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
+        {AI_ACTIONS.map(({ id, label }) => (
+          <button key={id}
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => handleAI(id)}
+            style={{ ...btnBase, background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.88)" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.2)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.1)"}>
+            {label}
+          </button>
+        ))}
+      </>}
+
+      {/* ── Loading ── */}
+      {mode === "loading" && (
+        <div key="loading" style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 8px", color: "rgba(255,255,255,.8)", fontSize: 12, fontFamily: FONT }}>
+          <div style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,.25)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin .7s linear infinite", flexShrink: 0 }} />
+          KI schreibt…
+        </div>
+      )}
+
+      {/* ── Result ── */}
+      {mode === "result" && <>
+        <div key="preview" style={{
+          maxWidth: 320, fontSize: 11.5, color: "rgba(255,255,255,.8)", fontFamily: FONT,
+          padding: "3px 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>{aiResult}</div>
+        <div key="sep3" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
+        <button key="apply"
+          onMouseDown={e => e.preventDefault()}
+          onClick={apply}
+          style={{ ...btnBase, background: "rgba(99,102,241,.7)", color: "#fff" }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(99,102,241,.9)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(99,102,241,.7)"}>
+          <Check size={11} strokeWidth={2.5} /> Übernehmen
+        </button>
+        <button key="retry"
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => setMode("ai")}
+          style={{ ...btnBase, background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.75)" }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.2)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.1)"}>
+          ↺ Neu
+        </button>
+        <button key="discard"
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => { setMode("format"); setAiResult(""); }}
+          style={{ ...btnBase, background: "transparent", color: "rgba(255,255,255,.4)" }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.08)"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+          ✕
+        </button>
+      </>}
+    </FormattingToolbar>
+  );
+}
+
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function StoryEditorModal() {
   const { edStory: story, items, posts, saveStory: onSave, updateStory, lockStory, unlockStory, setEdStory, setPosts, user } = useApp();
@@ -505,9 +662,6 @@ export default function StoryEditorModal() {
   const [deriving, setDeriving] = useState({}); // { [chId]: boolean }
   const [derivPreview, setDerivPreview] = useState(null); // { chId, content, channel }
   const [showSettings, setShowSettings] = useState(false);
-  const [aiMenu, setAiMenu]     = useState(null); // { x, y, text }
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult]   = useState(null);
   const [articleText, setArticleText] = useState(() => blocksToText(story.blocks || []));
   const [tagsLoading, setTagsLoading] = useState(false);
   const [hashtagLoading, setHashtagLoading] = useState(false);
@@ -516,7 +670,6 @@ export default function StoryEditorModal() {
   const formRef      = useRef(form);
   const titleRef     = useRef();
   const subtitleRef  = useRef();
-  const aiSelRef     = useRef(null); // saved selection range for apply
   formRef.current = form;
 
   // ── BlockNote editor ──────────────────────────────────────────────────────
@@ -596,64 +749,6 @@ export default function StoryEditorModal() {
       if (r.current) { r.current.style.height = "auto"; r.current.style.height = r.current.scrollHeight + "px"; }
     });
   }, []); // eslint-disable-line
-
-  // ── AI selection menu ─────────────────────────────────────────────────────
-  useEffect(() => {
-    let timer = null;
-    const handler = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        const sel = window.getSelection();
-        if (!sel || sel.isCollapsed || !sel.rangeCount) return;
-        const text = sel.toString().trim();
-        if (text.length < 5) { setAiMenu(null); return; }
-        try {
-          const range = sel.getRangeAt(0);
-          const rect  = range.getBoundingClientRect();
-          if (!rect.width) return;
-          aiSelRef.current = range.cloneRange();
-          setAiMenu({
-            x: Math.max(160, Math.min(window.innerWidth - 160, rect.left + rect.width / 2)),
-            y: rect.bottom, // position BELOW selection so it doesn't overlap the BlockNote toolbar above
-            text,
-          });
-          setAiResult(null);
-        } catch {}
-      }, 300);
-    };
-    document.addEventListener("selectionchange", handler);
-    return () => { document.removeEventListener("selectionchange", handler); clearTimeout(timer); };
-  }, []);
-
-  const runAIAction = async (type) => {
-    if (!aiMenu) return;
-    setAiLoading(true); setAiResult(null);
-    const t = aiMenu.text;
-    const PROMPTS = {
-      improve:   `Verbessere diesen Text stilistisch (Klarheit, Fluss, Prägnanz). Gib NUR den verbesserten Text zurück:\n\n${t}`,
-      shorten:   `Kürze diesen Text auf das Wesentliche, ohne wichtige Aussagen zu verlieren. Gib NUR den gekürzten Text zurück:\n\n${t}`,
-      expand:    `Erweitere diesen Text mit mehr Details, Kontext und Beispielen. Gib NUR den erweiterten Text zurück:\n\n${t}`,
-      spell:     `Korrigiere alle Rechtschreib- und Grammatikfehler in diesem Text. Gib NUR den korrigierten Text zurück:\n\n${t}`,
-      formal:    `Schreibe diesen Text formeller und professioneller um. Gib NUR den Text zurück:\n\n${t}`,
-      translate: `Übersetze diesen deutschen Text ins Englische. Gib NUR die englische Übersetzung zurück:\n\n${t}`,
-    };
-    try {
-      const r = await aiCall([{ role: "user", content: PROMPTS[type] }], 900);
-      setAiResult(r.trim());
-    } catch { setAiResult("⚠ KI nicht verfügbar (nur auf der Live-Site)"); }
-    setAiLoading(false);
-  };
-
-  const applyAIResult = () => {
-    if (!aiResult || !aiSelRef.current) return;
-    try {
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(aiSelRef.current);
-      document.execCommand("insertText", false, aiResult);
-    } catch {}
-    setAiMenu(null); setAiResult(null);
-  };
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleSave = (status) => {
@@ -1170,6 +1265,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 editor={editor}
                 theme="light"
                 filePanel={false}
+                formattingToolbar={false}
                 style={{ fontSize: 16, lineHeight: 1.8 }}
                 onChange={() => {
                   const text = blocksToText(editor.document || []);
@@ -1178,6 +1274,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   setHasUnsaved(true);
                 }}
               >
+                <FormattingToolbarController formattingToolbar={UnifiedFormattingToolbar} />
                 <FilePanelController filePanel={MediaLibraryFilePanel} />
               </BlockNoteView>
             </div>
@@ -1610,91 +1707,6 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
         </div>
       </div>
 
-      {/* ── AI SELECTION BUBBLE ──────────────────────────────────────────────── */}
-      {aiMenu && createPortal(
-        <div
-          onMouseDown={e => e.preventDefault()}
-          style={{
-            position: "fixed",
-            left: aiMenu.x,
-            top: aiMenu.y + 10, // below the selection
-            transform: "translateX(-50%)",
-            zIndex: 9000,
-            background: "#1a1a2e",
-            borderRadius: 12,
-            boxShadow: "0 12px 40px rgba(0,0,0,.35)",
-            padding: aiResult ? "12px 14px" : "6px",
-            display: "flex", flexDirection: "column", gap: 6,
-            minWidth: aiResult ? 300 : "auto",
-            maxWidth: 380,
-            fontFamily: FONT,
-          }}
-        >
-          {/* Caret pointing UP (bubble is below selection) */}
-          <div style={{ position: "absolute", top: -6, left: "50%", transform: "translateX(-50%)", width: 12, height: 6, overflow: "hidden" }}>
-            <div style={{ width: 12, height: 12, background: "#1a1a2e", transform: "rotate(45deg)", transformOrigin: "bottom right", marginLeft: 0, marginTop: 3 }} />
-          </div>
-
-          {!aiResult && !aiLoading && (
-            <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              {[
-                ["improve",   "✦ Verbessern"],
-                ["shorten",   "↓ Kürzen"],
-                ["expand",    "↑ Erweitern"],
-                ["spell",     "✓ Korrektur"],
-                ["formal",    "≡ Formeller"],
-                ["translate", "⇄ Übersetzen"],
-              ].map(([type, label]) => (
-                <button key={type}
-                  onMouseDown={e => { e.preventDefault(); runAIAction(type); }}
-                  style={{
-                    padding: "5px 10px", borderRadius: 6, border: "none",
-                    background: "rgba(255,255,255,.09)", color: "rgba(255,255,255,.88)",
-                    fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT,
-                    transition: "background .1s",
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.18)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.09)"}
-                >{label}</button>
-              ))}
-              <button onMouseDown={e => { e.preventDefault(); setAiMenu(null); }}
-                style={{ marginLeft: 2, padding: "5px 8px", borderRadius: 6, border: "none", background: "transparent", color: "rgba(255,255,255,.3)", fontSize: 14, cursor: "pointer" }}>
-                ✕
-              </button>
-            </div>
-          )}
-
-          {aiLoading && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", color: "rgba(255,255,255,.8)", fontSize: 12 }}>
-              <div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,.25)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin .7s linear infinite", flexShrink: 0 }} />
-              KI schreibt…
-            </div>
-          )}
-
-          {aiResult && !aiLoading && (
-            <>
-              <div style={{ fontSize: 12.5, color: "rgba(255,255,255,.88)", lineHeight: 1.6, fontFamily: FONT, borderBottom: "1px solid rgba(255,255,255,.1)", paddingBottom: 10, marginBottom: 2, maxHeight: 180, overflowY: "auto" }}>
-                {aiResult}
-              </div>
-              <div style={{ display: "flex", gap: 5 }}>
-                <button onMouseDown={e => { e.preventDefault(); applyAIResult(); }}
-                  style={{ flex: 1, padding: "7px 12px", borderRadius: 7, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
-                  Übernehmen
-                </button>
-                <button onMouseDown={e => { e.preventDefault(); setAiResult(null); }}
-                  style={{ padding: "7px 12px", borderRadius: 7, border: "none", background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.8)", fontSize: 12, cursor: "pointer", fontFamily: FONT }}>
-                  Neu
-                </button>
-                <button onMouseDown={e => { e.preventDefault(); setAiMenu(null); setAiResult(null); }}
-                  style={{ padding: "7px 10px", borderRadius: 7, border: "none", background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.4)", fontSize: 13, cursor: "pointer" }}>
-                  ✕
-                </button>
-              </div>
-            </>
-          )}
-        </div>,
-        document.body
-      )}
 
       {/* ── DERIVATIVE PREVIEW MODAL ─────────────────────────────────────────── */}
       {derivPreview && <DerivativePreviewModal
