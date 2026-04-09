@@ -6,9 +6,9 @@ import { BlockNoteView } from "@blocknote/ariakit";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
-  X, Save, Check, BookOpen, Link as LinkIcon, StickyNote,
-  Trash2, Wand2, Loader, Hash, PenLine, Image as ImageIcon,
-  ChevronLeft, Tag, Layers, Settings2, AlignLeft,
+  X, Save, Check, Link as LinkIcon, StickyNote,
+  Trash2, Wand2, Loader, Image as ImageIcon,
+  ChevronLeft, Settings2, AlignLeft,
 } from "lucide-react";
 import { C, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
@@ -22,10 +22,10 @@ const CATS = ["","Marketing","Tech","Lifestyle","Wirtschaft","Politik","Kultur",
 const CAT_COLOR = {Marketing:"#E1306C",Tech:"#8B5CF6",Lifestyle:"#EC4899",Wirtschaft:"#10B981",Politik:"#3B82F6",Kultur:"#6366F1",Gesundheit:"#EF4444",Reise:"#14B8A6",Bildung:"#F97316",Andere:"#6B7280"};
 
 const STATUSES = [
-  { id:"idea",      label:"Idee",           color:"#6366F1", icon:"💡", desc:"Ersten Gedanken sammeln" },
-  { id:"draft",     label:"Entwurf",        color:"#F59E0B", icon:"✏️", desc:"Inhalt wird geschrieben" },
-  { id:"ready",     label:"Bereit",         color:"#10B981", icon:"✅", desc:"Bereit für Ableitungen" },
-  { id:"published", label:"Veröffentlicht", color:"#0EA5E9", icon:"🚀", desc:"Story ist publiziert" },
+  { id:"idea",      label:"Idee",           color:"#6366F1", desc:"Ersten Gedanken sammeln" },
+  { id:"draft",     label:"Entwurf",        color:"#F59E0B", desc:"Inhalt wird geschrieben" },
+  { id:"ready",     label:"Bereit",         color:"#10B981", desc:"Bereit für Ableitungen" },
+  { id:"published", label:"Veröffentlicht", color:"#0EA5E9", desc:"Story ist publiziert" },
 ];
 
 const CH_LIMITS = { instagram:2200, twitter:280, linkedin:1300, facebook:500, whatsapp:800, website:100000, print:100000 };
@@ -432,7 +432,7 @@ export default function StoryEditorModal() {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [deriving, setDeriving] = useState({}); // { [chId]: boolean }
   const [derivPreview, setDerivPreview] = useState(null); // { chId, content, channel }
-  const [leftExpanded, setLeftExpanded] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const asRef = useRef();
   const formRef = useRef(form);
@@ -681,23 +681,65 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
     }}>
       <style>{CSS}</style>
       <style>{`
-        .bn-container { font-family: ${FONT}; }
-        .bn-editor { min-height: 300px; padding: 0 !important; font-size: 16px !important; line-height: 1.8 !important; }
-        .bn-block-outer { margin: 0 !important; }
-        .bn-block-content { max-width: 720px; margin: 0 auto; }
-        /* Floating UI elements must appear above the modal (z:1000) */
-        .bn-toolbar { z-index: 1200 !important; }
-        .bn-suggestion-menu { z-index: 1200 !important; }
-        .bn-side-menu { z-index: 1200 !important; }
+        /* ── BlockNote base ── */
+        .bn-container { font-family: ${FONT} !important; }
+        .bn-editor {
+          min-height: 400px;
+          padding: 0 !important;
+          font-size: 16px !important;
+          line-height: 1.8 !important;
+          color: ${C.text} !important;
+        }
+        /* Block spacing: whitespace IS the separator (no borders) */
+        .bn-block-outer { margin: 0 !important; padding: 1px 0 !important; }
+        .bn-block { border-radius: 4px !important; transition: background .1s !important; }
+        .bn-block:hover { background: rgba(0,0,0,.025) !important; }
+        .bn-block-content { padding: 3px 0 !important; }
+
+        /* Headings */
+        .bn-block[data-content-type="heading"] h1 { font-size: 30px !important; font-weight: 800 !important; line-height: 1.2 !important; margin: 20px 0 4px !important; color: ${C.text} !important; font-family: ${FONT} !important; }
+        .bn-block[data-content-type="heading"] h2 { font-size: 22px !important; font-weight: 700 !important; line-height: 1.3 !important; margin: 16px 0 3px !important; color: ${C.text} !important; font-family: ${FONT} !important; }
+        .bn-block[data-content-type="heading"] h3 { font-size: 17px !important; font-weight: 600 !important; line-height: 1.4 !important; margin: 12px 0 2px !important; color: ${C.textMid} !important; font-family: ${FONT} !important; }
+
+        /* Paragraph */
+        .bn-block[data-content-type="paragraph"] p { margin: 0 !important; }
+
+        /* Quote */
+        .bn-block[data-content-type="quote"] { border-left: 3px solid ${C.accent}55 !important; padding-left: 16px !important; margin: 8px 0 !important; }
+        .bn-block[data-content-type="quote"] p { font-style: italic !important; color: ${C.textMid} !important; }
+
+        /* Lists */
+        .bn-block[data-content-type="bulletListItem"],
+        .bn-block[data-content-type="numberedListItem"] { padding-left: 4px !important; }
+
+        /* Side menu (drag handle + plus button) */
+        .bn-side-menu { opacity: 0; transition: opacity .1s; }
+        .bn-block:hover .bn-side-menu { opacity: 1; }
+        .bn-side-menu button { color: ${C.textMute} !important; }
+        .bn-side-menu button:hover { color: ${C.text} !important; background: ${C.borderLight} !important; }
+
+        /* Inline toolbar (bubble menu) */
+        .bn-toolbar { background: ${C.text} !important; border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,.25) !important; border: none !important; padding: 4px !important; z-index: 1200 !important; }
+        .bn-toolbar button { color: rgba(255,255,255,.75) !important; border-radius: 5px !important; }
+        .bn-toolbar button:hover { background: rgba(255,255,255,.12) !important; color: #fff !important; }
+        .bn-toolbar button[data-active="true"] { background: rgba(255,255,255,.2) !important; color: #fff !important; }
+
+        /* Slash menu */
+        .bn-suggestion-menu { background: ${C.surface} !important; border: 1px solid ${C.border} !important; border-radius: 10px !important; box-shadow: 0 8px 32px rgba(0,0,0,.14) !important; z-index: 1200 !important; }
+        .bn-suggestion-menu-item { border-radius: 6px !important; }
+        .bn-suggestion-menu-item:hover, .bn-suggestion-menu-item[data-selected="true"] { background: ${C.bg} !important; }
+
+        /* Image */
+        .bn-block[data-content-type="image"] img { border-radius: 6px !important; }
+
+        /* Floating UI portals */
         .bn-image-toolbar { z-index: 1200 !important; }
         .bn-file-toolbar { z-index: 1200 !important; }
         [data-radix-popper-content-wrapper] { z-index: 1200 !important; }
         [data-floating-ui-portal] { z-index: 1200 !important; }
         .bn-slash-menu { z-index: 1200 !important; }
+
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .ste-left-icon-btn { display: flex; align-items: center; justify-content: flex-start; width: 100%; background: none; border: none; cursor: pointer; border-radius: 7px; padding: 8px; gap: 10px; transition: background .12s; color: ${C.textMid}; }
-        .ste-left-icon-btn:hover { background: ${C.borderLight}; color: ${C.text}; }
-        .ste-left-icon-btn.active { background: ${C.accent}12; color: ${C.accent}; }
       `}</style>
 
       {showImagePicker && (
@@ -750,6 +792,21 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             </span>
           ) : null}
 
+          {/* Settings gear */}
+          <button
+            onClick={() => setShowSettings(v => !v)}
+            title="Einstellungen"
+            style={{
+              display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 7,
+              border: `1px solid ${showSettings ? C.accent + "55" : "transparent"}`,
+              background: showSettings ? C.accentLight : "none",
+              color: showSettings ? C.accent : C.textMute, cursor: "pointer", marginRight: 4,
+            }}
+            onMouseEnter={e => { if (!showSettings) { e.currentTarget.style.background = C.borderLight; e.currentTarget.style.color = C.textMid; } }}
+            onMouseLeave={e => { if (!showSettings) { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.textMute; } }}>
+            <Settings2 size={15} strokeWidth={IW} />
+          </button>
+
           {/* Status badge (clickable, cycles) */}
           <button
             onClick={cycleStatus}
@@ -761,7 +818,8 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               fontFamily: FONT, fontSize: 11, fontWeight: 700, cursor: "pointer",
               flexShrink: 0,
             }}>
-            {currentStatus.icon} {currentStatus.label}
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: currentStatus.color, flexShrink: 0 }} />
+            {currentStatus.label}
           </button>
 
           <div style={{ width: 8 }} />
@@ -780,148 +838,121 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
         {lockedByOther && (
           <div style={{
             background: "#FFF9C4", borderBottom: `1px solid #F6E05E`,
-            padding: "8px 20px", display: "flex", alignItems: "center", gap: 8,
+            padding: "7px 20px", display: "flex", alignItems: "center", gap: 8,
             fontSize: 12, fontFamily: FONT, color: "#744210", flexShrink: 0,
           }}>
-            <span style={{ fontSize: 14 }}>⚠️</span>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#D97706", flexShrink: 0 }} />
             <strong>{lockedByOther.userName}</strong> bearbeitet gerade diese Story.
             Du kannst sie nur lesen, bis sie den Editor schließt.
+          </div>
+        )}
+
+        {/* ── SETTINGS STRIP ────────────────────────────────────────────── */}
+        {showSettings && (
+          <div style={{
+            borderBottom: `1px solid ${C.border}`,
+            background: C.surface,
+            padding: "10px 24px",
+            display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap",
+            flexShrink: 0,
+          }}>
+            {/* Status */}
+            <div>
+              <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>Status</div>
+              <div style={{ display: "flex", gap: 3, background: C.borderLight, borderRadius: 8, padding: 3 }}>
+                {STATUSES.map(s => {
+                  const on = form.status === s.id;
+                  return (
+                    <button key={s.id} onClick={() => setForm(f => ({ ...f, status: s.id }))} style={{
+                      display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
+                      borderRadius: 6, border: "none", cursor: "pointer", fontFamily: FONT,
+                      fontSize: 11.5, fontWeight: on ? 700 : 500,
+                      background: on ? C.surface : "transparent",
+                      color: on ? s.color : C.textSoft,
+                      boxShadow: on ? "0 1px 3px rgba(0,0,0,.07)" : "none",
+                      transition: "all .1s",
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
+
+            {/* Category */}
+            <div>
+              <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>Kategorie</div>
+              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: form.category ? C.text : C.textMute, fontSize: 12, fontFamily: FONT, outline: "none", cursor: "pointer" }}>
+                {CATS.map(c => <option key={c} value={c}>{c || "Keine Kategorie"}</option>)}
+              </select>
+            </div>
+
+            <div style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
+
+            {/* Target channels */}
+            <div>
+              <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>Ziel-Kanäle</div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {STORY_CHANNELS.map(ch => {
+                  const active = form.targetChannels.includes(ch.id);
+                  return (
+                    <button key={ch.id} onClick={() => toggleChannel(ch.id)} title={ch.label}
+                      style={{
+                        width: 28, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
+                        border: `1.5px solid ${active ? ch.color + "66" : C.border}`,
+                        background: active ? ch.color + "14" : C.bg,
+                        cursor: "pointer", transition: "all .12s",
+                      }}>
+                      <ChIco id={ch.id} size={14} color={active ? ch.color : C.textMute} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
+
+            {/* Tags */}
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>Tags</div>
+              <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+                placeholder="tag1, tag2, tag3…"
+                style={{ width: "100%", padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
           </div>
         )}
 
         {/* ── BODY ──────────────────────────────────────────────────────── */}
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
-          {/* ── LEFT PANEL: Collapsible Metadata ─────────────────────── */}
-          <div
-            onMouseEnter={() => setLeftExpanded(true)}
-            onMouseLeave={() => setLeftExpanded(false)}
-            style={{
-              width: leftExpanded ? 220 : 52, borderRight: `1px solid ${C.border}`,
-              background: C.surface, overflowY: leftExpanded ? "auto" : "hidden",
-              overflowX: "hidden",
-              display: "flex", flexDirection: "column", gap: 4,
-              flexShrink: 0, padding: "12px 6px",
-              transition: "width .18s cubic-bezier(.4,0,.2,1)",
-            }}>
-
-            {/* Status section */}
-            <div style={{ marginBottom: 4 }}>
-              {leftExpanded && (
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".08em", padding: "0 6px 6px", whiteSpace: "nowrap" }}>Status</div>
-              )}
-              {STATUSES.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => setForm(f => ({ ...f, status: s.id }))}
-                  className={`ste-left-icon-btn${form.status === s.id ? " active" : ""}`}
-                  title={!leftExpanded ? s.label : undefined}
-                  style={{
-                    justifyContent: leftExpanded ? "flex-start" : "center",
-                    border: `1.5px solid ${form.status === s.id ? currentStatus.color + "44" : "transparent"}`,
-                    color: form.status === s.id ? s.color : undefined,
-                    background: form.status === s.id ? s.color + "10" : undefined,
-                  }}>
-                  <span style={{ fontSize: 15, flexShrink: 0 }}>{s.icon}</span>
-                  {leftExpanded && (
-                    <span style={{ fontSize: 12, fontWeight: form.status === s.id ? 700 : 500, fontFamily: FONT, whiteSpace: "nowrap", overflow: "hidden" }}>{s.label}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ height: 1, background: C.borderLight, margin: "4px 6px" }} />
-
-            {/* Category */}
-            {leftExpanded ? (
-              <div style={{ padding: "0 6px 8px" }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 5, whiteSpace: "nowrap" }}>Kategorie</div>
-                <select
-                  value={form.category}
-                  onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  style={{
-                    width: "100%", padding: "6px 8px", borderRadius: 6,
-                    border: `1px solid ${C.border}`, background: C.bg,
-                    color: C.text, fontSize: 11, fontFamily: FONT, outline: "none",
-                  }}>
-                  {CATS.map(c => <option key={c} value={c}>{c || "Keine Kategorie"}</option>)}
-                </select>
-              </div>
-            ) : (
-              <button
-                className="ste-left-icon-btn"
-                title="Kategorie"
-                style={{ justifyContent: "center" }}>
-                <Tag size={16} strokeWidth={IW} />
-              </button>
-            )}
-
-            <div style={{ height: 1, background: C.borderLight, margin: "4px 6px" }} />
-
-            {/* Target channels */}
-            <div style={{ marginBottom: 4 }}>
-              {leftExpanded && (
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".08em", padding: "0 6px 5px", whiteSpace: "nowrap" }}>Ziel-Kanäle</div>
-              )}
-              {STORY_CHANNELS.map(ch => {
-                const active = form.targetChannels.includes(ch.id);
-                return (
-                  <button
-                    key={ch.id}
-                    onClick={() => toggleChannel(ch.id)}
-                    className={`ste-left-icon-btn${active ? " active" : ""}`}
-                    title={!leftExpanded ? ch.label : undefined}
-                    style={{
-                      justifyContent: leftExpanded ? "flex-start" : "center",
-                      color: active ? ch.color : undefined,
-                      border: `1.5px solid ${active ? ch.color + "44" : "transparent"}`,
-                      background: active ? ch.color + "10" : undefined,
-                    }}>
-                    <span style={{ flexShrink: 0 }}><ChIco id={ch.id} size={16} color={active ? ch.color : C.textMute} /></span>
-                    {leftExpanded && (
-                      <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, fontFamily: FONT, whiteSpace: "nowrap", overflow: "hidden" }}>{ch.label}</span>
-                    )}
-                    {leftExpanded && active && <Check size={11} strokeWidth={2.5} style={{ marginLeft: "auto", flexShrink: 0, color: ch.color }} />}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ height: 1, background: C.borderLight, margin: "4px 6px" }} />
-
-            {/* Tags */}
-            {leftExpanded ? (
-              <div style={{ padding: "0 6px 4px" }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 5, whiteSpace: "nowrap" }}>
-                  Tags
-                </div>
-                <input
-                  value={form.tags}
-                  onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                  placeholder="tag1, tag2…"
-                  style={{
-                    width: "100%", padding: "6px 8px", borderRadius: 6,
-                    border: `1px solid ${C.border}`, background: C.bg,
-                    color: C.text, fontSize: 11, fontFamily: FONT, outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-            ) : (
-              <button
-                className="ste-left-icon-btn"
-                title="Tags"
-                style={{ justifyContent: "center" }}>
-                <Hash size={16} strokeWidth={IW} />
-              </button>
-            )}
-          </div>
-
           {/* ── CENTER: Title + Editor ─────────────────────────────────── */}
           <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", position: "relative" }}>
 
             {/* Title + Subtitle area */}
-            <div style={{ padding: "48px 32px 0", maxWidth: 720, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+            <div style={{ padding: "52px 0 0", maxWidth: 752, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingLeft: 80, paddingRight: 32 }}>
+              {/* Category + word count meta strip */}
+              {(form.category || form.targetChannels.length > 0) && (
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+                  {form.category && (
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: (CAT_COLOR[form.category] || C.textMid) + "14", color: CAT_COLOR[form.category] || C.textMid }}>
+                      {form.category}
+                    </span>
+                  )}
+                  {form.targetChannels.map(chId => {
+                    const ch = STORY_CHANNELS.find(c => c.id === chId);
+                    return ch ? (
+                      <span key={chId} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: ch.color + "10", color: ch.color }}>
+                        <ChIco id={chId} size={9} color={ch.color} /> {ch.label}
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              )}
               <textarea
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
@@ -931,7 +962,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   width: "100%", resize: "none", border: "none", outline: "none",
                   fontSize: 36, fontFamily: FONT, fontWeight: 800,
                   color: C.text, background: "transparent", lineHeight: 1.2,
-                  marginBottom: 8, padding: 0, fontStyle: "normal",
+                  marginBottom: 10, padding: 0, fontStyle: "normal",
                   overflow: "hidden",
                 }}
                 onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
@@ -943,17 +974,17 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 rows={1}
                 style={{
                   width: "100%", resize: "none", border: "none", outline: "none",
-                  fontFamily: FONT, fontSize: 20, color: C.textMid,
-                  background: "transparent", marginBottom: 28, padding: 0,
-                  fontStyle: "italic", lineHeight: 1.4, overflow: "hidden",
+                  fontFamily: FONT, fontSize: 19, color: C.textSoft,
+                  background: "transparent", marginBottom: 32, padding: 0,
+                  fontStyle: "normal", fontWeight: 400, lineHeight: 1.5, overflow: "hidden",
                 }}
                 onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
               />
-              <div style={{ borderTop: `1px solid ${C.borderLight}`, marginBottom: 28 }} />
+              <div style={{ borderTop: `1px solid ${C.borderLight}`, marginBottom: 24 }} />
             </div>
 
             {/* BlockNote Editor */}
-            <div style={{ flex: 1, padding: "0 32px 80px", maxWidth: 720, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+            <div style={{ flex: 1, paddingBottom: 80, maxWidth: 752, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingLeft: 80, paddingRight: 32 }}>
               <BlockNoteView
                 editor={editor}
                 theme="light"
@@ -972,22 +1003,37 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             {/* Sticky word count bar */}
             <div style={{
               position: "sticky", bottom: 0,
-              background: C.surface + "ee",
+              background: C.surface + "f0",
               backdropFilter: "blur(8px)",
               borderTop: `1px solid ${C.borderLight}`,
-              padding: "6px 32px",
-              display: "flex", alignItems: "center", gap: 14,
+              padding: "6px 32px 6px 80px",
+              display: "flex", alignItems: "center", gap: 12,
               fontSize: 11, color: C.textMute, fontFamily: FONT,
             }}>
               <AlignLeft size={11} strokeWidth={IW} />
               <span><strong style={{ color: C.textMid }}>{wordCount}</strong> Wörter</span>
-              <span style={{ color: C.borderLight }}>·</span>
+              <span style={{ color: C.border }}>·</span>
               <span><strong style={{ color: C.textMid }}>{readingTime}</strong> Min. Lesezeit</span>
               {form.category && (
                 <>
-                  <span style={{ color: C.borderLight }}>·</span>
+                  <span style={{ color: C.border }}>·</span>
                   <span style={{ color: catColor, fontWeight: 600 }}>{form.category}</span>
                 </>
+              )}
+              <div style={{ flex: 1 }} />
+              {/* Hint to open settings if no channels set */}
+              {form.targetChannels.length === 0 && !showSettings && (
+                <button onClick={() => setShowSettings(true)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: C.textMute, fontFamily: FONT, display: "flex", alignItems: "center", gap: 4, padding: 0 }}>
+                  <Settings2 size={11} strokeWidth={IW} /> Ziel-Kanäle festlegen
+                </button>
+              )}
+              {form.targetChannels.length > 0 && (
+                <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                  {form.targetChannels.map(chId => {
+                    const ch = STORY_CHANNELS.find(c => c.id === chId);
+                    return ch ? <ChIco key={chId} id={chId} size={13} color={C.textMute} /> : null;
+                  })}
+                </div>
               )}
             </div>
           </div>
