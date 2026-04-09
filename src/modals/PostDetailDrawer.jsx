@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { X, Activity, Clock, BarChart2, Eye, Heart, MessageCircle, Share2, MousePointer, TrendingUp } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { C, FONT, IW } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { SBadge } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
@@ -123,7 +123,7 @@ export default function PostDetailDrawer() {
           <div style={{ padding: "18px 20px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1.3, marginBottom: 8 }}>
+                <div style={{ fontFamily: FONT, fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1.3, marginBottom: 8 }}>
                   {post.title || "Post"}
                 </div>
                 {/* Meta row: status + channels + date */}
@@ -188,7 +188,7 @@ export default function PostDetailDrawer() {
               {metrics.map(({ icon: Ic, label, value, color }) => (
                 <div key={label} style={{ padding: "12px 10px", borderRadius: 10, background: C.bg, border: `1px solid ${C.border}`, textAlign: "center" }}>
                   <Ic size={15} color={color} strokeWidth={IW} style={{ marginBottom: 4 }} />
-                  <div style={{ fontWeight: 800, fontSize: 17, color: C.text, fontFamily: FONT_DISPLAY }}>{value}</div>
+                  <div style={{ fontWeight: 800, fontSize: 17, color: C.text, fontFamily: FONT }}>{value}</div>
                   <div style={{ fontSize: 10, color: C.textMute, marginTop: 2 }}>{label}</div>
                 </div>
               ))}

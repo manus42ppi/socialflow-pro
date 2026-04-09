@@ -1,24 +1,70 @@
-import { Bell } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW } from "../../constants/colors.js";
+import { Bell, Search } from "lucide-react";
+import { C, T, FONT, IW } from "../../constants/colors.js";
 import { Btn } from "../ui/index.jsx";
 import { useApp } from "../../context/AppContext.jsx";
 
-export default function TopBar({title}){
-  const { user, newPost: onNew } = useApp();
-  return(
-    <div style={{height:50,background:C.surface,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",padding:"0 22px",gap:12,flexShrink:0}}>
-      <div style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:15,color:C.text,letterSpacing:"-.01em"}}>{title}</div>
-      <div style={{flex:1}}/>
-      <div style={{display:"flex",alignItems:"center",gap:7,background:C.bg,border:`1px solid ${C.border}`,borderRadius:7,padding:"5px 11px",fontSize:12,color:C.textSoft,width:190}}>
-        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="5" stroke={C.textMute} strokeWidth="1.5"/><path d="M10 10l2.5 2.5" stroke={C.textMute} strokeWidth="1.5" strokeLinecap="round"/></svg>
-        Suchen…
-        <span style={{marginLeft:"auto",fontSize:10,color:C.textMute}}>⌘K</span>
+// ── TopBar (CX Fusion) ────────────────────────────────────────────────────────
+// Höhe: 60px | Hintergrund: weiß | Rand unten: gray-200
+
+export default function TopBar({ title }) {
+  const { newPost: onNew } = useApp();
+  return (
+    <div style={{
+      height: 60, background: C.surface,
+      borderBottom: `1px solid ${C.border}`,
+      display: "flex", alignItems: "center",
+      padding: "0 24px", gap: 10, flexShrink: 0,
+      boxShadow: T.shadowXs,
+    }}>
+      {/* Page title */}
+      <div style={{
+        fontSize: 18, fontWeight: 700, color: T.gray900,
+        letterSpacing: "-.01em", fontFamily: FONT,
+        whiteSpace: "nowrap",
+      }}>
+        {title}
       </div>
-      <button style={{width:34,height:34,borderRadius:7,border:`1px solid ${C.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:C.textSoft}}>
-        <Bell size={16} strokeWidth={IW}/>
+
+      <div style={{ flex: 1 }} />
+
+      {/* Search bar */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        background: T.gray100, border: `1px solid transparent`,
+        borderRadius: T.rMd, padding: "0 12px",
+        height: 36, width: 220, cursor: "text",
+        transition: "border-color .15s, background .15s",
+        fontSize: 14, color: T.gray400, fontFamily: FONT,
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = T.white; e.currentTarget.style.borderColor = T.gray300; }}
+        onMouseLeave={e => { e.currentTarget.style.background = T.gray100; e.currentTarget.style.borderColor = "transparent"; }}
+      >
+        <Search size={15} color={T.gray400} strokeWidth={IW} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          Suchen…
+        </span>
+        <span style={{ fontSize: 11, color: T.gray300, flexShrink: 0 }}>⌘K</span>
+      </div>
+
+      {/* Notification bell */}
+      <button style={{
+        width: 36, height: 36, borderRadius: T.rMd,
+        border: `1px solid ${T.gray200}`, background: "transparent",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer", color: T.gray500, transition: "all .15s",
+        position: "relative",
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = T.gray100; e.currentTarget.style.borderColor = T.gray300; }}
+        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = T.gray200; }}
+      >
+        <Bell size={16} strokeWidth={IW} />
       </button>
-      <Btn onClick={onNew} style={{gap:5}}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+
+      {/* New post button */}
+      <Btn onClick={onNew} size="md" style={{ gap: 6 }}>
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <path d="M6.5 1v11M1 6.5h11" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
         Neuer Post
       </Btn>
     </div>

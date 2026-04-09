@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Users, Shield, Key, Settings, Bell, Globe, Database, Activity, ChevronRight, Plus, Trash2, Edit3, Check, X, AlertCircle, Info, CheckCircle, ChevronDown, ChevronUp, Edit2, ExternalLink, Save, Send, Sparkles, Wifi, WifiOff, Mail, Phone, Building2, MapPin, User } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
+import { C, FONT, IW, CSS } from "../constants/colors.js";
 import { CHANNELS, ROLES, DEMO_USERS } from "../constants/demo.js";
 import { storeGet, storeSet } from "../utils/store.js";
 import { skGet, skSet } from "../components/StockSearch.jsx";
@@ -263,7 +263,7 @@ function AdminPage(){
   return(
     <div style={{flex:1,overflow:"auto",padding:22,display:"flex",flexDirection:"column",gap:16}}>
       {/* Page title for non-admins */}
-      {me.role!=="admin"&&<div style={{fontSize:20,fontWeight:800,fontFamily:FONT_DISPLAY,color:C.text,letterSpacing:"-.02em"}}>Einstellungen</div>}
+      {me.role!=="admin"&&<div style={{fontSize:20,fontWeight:800,fontFamily:FONT,color:C.text,letterSpacing:"-.02em"}}>Einstellungen</div>}
       {/* Tab bar */}
       <div style={{display:"flex",gap:3,background:C.borderLight,borderRadius:9,padding:4,alignSelf:"flex-start",flexWrap:"wrap"}}>
         {visibleTabs.map(([id,l,Ic])=>(

@@ -1,8 +1,8 @@
 import { CalendarRange } from "lucide-react";
-import { C, FONT } from "../../constants/colors.js";
+import { C, T, FONT } from "../../constants/colors.js";
 
 export default function WeekStrip({posts,campaigns,now,onNav}){
-  const SK={scheduled:"#16A34A",draft:"#D97706",pending:"#2563EB",published:"#7C3AED"};
+  const SK={scheduled:T.success500,draft:T.warning500,pending:T.brand500,published:T.brand600};
   const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)",flexShrink:0};
   const days=Array.from({length:7},(_,i)=>{
     const d=new Date(now); d.setDate(d.getDate()+i);

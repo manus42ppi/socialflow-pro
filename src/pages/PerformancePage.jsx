@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Eye, TrendingUp, Star, Activity } from "lucide-react";
-import { C, FONT, FONT_DISPLAY } from "../constants/colors.js";
+import { C, T, FONT } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { Card, SCrd } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
@@ -43,7 +43,7 @@ function PerformancePage(){
   [posts]);
   const {order,dragId,setDragId,overId,setOverId,drop}=useSections("performance","default",['stats','channels','posts']);
 
-  const perRight=<div style={{display:"flex",gap:3,background:"#F3F4F6",borderRadius:8,padding:3}}>
+  const perRight=<div style={{display:"flex",gap:3,background:T.gray100,borderRadius:T.rMd,padding:3}}>
     {[["7d","7T"],["30d","30T"],["90d","90T"]].map(([v,l])=><button key={v} onClick={()=>setPer(v)} style={{padding:"4px 9px",borderRadius:6,border:"none",background:per===v?"#fff":"transparent",color:per===v?C.text:C.textSoft,fontWeight:600,fontSize:11,cursor:"pointer",fontFamily:FONT}}>{l}</button>)}
   </div>;
 
@@ -101,15 +101,15 @@ function PerformancePage(){
 
   const widgetMap={
     stats:{title:'Übersicht',right:perRight,content:statsContent},
-    channels:{title:'Kanäle',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{CHANNELS.length} Kanäle</span>,content:channelsContent},
-    posts:{title:'Top Posts',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{top.length} Posts</span>,content:topPostsContent},
+    channels:{title:'Kanäle',right:<span style={{fontSize:11,color:C.textMute}}>{CHANNELS.length} Kanäle</span>,content:channelsContent},
+    posts:{title:'Top Posts',right:<span style={{fontSize:11,color:C.textMute}}>{top.length} Posts</span>,content:topPostsContent},
   };
 
   return(
-    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:"#F9FAFB"}}>
+    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:C.bg}}>
       <div style={{marginBottom:12}}>
-        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:600,color:"#111827",letterSpacing:"-.3px"}}>Performance</div>
-        <div style={{fontSize:12,color:"#9CA3AF",marginTop:2}}>Social Media Resultate</div>
+        <div style={{fontFamily:FONT,fontSize:22,fontWeight:600,color:C.text,letterSpacing:"-.3px"}}>Performance</div>
+        <div style={{fontSize:12,color:C.textMute,marginTop:2}}>Social Media Resultate</div>
       </div>
       {order.map(id=>{
         const w=widgetMap[id];if(!w)return null;

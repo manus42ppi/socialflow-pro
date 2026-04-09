@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useApp } from "../context/AppContext.jsx";
-import { C, FONT, FONT_DISPLAY } from "../constants/colors.js";
+import { C, FONT } from "../constants/colors.js";
 import { storeGet, storeSet, uid } from "../utils/store.js";
 import { igMonitor } from "../utils/store.js";
 import {
@@ -189,7 +189,7 @@ function AccountCard({ account, onRefresh, onRemove, onUseAsInspiration }) {
               <div style={{
                 width: "100%", height: "100%", display: "flex",
                 alignItems: "center", justifyContent: "center",
-                color: C.textMute, fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 18,
+                color: C.textMute, fontFamily: FONT, fontWeight: 700, fontSize: 18,
               }}>
                 {account.username?.[0]?.toUpperCase() || "?"}
               </div>
@@ -201,7 +201,7 @@ function AccountCard({ account, onRefresh, onRemove, onUseAsInspiration }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 700,
+              fontFamily: FONT, fontWeight: 700,
               fontSize: 15, color: C.text,
             }}>
               {account.profile?.name || account.username}
@@ -462,7 +462,7 @@ export default function MonitoringPage() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 16, flexWrap: "wrap" }}>
         <div>
           <h1 style={{
-            margin: 0, fontFamily: FONT_DISPLAY,
+            margin: 0, fontFamily: FONT,
             fontSize: 22, fontWeight: 700, color: C.text,
             display: "flex", alignItems: "center", gap: 10,
           }}>
@@ -565,7 +565,7 @@ export default function MonitoringPage() {
           color: C.textMute,
         }}>
           <Eye size={48} strokeWidth={1.2} style={{ margin: "0 auto 16px", display: "block", color: C.border }} />
-          <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: C.textSoft }}>
+          <p style={{ margin: 0, fontFamily: FONT, fontSize: 16, fontWeight: 600, color: C.textSoft }}>
             Noch keine Accounts beobachtet
           </p>
           <p style={{ margin: "8px 0 0", fontSize: 13 }}>

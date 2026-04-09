@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Eye, BookOpen, Sparkles, Search, Calendar, Image, FileText, Send, ChevronDown, X, Check, Upload, Edit2, Save } from "lucide-react";
-import { C, CSS, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { C, T, CSS, FONT, IW } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { uid, fpos } from "../utils/store.js";
 import { AI } from "../utils/store.js";
@@ -87,7 +87,7 @@ export default function Editor(){
         {/* Modal top bar */}
         <div style={{flexShrink:0,padding:"12px 20px",borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
-            <h2 style={{margin:0,fontFamily:FONT_DISPLAY,fontSize:15,fontWeight:700,color:C.text,letterSpacing:"-.01em",flexShrink:0}}>{form.id?"Post bearbeiten":"Neuer Post"}</h2>
+            <h2 style={{margin:0,fontFamily:FONT,fontSize:15,fontWeight:700,color:C.text,letterSpacing:"-.01em",flexShrink:0}}>{form.id?"Post bearbeiten":"Neuer Post"}</h2>
             {form.category&&<span style={{fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:(catColors[form.category]||"#6B7280")+"18",color:catColors[form.category]||"#6B7280",flexShrink:0,textTransform:"uppercase",letterSpacing:".04em"}}>{form.category}</span>}
             {autoSaved&&<span style={{fontSize:10,color:C.textMute,fontWeight:500}}>· gespeichert {autoSaved}</span>}
           </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Activity } from "lucide-react";
-import { C, FONT } from "../../constants/colors.js";
+import { C, T, FONT } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 import ChIco from "../ui/ChIco.jsx";
 import { useApp } from "../../context/AppContext.jsx";
@@ -57,11 +57,11 @@ export default function GlobalRightSidebar(){
 
   // Widget header shared style
   const WHeader=({title,right,dragHandleProps})=>(
-    <div style={{display:"flex",alignItems:"center",height:38,padding:"0 14px",borderBottom:`1px solid ${C.borderLight}`,background:C.surface,cursor:"grab",...dragHandleProps}}>
-      <div style={{display:"flex",flexDirection:"column",gap:2.5,marginRight:9,opacity:.3,flexShrink:0}}>
-        {[0,1].map(i=><div key={i} style={{display:"flex",gap:2.5}}>{[0,1,2].map(j=><div key={j} style={{width:2,height:2,borderRadius:"50%",background:C.textMid}}/>)}</div>)}
+    <div style={{display:"flex",alignItems:"center",height:38,padding:"0 14px",borderBottom:`1px solid ${T.gray200}`,background:T.white,cursor:"grab",...dragHandleProps}}>
+      <div style={{display:"flex",flexDirection:"column",gap:2.5,marginRight:9,opacity:.25,flexShrink:0}}>
+        {[0,1].map(i=><div key={i} style={{display:"flex",gap:2.5}}>{[0,1,2].map(j=><div key={j} style={{width:2,height:2,borderRadius:"50%",background:T.gray500}}/>)}</div>)}
       </div>
-      <span style={{fontSize:11,fontWeight:400,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",fontFamily:FONT,flex:1}}>{title}</span>
+      <span style={{fontSize:10.5,fontWeight:600,color:T.gray500,textTransform:"uppercase",letterSpacing:".07em",fontFamily:FONT,flex:1}}>{title}</span>
       {right}
     </div>
   );
@@ -172,7 +172,7 @@ export default function GlobalRightSidebar(){
   };
 
   return(
-    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${C.borderLight}`,overflow:"hidden",background:C.surface,minHeight:0,height:"100%",transition:"width .2s cubic-bezier(.4,0,.2,1)",width:sbRight?268:36,flexShrink:0}}>
+    <div style={{display:"flex",flexDirection:"column",borderLeft:`1px solid ${T.gray200}`,overflow:"hidden",background:T.white,minHeight:0,height:"100%",transition:"width .2s cubic-bezier(.4,0,.2,1)",width:sbRight?268:36,flexShrink:0}}>
 
       {/* ── Toggle handle ── */}
       {sbRight?(

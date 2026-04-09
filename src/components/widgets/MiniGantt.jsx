@@ -1,9 +1,9 @@
 import { CalendarRange } from "lucide-react";
-import { C, FONT } from "../../constants/colors.js";
+import { C, T, FONT } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 
 export default function MiniGantt({posts,campaigns,onNav}){
-  const SK={scheduled:"#16A34A",draft:"#D97706",pending:"#2563EB",published:"#7C3AED"};
+  const SK={scheduled:T.success500,draft:T.warning500,pending:T.brand500,published:T.brand600};
   const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)",flexShrink:0};
 
   const today=new Date();
@@ -124,7 +124,7 @@ export default function MiniGantt({posts,campaigns,onNav}){
 
         {/* Legend */}
         <div style={{display:"flex",gap:12,marginTop:8,paddingTop:8,borderTop:`1px solid ${C.borderLight}`,flexWrap:"wrap"}}>
-          {[["#16A34A","Geplant"],["#D97706","Entwurf"],["#2563EB","Review"],["#7C3AED","Live"]].map(([col,lbl])=>(
+          {[[T.success500,"Geplant"],[T.warning500,"Entwurf"],[T.brand500,"Review"],[T.brand600,"Live"]].map(([col,lbl])=>(
             <div key={lbl} style={{display:"flex",alignItems:"center",gap:4}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:col}}/>
               <span style={{fontSize:9.5,color:C.textMute,fontFamily:FONT,fontWeight:500}}>{lbl}</span>

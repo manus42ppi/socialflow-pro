@@ -6,7 +6,7 @@ import {
   UserPlus, ShoppingCart, Globe, Send, ChevronRight, BadgeCheck,
   Zap, Play, Pause, Archive, RotateCcw, Clock,
 } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { C, T, FONT, IW } from "../constants/colors.js";
 import { CHANNELS, CAMP_COLORS, CAMP_ICONS } from "../constants/demo.js";
 import { uid } from "../utils/store.js";
 import { SBadge } from "../components/ui/index.jsx";
@@ -30,12 +30,12 @@ const GOALS = [
 ];
 
 const STATUSES = {
-  draft:     { label:"Entwurf",       color:"#6B7280", bg:"#F3F4F6" },
-  planned:   { label:"Geplant",       color:"#2563EB", bg:"#EFF6FF" },
-  active:    { label:"Aktiv",         color:"#16A34A", bg:"#F0FDF4" },
-  paused:    { label:"Pausiert",      color:"#D97706", bg:"#FFFBEB" },
-  completed: { label:"Abgeschlossen", color:"#7C3AED", bg:"#F5F3FF" },
-  archived:  { label:"Archiviert",    color:"#9CA3AF", bg:"#F9FAFB" },
+  draft:     { label:"Entwurf",       color:T.gray600,    bg:T.gray100  },
+  planned:   { label:"Geplant",       color:T.brand600,   bg:T.brand50  },
+  active:    { label:"Aktiv",         color:T.success500, bg:T.successBg},
+  paused:    { label:"Pausiert",      color:T.warning500, bg:T.warningBg},
+  completed: { label:"Abgeschlossen", color:T.brand500,   bg:T.brand100 },
+  archived:  { label:"Archiviert",    color:T.gray400,    bg:T.gray50   },
 };
 
 const STATUS_TRANSITIONS = {
@@ -219,7 +219,7 @@ function CampForm({ form, setForm, onSave, onClose, isEdit }) {
         {/* Header */}
         <div style={{ padding:"18px 20px 14px", borderBottom:`1px solid ${C.borderLight}`,
           display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
-          <span style={{ fontFamily:FONT_DISPLAY, fontSize:16, fontWeight:700, color:C.text }}>
+          <span style={{ fontFamily:FONT, fontSize:16, fontWeight:700, color:C.text }}>
             {isEdit ? "Kampagne bearbeiten" : "Neue Kampagne"}
           </span>
           <button onClick={onClose} style={{ width:28, height:28, borderRadius:"50%",
@@ -467,7 +467,7 @@ function CampDetail({ camp, posts, onEdit, onDelete, onStatusChange, onEditPost 
             <CampIcon name={camp.icon||"Flag"} size={24} color={camp.color} strokeWidth={1.7}/>
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:20, color:C.text, letterSpacing:"-.3px", marginBottom:5 }}>
+            <div style={{ fontFamily:FONT, fontWeight:800, fontSize:20, color:C.text, letterSpacing:"-.3px", marginBottom:5 }}>
               {camp.name}
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
@@ -822,23 +822,23 @@ export default function CampaignsPage() {
   }, [campaigns]);
 
   return (
-    <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", background:"#F9FAFB", fontFamily:FONT }}>
+    <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", background:C.bg, fontFamily:FONT }}>
 
       {/* Page header */}
       <div style={{ padding:"16px 22px 12px", borderBottom:`1px solid ${C.borderLight}`,
         background:"#fff", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
         <div>
-          <div style={{ fontFamily:FONT_DISPLAY, fontSize:20, fontWeight:700, color:C.text, letterSpacing:"-.3px" }}>Kampagnen</div>
+          <div style={{ fontFamily:FONT, fontSize:20, fontWeight:700, color:C.text, letterSpacing:"-.3px" }}>Kampagnen</div>
           <div style={{ fontSize:11.5, color:C.textMute, marginTop:2, display:"flex", gap:12 }}>
-            <span style={{ color:"#16A34A", fontWeight:600 }}>{stats.active} aktiv</span>
-            <span style={{ color:"#2563EB", fontWeight:600 }}>{stats.planned} geplant</span>
+            <span style={{ color:T.success500, fontWeight:600 }}>{stats.active} aktiv</span>
+            <span style={{ color:T.brand600, fontWeight:600 }}>{stats.planned} geplant</span>
             <span style={{ color:C.textMute }}>{stats.completed} abgeschlossen</span>
             <span>· {stats.total} gesamt</span>
           </div>
         </div>
         <button onClick={openCreate}
           style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 16px",
-            borderRadius:8, border:"none", background:C.text, cursor:"pointer",
+            borderRadius:T.rMd, border:"none", background:C.accent, cursor:"pointer",
             fontFamily:FONT, fontSize:13, fontWeight:700, color:"#fff" }}>
           <Plus size={14} strokeWidth={2.5}/>Neue Kampagne
         </button>

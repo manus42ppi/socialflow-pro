@@ -1,5 +1,5 @@
 import { Trash2, FileText, RotateCcw } from "lucide-react";
-import { C, FONT, FONT_DISPLAY } from "../constants/colors.js";
+import { C, FONT } from "../constants/colors.js";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
@@ -11,7 +11,7 @@ export default function TrashPage(){
     <div style={{flex:1,overflow:"auto",padding:"22px 24px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
         <div>
-          <div style={{fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:16,color:C.text}}>Papierkorb</div>
+          <div style={{fontFamily:FONT,fontWeight:800,fontSize:16,color:C.text}}>Papierkorb</div>
           <div style={{fontFamily:FONT,fontSize:12,color:C.textSoft,marginTop:2}}>{trashed.length} {trashed.length===1?"Eintrag":"Einträge"} im Papierkorb</div>
         </div>
         {trashed.length>0&&<button onClick={()=>{if(window.confirm(`Alle ${trashed.length} Posts endgültig löschen?`))onPurgeAll();}}

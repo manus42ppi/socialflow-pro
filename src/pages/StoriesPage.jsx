@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Plus, Search, Trash2, BookOpen, Link as LinkIcon, StickyNote, PenLine, Layers } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
+import { C, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
 import { fmtDate, uid } from "../utils/store.js";
 import { Btn } from "../components/ui/index.jsx";
@@ -86,7 +86,7 @@ function StoryCard({ story, onEdit, onDelete, posts, onOpenPost }) {
 
         {/* Title */}
         <h3 style={{
-          margin: "0 0 4px", fontFamily: FONT_DISPLAY, fontWeight: 800,
+          margin: "0 0 4px", fontFamily: FONT, fontWeight: 800,
           fontSize: 15, color: C.text, lineHeight: 1.3,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}>
@@ -194,7 +194,7 @@ export default function StoriesPage() {
       {/* Header */}
       <div style={{ padding: "24px 28px 0", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text }}>
+          <h1 style={{ margin: 0, fontFamily: FONT, fontWeight: 800, fontSize: 22, color: C.text }}>
             Storys
           </h1>
           <p style={{ margin: "3px 0 0", fontSize: 13, color: C.textMid, fontFamily: FONT }}>
@@ -248,7 +248,7 @@ export default function StoriesPage() {
         {filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 20px", color: C.textMute }}>
             <BookOpen size={48} strokeWidth={1.2} style={{ margin: "0 auto 16px", display: "block", color: C.border }} />
-            <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 700, color: C.textSoft }}>
+            <p style={{ margin: 0, fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.textSoft }}>
               {q || filt !== "all" ? "Keine Storys gefunden" : "Noch keine Storys"}
             </p>
             <p style={{ margin: "8px 0 20px", fontSize: 13, fontFamily: FONT }}>

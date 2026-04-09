@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import * as LucideIcons from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { C, T, FONT, IW } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { useSections, SecCard } from "../hooks/useSections.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
@@ -14,10 +14,10 @@ function CampIcon({ name, size = 16, color = "currentColor", strokeWidth = 1.8 }
 }
 
 const STATUS = {
-  scheduled: { c:"#16A34A", l:"Geplant",        bg:"#F0FDF4" },
-  draft:     { c:"#D97706", l:"Entwurf",         bg:"#FFFBEB" },
-  pending:   { c:"#2563EB", l:"Review",          bg:"#EFF8FF" },
-  published: { c:"#7C3AED", l:"Veröffentlicht",  bg:"#F5F3FF" },
+  scheduled: { c:T.success500,  l:"Geplant",        bg:T.successBg  },
+  draft:     { c:T.warning500,  l:"Entwurf",         bg:T.warningBg  },
+  pending:   { c:T.brand600,    l:"Review",          bg:T.brand50    },
+  published: { c:T.brand500,    l:"Veröffentlicht",  bg:T.brand100   },
 };
 
 // Campaign lifecycle status colours
@@ -41,7 +41,7 @@ function PostPopover({ post, campaigns, anchorRect, onEdit, onClose }) {
   if (!anchorRect || !post) return null;
 
   const camp = campaigns.find(c => c.id === post.campaignId);
-  const sc   = STATUS[post.status] || { c:"#9CA3AF", l:"–", bg:"#F9FAFB" };
+  const sc   = STATUS[post.status] || { c:T.gray400, l:"–", bg:T.gray50 };
 
   // Position: prefer above the dot, clamp to viewport
   const CARD_W = 248, CARD_H = 170;
@@ -323,7 +323,7 @@ export default function PlannerPage() {
           {row.visiblePosts.map((p, pi) => {
             const x = dateToX(p.scheduledDate);
             if (x === null || x < -1 || x > 101) return null;
-            const sc     = STATUS[p.status] || { c:"#9CA3AF" };
+            const sc     = STATUS[p.status] || { c:T.gray400 };
             const clampX = Math.max(0.5, Math.min(99.5, x));
             const isOpen = popover?.post?.id === p.id;
             return (
@@ -690,11 +690,11 @@ export default function PlannerPage() {
   };
 
   return (
-    <div style={{ flex:1, overflow:"auto", padding:"14px 18px", background:"#F9FAFB", fontFamily:FONT }}>
+    <div style={{ flex:1, overflow:"auto", padding:"14px 18px", background:C.bg, fontFamily:FONT }}>
       <div style={{ marginBottom:12 }}>
-        <div style={{ fontFamily:FONT_DISPLAY, fontSize:22, fontWeight:600,
-          color:"#111827", letterSpacing:"-.3px" }}>Planner</div>
-        <div style={{ fontSize:12, color:"#9CA3AF", marginTop:2 }}>
+        <div style={{ fontFamily:FONT, fontSize:22, fontWeight:600,
+          color:C.text, letterSpacing:"-.3px" }}>Planner</div>
+        <div style={{ fontSize:12, color:C.textMute, marginTop:2 }}>
           Geplante Posts & Kampagnen im Zeitverlauf
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Send, Plus, ArrowUpDown, Clock, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { C, T, FONT, IW } from "../constants/colors.js";
 import { CHANNELS, ROLES } from "../constants/demo.js";
 import { Btn, SBadge } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
@@ -279,7 +279,7 @@ export default function PublisherPage() {
             {/* Header + Sync button */}
             <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 800, color: C.text }}>Veröffentlicht</div>
+                <div style={{ fontFamily: FONT, fontSize: 18, fontWeight: 800, color: C.text }}>Veröffentlicht</div>
                 <div style={{ fontSize: 12, color: C.textMute }}>{shown.length} Posts · Klick für Details & Performance</div>
               </div>
               <div style={{ flex: 1 }} />

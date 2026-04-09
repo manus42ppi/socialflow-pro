@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BarChart2, Zap, Edit2, Hash, Layers, Sparkles, Check, X } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { C, T, FONT, IW } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { AI } from "../utils/store.js";
 import { Sp, Btn } from "./ui/index.jsx";
@@ -89,22 +89,22 @@ export default function AIPanel({content,chId,onApply,onApplyHT}){
   const charColor=charPct>90?"#EF4444":charPct>70?"#F59E0B":"#22C55E";
 
   return(
-    <div style={{background:`linear-gradient(160deg,${C.purpleBg},#fdf5ff 60%,${C.accentLight})`,borderRadius:12,border:`1px solid ${C.purple}22`,overflow:"hidden",animation:"fadeIn .3s ease"}}>
+    <div style={{background:`linear-gradient(160deg,${T.brand25},${T.brand50} 60%,${T.brand100})`,borderRadius:T.rLg,border:`1px solid ${T.brand200}`,overflow:"hidden",animation:"fadeIn .3s ease"}}>
 
       {/* ── Header ── */}
-      <div style={{padding:"10px 14px",background:`linear-gradient(135deg,${C.purple}22,${C.accent}10)`,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${C.purple}15`}}>
+      <div style={{padding:"10px 14px",background:`linear-gradient(135deg,${T.brand100},${T.brand50})`,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${T.brand200}`}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:24,height:24,borderRadius:7,background:`linear-gradient(135deg,${C.ai1},${C.ai2})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${C.purpleGlow}`}}>
+          <div style={{width:24,height:24,borderRadius:7,background:`linear-gradient(135deg,${T.brand600},${T.brand500})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${C.accentGlow}`}}>
             <Sparkles size={12} color="#fff" strokeWidth={2}/>
           </div>
-          <span style={{fontFamily:FONT_DISPLAY,fontWeight:700,fontSize:13,color:C.purple}}>KI-Assistent</span>
+          <span style={{fontFamily:FONT,fontWeight:700,fontSize:13,color:T.brand700}}>KI-Assistent</span>
           <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20,background:`linear-gradient(135deg,${C.ai1},${C.ai2})`,color:"#fff",letterSpacing:".04em"}}>PRO</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{fontSize:10.5,fontWeight:700,color:charColor,background:charColor+"12",padding:"2px 8px",borderRadius:10,border:`1px solid ${charColor}30`}}>
             {content.length}/{maxC}
           </div>
-          <button onClick={getEmojis} disabled={ld||!content.trim()} style={{background:C.purple+"15",border:`1px solid ${C.purple}25`,borderRadius:7,padding:"4px 9px",fontSize:12,cursor:"pointer",color:C.purple,fontWeight:600,fontFamily:FONT,display:"flex",alignItems:"center",gap:4}}>
+          <button onClick={getEmojis} disabled={ld||!content.trim()} style={{background:T.brand50,border:`1px solid ${T.brand200}`,borderRadius:7,padding:"4px 9px",fontSize:12,cursor:"pointer",color:T.brand700,fontWeight:600,fontFamily:FONT,display:"flex",alignItems:"center",gap:4}}>
             {ld?"…":"😊"} Emojis
           </button>
         </div>

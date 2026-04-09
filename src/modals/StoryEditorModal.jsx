@@ -10,7 +10,7 @@ import {
   Trash2, Wand2, Loader, Hash, PenLine, Image as ImageIcon,
   ChevronLeft, Tag, Layers, Settings2, AlignLeft,
 } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
+import { C, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
 import { uid, aiCall, fileToDataURL } from "../utils/store.js";
 import { Btn } from "../components/ui/index.jsx";
@@ -929,7 +929,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 rows={1}
                 style={{
                   width: "100%", resize: "none", border: "none", outline: "none",
-                  fontSize: 36, fontFamily: FONT_DISPLAY, fontWeight: 800,
+                  fontSize: 36, fontFamily: FONT, fontWeight: 800,
                   color: C.text, background: "transparent", lineHeight: 1.2,
                   marginBottom: 8, padding: 0, fontStyle: "normal",
                   overflow: "hidden",

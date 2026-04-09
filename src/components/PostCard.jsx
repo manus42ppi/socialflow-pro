@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Edit2, Calendar, Check, X, Clock } from "lucide-react";
-import { C, FONT, IW } from "../constants/colors.js";
+import { C, T, FONT, IW } from "../constants/colors.js";
 import { CHANNELS, ROLES } from "../constants/demo.js";
 import { fmtDate } from "../utils/store.js";
 import { Btn, Card, SBadge } from "./ui/index.jsx";
@@ -16,9 +16,9 @@ export default function PostCard({post,items,campaigns,onEdit,onSched,onDel,onAp
   const chs=post.channels?.length>0?post.channels:["instagram"];
 
   return(
-    <Card style={{overflow:"hidden",transition:"box-shadow .18s",display:"flex",flexDirection:"column",height:388}}
-      onMouseEnter={e=>e.currentTarget.style.boxShadow="0 8px 28px rgba(13,21,38,.12)"}
-      onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 6px rgba(13,21,38,.05)"}>
+    <Card style={{overflow:"hidden",transition:"box-shadow .18s",display:"flex",flexDirection:"column",height:388,boxShadow:T.shadowSm,borderRadius:T.rLg,border:`1px solid ${C.border}`}}
+      onMouseEnter={e=>e.currentTarget.style.boxShadow="0 8px 28px rgba(10,13,18,.12)"}
+      onMouseLeave={e=>e.currentTarget.style.boxShadow=T.shadowSm}>
 
       {/* ── Header: title + badge + delete ── 44px */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"10px 12px 8px",flexShrink:0,minHeight:44}}>
@@ -81,13 +81,13 @@ export default function PostCard({post,items,campaigns,onEdit,onSched,onDel,onAp
       <div style={{display:"flex",borderTop:`1px solid ${C.borderLight}`,height:36,flexShrink:0}}>
         {can("write")&&(
           <button onClick={()=>onEdit(post)} style={{flex:1,height:"100%",background:"none",border:"none",color:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRight:`1px solid ${C.borderLight}`,fontFamily:FONT,transition:"all .12s"}}
-            onMouseEnter={e=>{e.currentTarget.style.background=C.bg;e.currentTarget.style.color=C.textMid;}}
+            onMouseEnter={e=>{e.currentTarget.style.background=T.brand25;e.currentTarget.style.color=C.textMid;}}
             onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=C.textSoft;}}>
             <Edit2 size={12} strokeWidth={IW}/>Bearbeiten
           </button>
         )}
         <button onClick={()=>onSched(post)} style={{flex:1,height:"100%",background:"none",border:"none",color:post.status==="scheduled"?C.success:C.accent,fontWeight:700,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontFamily:FONT,transition:"all .12s"}}
-          onMouseEnter={e=>e.currentTarget.style.background=post.status==="scheduled"?C.successBg:C.accentLight}
+          onMouseEnter={e=>e.currentTarget.style.background=post.status==="scheduled"?C.successBg:T.brand25}
           onMouseLeave={e=>e.currentTarget.style.background="none"}>
           <Calendar size={12} strokeWidth={IW}/>{post.status==="scheduled"?"Ändern":"Planen"}
         </button>

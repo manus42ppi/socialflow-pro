@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, List, Grid, Filter, MoreHorizontal, Check, X, BarChart2 } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
+import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { CHANNELS, DEMO_POSTS } from "../constants/demo.js";
 import { fmtDate } from "../utils/store.js";
 import { Sp, Badge, Btn, FL } from "../components/ui/index.jsx";
@@ -14,20 +14,20 @@ const WEEKDAYS_SHORT=["Mo","Di","Mi","Do","Fr","Sa","So"];
 const MONTH_NAMES=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 const MONTH_SHORT=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
 
-// Kordiam design tokens
+// CX Fusion design tokens (replaces local Kordiam K object)
 const K = {
-  bg:       "#F8F9FC",
-  surface:  "#FFFFFF",
-  border:   "#E8EBF2",
-  borderMid:"#D0D5E8",
-  navy:     "#1A2340",
-  navyMid:  "#2E3F6A",
-  navySoft: "#5C6A8A",
-  navyMute: "#9AA3BF",
-  indigo:   "#5B4FE8",
-  indigoSoft:"#EEF0FD",
-  indigoMid: "#8B84F0",
-  rowHover: "#F4F5FA",
+  bg:        T.appBg,
+  surface:   T.white,
+  border:    T.gray200,
+  borderMid: T.gray300,
+  navy:      T.gray900,
+  navyMid:   T.gray800,
+  navySoft:  T.gray600,
+  navyMute:  T.gray400,
+  indigo:    T.brand600,
+  indigoSoft:T.brand50,
+  indigoMid: T.brand500,
+  rowHover:  T.brand25,
   tagColors:[
     {bg:"#FFF3E0",color:"#E65100",border:"#FFCC80"},
     {bg:"#E8F5E9",color:"#2E7D32",border:"#A5D6A7"},
@@ -85,7 +85,7 @@ function CalendarPage(){
 
   const STATUS_COLOR={scheduled:K.tagColors[1],draft:K.tagColors[0],pending:K.tagColors[2],published:K.tagColors[3]};
   const STATUS_LABEL={scheduled:"Geplant",draft:"Entwurf",pending:"Freigabe",published:"Live"};
-  const STATUS_BAR={scheduled:"#4CAF50",draft:"#FF9800",pending:"#5B4FE8",published:"#9C27B0"};
+  const STATUS_BAR={scheduled:T.success500,draft:T.warning500,pending:T.brand600,published:T.brand500};
 
   // ── Agenda / Table view ──────────────────────────────────────────────────
   const AgendaView=()=>{
@@ -279,7 +279,7 @@ function CalendarPage(){
     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:4,flexWrap:"wrap"}}>
       <div style={{display:"flex",alignItems:"center",gap:4}}>
         <button onClick={prevMonth} style={{width:28,height:28,borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.borderColor=K.indigo;e.currentTarget.style.color=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.borderColor=K.border;e.currentTarget.style.color=K.navySoft;}}>‹</button>
-        <div style={{minWidth:160,textAlign:"center",fontFamily:FONT_DISPLAY,fontWeight:700,fontSize:15,color:K.navy,letterSpacing:"-.01em"}}>{MONTH_NAMES[cur.m]} {cur.y}</div>
+        <div style={{minWidth:160,textAlign:"center",fontFamily:FONT,fontWeight:700,fontSize:15,color:K.navy,letterSpacing:"-.01em"}}>{MONTH_NAMES[cur.m]} {cur.y}</div>
         <button onClick={nextMonth} style={{width:28,height:28,borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.borderColor=K.indigo;e.currentTarget.style.color=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.borderColor=K.border;e.currentTarget.style.color=K.navySoft;}}>›</button>
       </div>
       <button onClick={goToday} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.color=K.indigo;e.currentTarget.style.borderColor=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.color=K.navySoft;e.currentTarget.style.borderColor=K.border;}}>Heute</button>
@@ -326,15 +326,15 @@ function CalendarPage(){
   );
 
   const widgetMap={
-    calendar:{title:'Kalender',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{viewMode==="month"?"Monatsansicht":"Agenda"}</span>,content:calendarContent},
-    list:{title:'Posts',right:<span style={{fontSize:11,color:'#9CA3AF'}}>{monthPosts.length} Posts</span>,content:agendaContent},
+    calendar:{title:'Kalender',right:<span style={{fontSize:11,color:C.textMute}}>{viewMode==="month"?"Monatsansicht":"Agenda"}</span>,content:calendarContent},
+    list:{title:'Posts',right:<span style={{fontSize:11,color:C.textMute}}>{monthPosts.length} Posts</span>,content:agendaContent},
   };
 
   return(
-    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:"#F9FAFB",fontFamily:FONT}}>
+    <div style={{flex:1,overflow:"auto",padding:"14px 18px",background:C.bg,fontFamily:FONT}}>
       <div style={{marginBottom:12}}>
-        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,fontWeight:600,color:"#111827",letterSpacing:"-.3px"}}>Kalender</div>
-        <div style={{fontSize:12,color:"#9CA3AF",marginTop:2}}>Alle geplanten Posts im Überblick</div>
+        <div style={{fontFamily:FONT,fontSize:22,fontWeight:600,color:C.text,letterSpacing:"-.3px"}}>Kalender</div>
+        <div style={{fontSize:12,color:C.textMute,marginTop:2}}>Alle geplanten Posts im Überblick</div>
       </div>
       {order.map(id=>{
         const w=widgetMap[id];if(!w)return null;

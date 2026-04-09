@@ -4,7 +4,7 @@ import {
   Newspaper, Instagram, Facebook, MessageCircle, Wifi, WifiOff,
   AlertCircle, Heart, MessageSquare, Share2, BadgeCheck,
 } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { C, FONT, IW } from "../constants/colors.js";
 
 // ── Feed sources ──────────────────────────────────────────────────────────────
 const NEWS_SOURCES = [
@@ -231,7 +231,7 @@ function ViralPostRow({ post, platform, accent, rank, onClick }) {
         transition:"background .1s",
       }}>
       {/* Rank */}
-      <div style={{ minWidth:18, fontSize:11, fontWeight:800, color: rank<=3 ? accent : C.textMute, fontFamily:FONT_DISPLAY, paddingTop:2, flexShrink:0 }}>{rank}</div>
+      <div style={{ minWidth:18, fontSize:11, fontWeight:800, color: rank<=3 ? accent : C.textMute, fontFamily:FONT, paddingTop:2, flexShrink:0 }}>{rank}</div>
 
       {/* Thumbnail */}
       {!isWa ? (
@@ -508,7 +508,7 @@ export default function ResearchPage() {
                   style={{ display:"flex", gap:12, alignItems:"flex-start", padding:"11px 2px", borderBottom:i<articles.length-1?`1px solid ${C.borderLight}`:"none", textDecoration:"none", color:"inherit", borderRadius:6, transition:"background .1s" }}
                   onMouseEnter={e=>e.currentTarget.style.background=C.bg}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <div style={{ minWidth:22, fontSize:12, fontWeight:800, color:i<3?C.accent:C.textMute, fontFamily:FONT_DISPLAY, paddingTop:2, flexShrink:0, textAlign:"right" }}>{i+1}</div>
+                  <div style={{ minWidth:22, fontSize:12, fontWeight:800, color:i<3?C.accent:C.textMute, fontFamily:FONT, paddingTop:2, flexShrink:0, textAlign:"right" }}>{i+1}</div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
                       <span style={{ fontSize:10, fontWeight:700, color:srcObj?.color||C.textMute, background:(srcObj?.color||"#6B7280")+"18", borderRadius:4, padding:"1px 6px" }}>{art.sourceLabel}</span>
@@ -564,7 +564,7 @@ export default function ResearchPage() {
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <Flame size={13} color="#EF4444" strokeWidth={2.5}/>
-              <span style={{ fontFamily:FONT_DISPLAY, fontSize:12.5, fontWeight:700, color:C.text }}>Viral Posts</span>
+              <span style={{ fontFamily:FONT, fontSize:12.5, fontWeight:700, color:C.text }}>Viral Posts</span>
             </div>
             {/* Timeframe filter */}
             <div style={{ display:"flex", gap:3 }}>
@@ -606,7 +606,7 @@ export default function ResearchPage() {
             <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
               {instaTrends.map((item,i) => (
                 <div key={item.tag} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 8px", borderRadius:7, background:i<3?"#FFF0F6":C.surface, border:`1px solid ${i<3?"#FCB8D4":C.border}` }}>
-                  <span style={{ fontSize:10, fontWeight:800, color:i<3?"#E1306C":C.textMute, minWidth:16, fontFamily:FONT_DISPLAY }}>{i+1}</span>
+                  <span style={{ fontSize:10, fontWeight:800, color:i<3?"#E1306C":C.textMute, minWidth:16, fontFamily:FONT }}>{i+1}</span>
                   <span style={{ flex:1, fontSize:12, fontWeight:700, color:"#E1306C" }}>{item.tag}</span>
                   <span style={{ fontSize:9.5, color:C.textMute }}>{item.posts}</span>
                   <span style={{ fontSize:10, fontWeight:700, color:"#16A34A" }}>{item.d}</span>
@@ -652,7 +652,7 @@ export default function ResearchPage() {
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px 10px", flexShrink:0, borderBottom:`1px solid ${C.borderLight}`, background:"#fff" }}>
         <div>
-          <div style={{ fontFamily:FONT_DISPLAY, fontSize:20, fontWeight:700, color:C.text, letterSpacing:"-.3px" }}>Research</div>
+          <div style={{ fontFamily:FONT, fontSize:20, fontWeight:700, color:C.text, letterSpacing:"-.3px" }}>Research</div>
           <div style={{ fontSize:11.5, color:C.textMute, marginTop:2, display:"flex", alignItems:"center", gap:8 }}>
             {lastUpdate ? (
               <>
@@ -680,7 +680,7 @@ export default function ResearchPage() {
         <div style={{ flex:"0 0 58%", display:"flex", flexDirection:"column", overflow:"hidden", borderRight:`1px solid ${C.borderLight}`, padding:"16px 20px" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, flexShrink:0 }}>
             <Newspaper size={16} strokeWidth={IW} color={C.textMid}/>
-            <span style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:14, color:C.text }}>Pressespiegel</span>
+            <span style={{ fontFamily:FONT, fontWeight:700, fontSize:14, color:C.text }}>Pressespiegel</span>
             {articles.length > 0 && <span style={{ fontSize:10, fontWeight:700, color:C.textMute, background:C.borderLight, borderRadius:10, padding:"1px 7px" }}>{articles.length} Artikel</span>}
             {loading && articles.length > 0 && <div style={{ width:14, height:14, border:`2px solid ${C.accent}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite", marginLeft:"auto" }}/>}
           </div>
@@ -691,7 +691,7 @@ export default function ResearchPage() {
         <div style={{ flex:"0 0 42%", display:"flex", flexDirection:"column", overflow:"hidden", padding:"16px 20px", background:"#fff" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, flexShrink:0 }}>
             <TrendingUp size={16} strokeWidth={IW} color={C.textMid}/>
-            <span style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:14, color:C.text }}>Social Trends</span>
+            <span style={{ fontFamily:FONT, fontWeight:700, fontSize:14, color:C.text }}>Social Trends</span>
           </div>
           <div style={{ flex:1, overflow:"hidden" }}>{socialPanel}</div>
         </div>

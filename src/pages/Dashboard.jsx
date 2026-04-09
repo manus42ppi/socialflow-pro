@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { BarChart2, TrendingUp, Calendar, Clock, Zap, CheckCircle, AlertCircle, Edit3, Trash2, Plus, Eye, Heart, MessageCircle, Share2, RefreshCw, ChevronRight, Star, Award, Target, Activity, Send, ArrowUp, ArrowDown, FileText, CalendarRange, Image, Flag } from "lucide-react";
-import { C, FONT, FONT_DISPLAY, IW, CSS } from "../constants/colors.js";
+import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { CHANNELS, ROLES, DEMO_USERS, STAGES, CAMP_COLORS, DEMO_CAMPAIGNS, DEMO_POSTS } from "../constants/demo.js";
 import { fmtDate, fpos } from "../utils/store.js";
 import { Sp, Badge, Avatar, Btn, Card, FL, TIn, SBadge, SCrd } from "../components/ui/index.jsx";
@@ -54,7 +54,7 @@ function Dashboard(){
     return <div onClick={onClick} onMouseEnter={()=>setHovCard(id)} onMouseLeave={()=>setHovCard(null)}
       style={{
         position:"relative",background:hov?`linear-gradient(145deg,${color}10,#fff)`:C.surface,
-        borderRadius:14,border:`1px solid ${hov?color+"35":C.border}`,
+        borderRadius:T.rLg,border:`1px solid ${hov?color+"35":C.border}`,
         padding:"16px 18px 12px",cursor:onClick?"pointer":"default",
         transition:"all .2s",overflow:"hidden",
         boxShadow:hov?`0 6px 24px ${color}18`:"0 1px 4px rgba(0,0,0,.04)",
@@ -68,7 +68,7 @@ function Dashboard(){
           {delta>=0?<ArrowUp size={9} strokeWidth={3}/>:<ArrowDown size={9} strokeWidth={3}/>}{Math.abs(delta)}%
         </div>}
       </div>
-      <div style={{fontSize:19,fontWeight:800,color:C.text,letterSpacing:"-.02em",lineHeight:1.1,fontFamily:FONT_DISPLAY}}>{value}</div>
+      <div style={{fontSize:19,fontWeight:800,color:C.text,letterSpacing:"-.02em",lineHeight:1.1,fontFamily:FONT}}>{value}</div>
       <div style={{fontSize:11.5,color:C.textSoft,marginTop:3,fontWeight:500}}>{label}</div>
       {trend&&<div style={{marginTop:8}}><Spark data={trend} color={color}/></div>}
     </div>;
@@ -143,9 +143,9 @@ function Dashboard(){
   // Image cover helper
   const getCover=p=>{if(p.mediaId){const m=items.find(x=>x.id===p.mediaId);return m?.url;}return null;};
 
-  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,.04)"};
-  const lift=e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.09)";};
-  const drop=e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.04)";};
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:T.rLg,boxShadow:T.shadowSm};
+  const lift=e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=T.shadowLg;};
+  const drop=e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=T.shadowSm;};
 
   // ── Unified post card — image on top, info below, fixed height ──
   const PostCard=({post})=>{
@@ -214,7 +214,7 @@ function Dashboard(){
 
   // Widget content map
   const heroContent=(
-    <div style={{...card,borderRadius:14,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
+    <div style={{...card,borderRadius:T.rLg,display:"grid",gridTemplateColumns:"auto 1fr auto",overflow:"hidden",minHeight:108}}>
       <div style={{background:C.text,padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:148}}>
         <div style={{fontFamily:FONT,fontSize:38,fontWeight:200,color:"#fff",lineHeight:1,letterSpacing:"2px"}}>{timeStr}</div>
         <div style={{fontSize:9,fontWeight:400,color:"rgba(255,255,255,.35)",textTransform:"uppercase",letterSpacing:".8px",marginTop:6}}>KW {kw}</div>
@@ -222,7 +222,7 @@ function Dashboard(){
       </div>
       <div style={{padding:"18px 24px",display:"flex",flexDirection:"column",justifyContent:"center",borderLeft:`1px solid ${C.borderLight}`,borderRight:`1px solid ${C.borderLight}`}}>
         <div style={{fontSize:10,fontWeight:700,color:C.textMute,textTransform:"uppercase",letterSpacing:".7px",marginBottom:5}}>Willkommen zurück</div>
-        <div style={{fontFamily:FONT_DISPLAY,fontSize:20,fontWeight:600,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]}</div>
+        <div style={{fontFamily:FONT,fontSize:20,fontWeight:600,color:C.text,lineHeight:1.15}}>{greeting}, {user.name.split(" ")[0]}</div>
         <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
           {pend.length>0&&<span onClick={()=>onFilterNav("publisher","pending")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.warningBg,color:C.warning,cursor:"pointer"}}>{pend.length} zur Freigabe</span>}
           {sched.length>0&&<span onClick={()=>onFilterNav("publisher","scheduled")} style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:6,background:C.accentLight,color:C.accent,cursor:"pointer"}}>{sched.length} geplant</span>}
@@ -267,7 +267,7 @@ function Dashboard(){
     <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
       {[
         {I:Send,          label:"Post erstellen",  sub:"Neuer Inhalt",    nav:"publisher",   color:"#3B82F6"},
-        {I:CalendarRange, label:"Planner",         sub:"Timeline & Plan", nav:"planner",     color:"#5B5BD6"},
+        {I:CalendarRange, label:"Planner",         sub:"Timeline & Plan", nav:"planner",     color:C.accent},
         {I:Calendar,      label:"Kalender",        sub:"Monatsansicht",   nav:"calendar",    color:"#8B5CF6"},
         {I:Image,         label:"Medien",          sub:"Bilder & Videos", nav:"media",       color:"#10B981"},
         {I:BarChart2,     label:"Performance",     sub:"Auswertungen",    nav:"performance", color:"#F59E0B"},

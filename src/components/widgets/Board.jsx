@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Calendar } from "lucide-react";
-import { C, FONT, IW } from "../../constants/colors.js";
+import { C, T, FONT, IW } from "../../constants/colors.js";
 import { CHANNELS, STAGES } from "../../constants/demo.js";
 import { fmtDate, fpos } from "../../utils/store.js";
 import { Btn } from "../ui/index.jsx";
@@ -10,9 +10,9 @@ function KCard({post,items,onEdit,onDS,isDrag,isDrop}){
   const media=items.find(m=>m.id===post.mediaId);
   return(
     <div draggable onDragStart={e=>{e.dataTransfer.effectAllowed="move";onDS(post.id,post.status);}} onClick={()=>onEdit(post)}
-      style={{background:isDrop?C.accentLight:C.surface,borderRadius:10,border:`1px solid ${isDrop?C.accent:C.border}`,overflow:"hidden",cursor:isDrag?"grabbing":"grab",transition:"all .2s",opacity:isDrag?.4:1,userSelect:"none",boxShadow:isDrag?"none":"0 1px 4px rgba(0,0,0,.05)"}}
-      onMouseEnter={e=>{if(!isDrag){e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.1)";e.currentTarget.style.transform="translateY(-1px)";}}}
-      onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,.05)";e.currentTarget.style.transform="";}}>
+      style={{background:isDrop?C.accentLight:C.surface,borderRadius:T.rMd,border:`1px solid ${isDrop?C.accent:C.border}`,overflow:"hidden",cursor:isDrag?"grabbing":"grab",transition:"all .2s",opacity:isDrag?.4:1,userSelect:"none",boxShadow:isDrag?"none":T.shadowXs}}
+      onMouseEnter={e=>{if(!isDrag){e.currentTarget.style.boxShadow="0 4px 16px rgba(10,13,18,.10)";e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.background=isDrop?C.accentLight:T.brand25;}}}
+      onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(10,13,18,.06)";e.currentTarget.style.transform="";e.currentTarget.style.background=isDrop?C.accentLight:C.surface;}}>
       {/* Thumbnail – tall enough to show focal point */}
       {media?.url&&<div style={{height:120,overflow:"hidden",position:"relative"}}>
         <img src={media.url} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:fpos(media),display:"block"}}/>
@@ -80,7 +80,7 @@ function Board({posts,items,campaigns,onStatus,onCampaign,onEdit,onNew,canW}){
               onDragOver={e=>{e.preventDefault();if(dId&&!isS)setOver(col.id);}}
               onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOver(null);}}
               onDrop={e=>{e.preventDefault();drop(col.id);}}
-              style={{flex:"0 0 232px",borderRadius:12,border:`1.5px solid ${isO?C.accent:C.border}`,background:isO?C.accentLight:C.bg,transition:"all .18s",opacity:dId&&isS?.5:1,minHeight:280}}>
+              style={{flex:"0 0 232px",borderRadius:T.rLg,border:`1.5px solid ${isO?C.accent:T.gray200}`,background:isO?T.brand50:T.white,transition:"all .18s",opacity:dId&&isS?.5:1,minHeight:280,boxShadow:T.shadowXs}}>
               {/* Column header – monochrome, dot keeps semantic color */}
               <div style={{padding:"10px 13px",background:C.surface,borderRadius:"10px 10px 0 0",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${C.border}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:7}}>
