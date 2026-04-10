@@ -6,6 +6,7 @@ import {
   FormattingToolbarController, FormattingToolbar,
   BlockTypeSelect, BasicTextStyleButton, TextAlignButton,
   ColorStyleButton, NestBlockButton, UnnestBlockButton, CreateLinkButton,
+  blockTypeSelectItems,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/ariakit";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
@@ -466,12 +467,28 @@ function DerivativeRow({ channel, derivative, onCreate, hasContent, loading }) {
   );
 }
 
+// ── Reduced block-type list: only the types editors actually need ─────────
+// Filters out H4-H6 and all toggle-heading variants so the dropdown fits
+// on screen without scrolling.
+const USEFUL_BLOCK_TYPES = ["paragraph","heading","bulletListItem","numberedListItem","checkListItem","quote"];
+const USEFUL_BLOCK_PROPS  = [
+  undefined,                            // paragraph
+  { level: 1, isToggleable: false },    // H1
+  { level: 2, isToggleable: false },    // H2
+  { level: 3, isToggleable: false },    // H3
+  undefined,                            // bulletListItem
+  undefined,                            // numberedListItem
+  undefined,                            // checkListItem
+  undefined,                            // quote
+];
+
 // ── UNIFIED FORMATTING TOOLBAR (formatting + KI in one bar) ───────────────
 function UnifiedFormattingToolbar() {
   const [mode, setMode] = useState("format"); // "format" | "ai" | "loading" | "result"
   const [aiResult, setAiResult] = useState("");
   const [resultPos, setResultPos] = useState(null); // { x, y } for the result panel
   const selRef = useRef(null);
+  const editor = useBlockNoteEditor();
 
   const AI_ACTIONS = [
     { id: "improve",   label: "✦ Verbessern" },
@@ -528,6 +545,32 @@ function UnifiedFormattingToolbar() {
 
   const dismiss = () => { setMode("format"); setAiResult(""); setResultPos(null); };
 
+  // Filtered block-type list: only 8 common types, fits without scrolling
+  const filteredBlockItems = useMemo(() => {
+    if (!editor?.dictionary) return undefined;
+    return blockTypeSelectItems(editor.dictionary).filter(item => {
+      if (!USEFUL_BLOCK_TYPES.includes(item.type)) return false;
+      if (item.type === "heading") {
+        return item.props?.level <= 3 && !item.props?.isToggleable;
+      }
+      return true;
+    });
+  }, [editor?.dictionary]);
+
+  // Insert an image block at the current cursor position
+  const insertImage = () => {
+    try {
+      const cursorBlock = editor.getTextCursorPosition().block;
+      editor.insertBlocks(
+        [{ type: "image", props: { url: "", caption: "", showPreview: true, previewWidth: 512 } }],
+        cursorBlock,
+        "after"
+      );
+      // Focus the newly inserted block so the file panel opens
+      editor.focus();
+    } catch {}
+  };
+
   const btnBase = {
     padding: "3px 9px", borderRadius: 5, border: "none",
     fontSize: 11.5, fontWeight: 600, cursor: "pointer",
@@ -540,7 +583,7 @@ function UnifiedFormattingToolbar() {
       <FormattingToolbar>
         {/* ── Standard format buttons ── */}
         {(mode === "format") && <>
-          <BlockTypeSelect key="blockTypeSelect" />
+          <BlockTypeSelect key="blockTypeSelect" items={filteredBlockItems} />
           <BasicTextStyleButton basicTextStyle="bold"      key="bold" />
           <BasicTextStyleButton basicTextStyle="italic"    key="italic" />
           <BasicTextStyleButton basicTextStyle="underline" key="underline" />
@@ -552,6 +595,16 @@ function UnifiedFormattingToolbar() {
           <NestBlockButton   key="nest" />
           <UnnestBlockButton key="unnest" />
           <CreateLinkButton  key="link" />
+          <div key="sep-img" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
+          <button key="insert-image"
+            onMouseDown={e => e.preventDefault()}
+            onClick={insertImage}
+            style={{ ...btnBase, background: "rgba(255,255,255,.12)", color: "rgba(255,255,255,.9)" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.22)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.12)"}
+            title="Bild einfügen">
+            <ImageIcon size={12} strokeWidth={IW} /> Bild
+          </button>
           <div key="sep" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
           <button key="ai-open"
             onMouseDown={e => e.preventDefault()}
