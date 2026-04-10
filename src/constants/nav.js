@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
-  Flag, Trash2, BookOpen, CalendarRange, Compass, Eye,
+  Flag, Trash2, BookOpen, CalendarRange, Compass, Eye, Inbox,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -32,6 +32,7 @@ export const NAV_GROUPS = [
     items: [
       { id:"research",    label:"Recherche",         I:Compass      },
       { id:"stories",     label:"Storys",            I:BookOpen     },
+      { id:"ugc",         label:"UGC Portal",        I:Inbox        },
       { id:"publisher",   label:"Publisher",         I:Send         },
     ],
   },
@@ -75,6 +76,7 @@ export const TITLE = {
   publisher:    "Publisher",
   trash:        "Papierkorb",
   stories:      "Storys",
+  ugc:          "UGC Portal",
   campaigns:    "Kampagnen",
   media:        "Medienbibliothek",
   calendar:     "Kalender",

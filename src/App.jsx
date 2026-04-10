@@ -20,6 +20,7 @@ import ResearchPage from "./pages/ResearchPage.jsx";
 import MonitoringPage from "./pages/MonitoringPage.jsx";
 import StoriesPage from "./pages/StoriesPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
+import UGCPortalPage from "./pages/UGCPortalPage.jsx";
 
 // ── APP ROOT ───────────────────────────────────────────────────────────────
 export default function App() {
@@ -50,7 +51,7 @@ function AppShell() {
     trash: "Papierkorb", stories: "Storys", campaigns: "Kampagnen",
     media: "Medienbibliothek", calendar: "Kalender", planner: "Planner",
     performance: "Performance", research: "Recherche",
-    monitoring: "Instagram Monitoring", admin: "Admin",
+    monitoring: "Instagram Monitoring", admin: "Admin", ugc: "UGC Portal",
   };
 
   return (
@@ -76,6 +77,7 @@ function AppShell() {
                   {nav === "monitoring"  && <MonitoringPage />}
                   {nav === "stories"     && <StoriesPage />}
                   {nav === "admin"       && <AdminPage />}
+                  {nav === "ugc"         && <UGCPortalPage />}
                 </>
             }
           </div>

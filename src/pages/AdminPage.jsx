@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Users, Shield, Key, Settings, Bell, Globe, Database, Activity, ChevronRight, Plus, Trash2, Edit3, Check, X, AlertCircle, Info, CheckCircle, ChevronDown, ChevronUp, Edit2, ExternalLink, Save, Send, Sparkles, Wifi, WifiOff, Mail, Phone, Building2, MapPin, User } from "lucide-react";
 import { C, FONT, IW, CSS } from "../constants/colors.js";
-import { CHANNELS, ROLES, DEMO_USERS } from "../constants/demo.js";
+import { CHANNELS, ROLES, DEMO_USERS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { storeGet, storeSet } from "../utils/store.js";
 import { skGet, skSet } from "../components/StockSearch.jsx";
 import { Sp, Badge, Avatar, Btn, Card, FL, TIn, SBadge, SCrd } from "../components/ui/index.jsx";
@@ -256,8 +256,8 @@ function AdminPage(){
   const SH=({label,children,action})=><div style={{marginBottom:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontWeight:700,fontSize:12,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em"}}>{label}</div>{action}</div>{children}</div>;
 
   // Tabs by role: admins see everything; editors + viewers also get channels (their own accounts)
-  const ALL_TABS=[["profile","Profil",User],["channels","Meine Kanäle",Globe],["apikeys","API-Keys",Key],["team","Team",Users],["settings","Einstellungen",Settings]];
-  const ROLE_TABS={admin:["profile","channels","apikeys","team","settings"],editor:["profile","channels","apikeys","settings"],viewer:["profile","channels","settings"]};
+  const ALL_TABS=[["profile","Profil",User],["channels","Meine Kanäle",Globe],["apikeys","API-Keys",Key],["team","Team",Users],["workspaces","Mandanten",Building2],["settings","Einstellungen",Settings]];
+  const ROLE_TABS={admin:["profile","channels","apikeys","team","workspaces","settings"],editor:["profile","channels","apikeys","settings"],viewer:["profile","channels","settings"]};
   const visibleTabs=ALL_TABS.filter(([id])=>(ROLE_TABS[me.role]||ROLE_TABS.viewer).includes(id));
 
   return(
@@ -559,6 +559,89 @@ function AdminPage(){
             );
           })}
         </Card>
+      </div>}
+
+      {/* ── MANDANTEN ── */}
+      {tab==="workspaces"&&<div style={{maxWidth:680,display:"flex",flexDirection:"column",gap:14}}>
+        <div style={{fontSize:13,color:C.textSoft,lineHeight:1.6,maxWidth:560}}>
+          Hier siehst du alle Mandanten der Agentur und kannst festlegen, welche Teammitglieder Zugriff auf welchen Mandanten haben.
+        </div>
+        {DEMO_WORKSPACES.map(ws=>{
+          const members=DEMO_WORKSPACE_MEMBERS.filter(m=>m.workspaceId===ws.id);
+          const memberUserIds=new Set(members.map(m=>m.userId));
+          return(
+            <Card key={ws.id} style={{padding:"16px 18px",display:"flex",flexDirection:"column",gap:12}}>
+              {/* Workspace header */}
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:36,height:36,borderRadius:10,background:ws.color+"18",
+                  border:`1.5px solid ${ws.color}44`,display:"flex",alignItems:"center",
+                  justifyContent:"center",fontSize:18,flexShrink:0}}>
+                  {ws.emoji}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:14,color:C.text}}>{ws.name}</div>
+                  <div style={{fontSize:12,color:C.textSoft}}>{ws.description}</div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6,background:ws.color+"12",
+                  borderRadius:20,padding:"3px 10px"}}>
+                  <Users size={11} strokeWidth={2} color={ws.color}/>
+                  <span style={{fontSize:11,fontWeight:700,color:ws.color}}>{members.length} Mitglieder</span>
+                </div>
+              </div>
+              {/* Divider */}
+              <div style={{height:1,background:C.borderLight}}/>
+              {/* Member list */}
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {users.map(u=>{
+                  const isMember=memberUserIds.has(u.id);
+                  const memberRecord=members.find(m=>m.userId===u.id);
+                  return(
+                    <div key={u.id} style={{display:"flex",alignItems:"center",gap:10,
+                      padding:"8px 10px",borderRadius:8,
+                      background:isMember?C.accentLight+"80":"transparent",
+                      border:`1px solid ${isMember?C.accent+"30":C.borderLight}`,
+                      transition:"all .15s"}}>
+                      <Avatar initials={u.avatar} size={26} color={ROLES[u.role]?.color||C.accent}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12.5,fontWeight:600,color:C.text,
+                          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          {u.name}
+                        </div>
+                        <div style={{fontSize:11,color:C.textMute}}>{u.email}</div>
+                      </div>
+                      <span style={{fontSize:10,fontWeight:700,
+                        color:ROLES[u.role]?.color||C.accent,
+                        background:(ROLES[u.role]?.color||C.accent)+"18",
+                        padding:"2px 7px",borderRadius:8,textTransform:"uppercase",letterSpacing:".04em",
+                        flexShrink:0}}>
+                        {ROLES[u.role]?.label||u.role}
+                      </span>
+                      {isMember&&memberRecord&&(
+                        <span style={{fontSize:10,fontWeight:700,color:C.success,
+                          background:C.success+"15",padding:"2px 7px",borderRadius:8,flexShrink:0}}>
+                          {memberRecord.role==="admin"?"Admin-Zugriff":memberRecord.role==="editor"?"Editor":"Betrachter"}
+                        </span>
+                      )}
+                      <div style={{width:34,height:20,borderRadius:10,
+                        background:isMember?C.accent:C.border,
+                        display:"flex",alignItems:"center",padding:"0 2px",cursor:"pointer",
+                        transition:"all .2s",justifyContent:isMember?"flex-end":"flex-start",
+                        flexShrink:0}}
+                        title={isMember?"Zugriff entziehen":"Zugriff gewähren"}>
+                        <div style={{width:16,height:16,borderRadius:"50%",background:"#fff"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          );
+        })}
+        <div style={{padding:"12px 16px",borderRadius:10,background:C.accentLight,
+          border:`1px solid ${C.accent}30`,fontSize:12,color:C.textMid,lineHeight:1.6,display:"flex",gap:8}}>
+          <Info size={14} strokeWidth={2} color={C.accent} style={{flexShrink:0,marginTop:1}}/>
+          <span>Mandanten-Zugriffsrechte werden in einer zukuenftigen Version per Klick aenderbar sein. Aktuell dienen sie der Visualisierung der Berechtigungsstruktur.</span>
+        </div>
       </div>}
 
       {/* ── EINSTELLUNGEN ── */}

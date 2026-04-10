@@ -1,4 +1,4 @@
-import { Settings, LogOut, Layers, ChevronLeft, ChevronRight } from "lucide-react";
+import { Settings, LogOut, Layers, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { C, T, FONT, IW } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 import { NAV_GROUPS, NAV_UTILITY } from "../../constants/nav.js";
@@ -6,7 +6,7 @@ import { ROLES } from "../../constants/demo.js";
 import { Avatar } from "../ui/index.jsx";
 import ChIco from "../ui/ChIco.jsx";
 import { useApp } from "../../context/AppContext.jsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 // Eingeklappt: 64px – nur Icons
@@ -16,7 +16,17 @@ export default function Sidebar() {
   const {
     nav: active, goNav: onNav, user, handleLogout: onLogout,
     posts: allPosts, goChNav: onChNav, chFilt: activeCh,
+    userWorkspaces, currentWorkspaceId, setCurrentWorkspaceId, currentWorkspace,
   } = useApp();
+
+  const [wsOpen, setWsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!wsOpen) return;
+    const close = () => setWsOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [wsOpen]);
 
   const posts     = allPosts ?? [];
   const pend      = posts.filter(p => p.status === "pending").length;
@@ -201,6 +211,97 @@ export default function Sidebar() {
             <Layers size={15} color="#fff" strokeWidth={1.7} />
           </div>
         </button>
+      )}
+
+      {/* ── Workspace Switcher ─────────────────────────────────────────────── */}
+      {open && userWorkspaces && userWorkspaces.length > 0 && (
+        <div style={{ padding:"8px 8px 0", flexShrink:0, position:"relative" }}>
+          <button
+            onClick={e => { e.stopPropagation(); setWsOpen(v => !v); }}
+            style={{
+              width:"100%", borderRadius:8, border:`1px solid ${T.gray200}`,
+              background:T.gray50, cursor:"pointer", padding:"7px 10px",
+              display:"flex", alignItems:"center", gap:8, fontFamily:FONT,
+              transition:"all .12s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = T.gray100}
+            onMouseLeave={e => e.currentTarget.style.background = T.gray50}
+          >
+            <span style={{ fontSize:16 }}>{currentWorkspace?.emoji || "🏢"}</span>
+            <div style={{ flex:1, textAlign:"left", minWidth:0 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:T.gray800,
+                overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                {currentWorkspace?.name || "Mandant"}
+              </div>
+              <div style={{ fontSize:9.5, color:T.gray400, fontWeight:500 }}>Mandant</div>
+            </div>
+            <ChevronDown size={12} strokeWidth={2} color={T.gray400}
+              style={{ transform: wsOpen ? "rotate(180deg)" : "none", transition:"transform .15s", flexShrink:0 }} />
+          </button>
+
+          {/* Dropdown */}
+          {wsOpen && (
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                position:"absolute", top:"calc(100% + 4px)", left:8, right:8, zIndex:50,
+                background:C.surface, borderRadius:10, border:`1px solid ${T.gray200}`,
+                boxShadow:"0 8px 24px rgba(0,0,0,.12)", padding:4, overflow:"hidden",
+              }}
+            >
+              {userWorkspaces.map(ws => (
+                <button
+                  key={ws.id}
+                  onClick={() => { setCurrentWorkspaceId(ws.id); setWsOpen(false); }}
+                  style={{
+                    width:"100%", display:"flex", alignItems:"center", gap:8,
+                    padding:"7px 10px", borderRadius:7, border:"none", cursor:"pointer",
+                    background: currentWorkspaceId === ws.id ? T.brand50 : "transparent",
+                    fontFamily:FONT, transition:"background .1s",
+                  }}
+                  onMouseEnter={e => { if (currentWorkspaceId !== ws.id) e.currentTarget.style.background = T.gray50; }}
+                  onMouseLeave={e => { if (currentWorkspaceId !== ws.id) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ fontSize:15 }}>{ws.emoji}</span>
+                  <div style={{ flex:1, textAlign:"left" }}>
+                    <div style={{ fontSize:12, fontWeight:600, color:T.gray800 }}>{ws.name}</div>
+                    <div style={{ fontSize:10, color:T.gray400 }}>{ws.description}</div>
+                  </div>
+                  {currentWorkspaceId === ws.id && (
+                    <div style={{ width:6, height:6, borderRadius:"50%", background:ws.color, flexShrink:0 }} />
+                  )}
+                </button>
+              ))}
+
+              {/* "All workspaces" for admin users */}
+              {userWorkspaces.length > 1 && (
+                <>
+                  <div style={{ height:1, background:T.gray100, margin:"3px 0" }} />
+                  <button
+                    onClick={() => { setCurrentWorkspaceId(null); setWsOpen(false); }}
+                    style={{
+                      width:"100%", display:"flex", alignItems:"center", gap:8,
+                      padding:"6px 10px", borderRadius:7, border:"none", cursor:"pointer",
+                      background: !currentWorkspaceId ? T.brand50 : "transparent",
+                      fontFamily:FONT, transition:"background .1s",
+                    }}
+                    onMouseEnter={e => { if (currentWorkspaceId) e.currentTarget.style.background = T.gray50; }}
+                    onMouseLeave={e => { if (currentWorkspaceId) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <span style={{ fontSize:14 }}>🌐</span>
+                    <div style={{ flex:1, textAlign:"left" }}>
+                      <div style={{ fontSize:12, fontWeight:600, color:T.gray800 }}>Alle Mandanten</div>
+                      <div style={{ fontSize:10, color:T.gray400 }}>Gesamtuebersicht</div>
+                    </div>
+                    {!currentWorkspaceId && (
+                      <div style={{ width:6, height:6, borderRadius:"50%", background:C.accent, flexShrink:0 }} />
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Nav groups ─────────────────────────────────────────────────────── */}

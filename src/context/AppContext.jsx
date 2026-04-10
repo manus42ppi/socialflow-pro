@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
-import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES } from "../constants/demo.js";
+import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { storeGet, storeSet } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
@@ -29,6 +29,17 @@ export function AppProvider({ children }) {
 
   // Demo login bypass (no Clerk account needed)
   const [demoUser, setDemoUser] = useState(null);
+
+  // ── Workspace state ───────────────────────────────────────────────────────
+  // currentWorkspaceId = null means "all workspaces" (admin only)
+  const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState(() => {
+    try { return localStorage.getItem("sf_workspace") || "ws-ppi-media"; } catch { return "ws-ppi-media"; }
+  });
+
+  const setCurrentWorkspaceId = (id) => {
+    setCurrentWorkspaceIdState(id);
+    try { localStorage.setItem("sf_workspace", id || ""); } catch {}
+  };
 
   // ── Routing ───────────────────────────────────────────────────────────────
   const [nav, setNav] = useState("dashboard");
@@ -180,6 +191,38 @@ export function AppProvider({ children }) {
   // ── Resolved user ─────────────────────────────────────────────────────────
   const user = demoUser || (isSignedIn && clerkUser ? mapClerkUser(clerkUser) : null);
 
+  // ── Workspace computed data ───────────────────────────────────────────────
+  // Compute which workspaces the current user can access (based on DEMO_WORKSPACE_MEMBERS)
+  // For Clerk users: give full access to all workspaces
+  // For demo users: filter by DEMO_WORKSPACE_MEMBERS
+  const userWorkspaces = useMemo(() => {
+    const userId = demoUser?.id || null;
+    if (!userId) return DEMO_WORKSPACES; // Clerk users see all
+    const memberWsIds = new Set(
+      DEMO_WORKSPACE_MEMBERS.filter(m => m.userId === userId).map(m => m.workspaceId)
+    );
+    return DEMO_WORKSPACES.filter(w => memberWsIds.has(w.id));
+  }, [demoUser]);
+
+  // Workspace-filtered data for UI consumption
+  const filteredPosts = useMemo(() =>
+    currentWorkspaceId
+      ? posts.filter(p => p.workspaceId === currentWorkspaceId)
+      : posts
+  , [posts, currentWorkspaceId]);
+
+  const filteredCampaigns = useMemo(() =>
+    currentWorkspaceId
+      ? campaigns.filter(c => c.workspaceId === currentWorkspaceId)
+      : campaigns
+  , [campaigns, currentWorkspaceId]);
+
+  const filteredStories = useMemo(() =>
+    currentWorkspaceId
+      ? stories.filter(s => s.workspaceId === currentWorkspaceId)
+      : stories
+  , [stories, currentWorkspaceId]);
+
   // ── Navigation actions ────────────────────────────────────────────────────
   const goNav = n => { setNav(n); setFilt("all"); setChFilt("all"); };
   const goFilter = (pg, f) => { setNav(pg); setFilt(f); setChFilt("all"); };
@@ -187,7 +230,7 @@ export function AppProvider({ children }) {
 
   // ── Post actions ──────────────────────────────────────────────────────────
   const save = p => {
-    const saved = { ...p, updatedAt: new Date().toISOString() };
+    const saved = { ...p, workspaceId: p.workspaceId || currentWorkspaceId || "ws-ppi-media", updatedAt: new Date().toISOString() };
     setPosts(prev =>
       prev.find(x => x.id === saved.id) ? prev.map(x => x.id === saved.id ? saved : x) : [...prev, saved]
     );
@@ -209,6 +252,7 @@ export function AppProvider({ children }) {
     id: null, title: "", content: "", channels: [],
     scheduledDate: "", scheduledTime: "", status: "draft",
     mediaId: null, campaignId: null,
+    workspaceId: currentWorkspaceId || "ws-ppi-media",
   });
 
   // ── Story actions ─────────────────────────────────────────────────────────
@@ -239,6 +283,7 @@ export function AppProvider({ children }) {
     updatedAt: new Date().toISOString(),
     tags: "",
     lockedBy: null, comments: [], history: [],
+    workspaceId: currentWorkspaceId || "ws-ppi-media",
   });
 
   // ── Media actions ─────────────────────────────────────────────────────────
@@ -270,8 +315,8 @@ export function AppProvider({ children }) {
     goNav,
     goFilter,
     goChNav,
-    // Posts
-    posts,
+    // Posts (filtered by current workspace for display; setPosts operates on raw state)
+    posts: filteredPosts,
     setPosts,
     filt,
     setFilt,
@@ -292,16 +337,16 @@ export function AppProvider({ children }) {
     schPost,
     setSchPost,
     saveSch,
-    // Campaigns
-    campaigns,
+    // Campaigns (filtered by current workspace for display)
+    campaigns: filteredCampaigns,
     setCampaigns,
     // Media
     items,
     uploadItem,
     updateItem,
     deleteItems,
-    // Stories
-    stories,
+    // Stories (filtered by current workspace for display)
+    stories: filteredStories,
     edStory,
     setEdStory,
     saveStory,
@@ -312,6 +357,12 @@ export function AppProvider({ children }) {
     newStory,
     detailPost,
     setDetailPost,
+    // Workspace
+    workspaces: DEMO_WORKSPACES,
+    userWorkspaces,
+    currentWorkspaceId,
+    setCurrentWorkspaceId,
+    currentWorkspace: DEMO_WORKSPACES.find(w => w.id === currentWorkspaceId) || DEMO_WORKSPACES[0],
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
