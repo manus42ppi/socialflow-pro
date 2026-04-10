@@ -7,6 +7,7 @@ import {
   BlockTypeSelect, BasicTextStyleButton, TextAlignButton,
   ColorStyleButton, NestBlockButton, UnnestBlockButton, CreateLinkButton,
   blockTypeSelectItems,
+  SideMenuController, SideMenu, DragHandleButton, DeleteButton,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/ariakit";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
@@ -1456,6 +1457,28 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
             {/* BlockNote Editor */}
             <div style={{ flex: 1, paddingBottom: 80, maxWidth: 752, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingLeft: 80, paddingRight: 32 }}>
+              {/* Force BlockNote suggestion/slash menu to always render in light mode.
+                  The menu renders in a portal outside .bn-container, so it doesn't
+                  inherit theme="light" automatically. */}
+              <style>{`
+                .bn-suggestion-menu,
+                .bn-ak-menu,
+                .bn-grid-suggestion-menu {
+                  --bn-colors-menu-text: #1a1a1a !important;
+                  --bn-colors-menu-background: #ffffff !important;
+                  --bn-colors-hovered-text: #1a1a1a !important;
+                  --bn-colors-hovered-background: #f0f0f0 !important;
+                  --bn-colors-selected-text: #1a1a1a !important;
+                  --bn-colors-selected-background: #e8e8e8 !important;
+                  --bn-colors-shadow: rgba(0,0,0,.12) !important;
+                  --bn-colors-border: #e5e5e5 !important;
+                  color: #1a1a1a !important;
+                  background: #ffffff !important;
+                }
+                .bn-ak-suggestion-menu-item-title { color: #1a1a1a !important; }
+                .bn-ak-suggestion-menu-item-subtitle { color: #6b7280 !important; }
+                .bn-ak-suggestion-menu-item-section { color: #9ca3af !important; font-size: 10px !important; }
+              `}</style>
               <BlockNoteView
                 editor={editor}
                 theme="light"
@@ -1471,6 +1494,12 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               >
                 <FormattingToolbarController formattingToolbar={UnifiedFormattingToolbar} />
                 <FilePanelController filePanel={MediaLibraryFilePanel} />
+                <SideMenuController sideMenu={props => (
+                  <SideMenu {...props}>
+                    <DragHandleButton {...props} />
+                    <DeleteButton {...props} />
+                  </SideMenu>
+                )} />
               </BlockNoteView>
             </div>
 
