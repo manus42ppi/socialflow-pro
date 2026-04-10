@@ -8,6 +8,7 @@ import {
   ColorStyleButton, NestBlockButton, UnnestBlockButton, CreateLinkButton,
   blockTypeSelectItems,
   SideMenuController, SideMenu, DragHandleButton, DeleteButton,
+  SuggestionMenuController, getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/ariakit";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
@@ -1484,6 +1485,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 theme="light"
                 filePanel={false}
                 formattingToolbar={false}
+                slashMenu={false}
                 style={{ fontSize: 16, lineHeight: 1.8 }}
                 onChange={() => {
                   const text = blocksToText(editor.document || []);
@@ -1500,6 +1502,29 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                     <DeleteButton {...props} />
                   </SideMenu>
                 )} />
+                <SuggestionMenuController
+                  triggerCharacter="/"
+                  getItems={async query => {
+                    const all = getDefaultReactSlashMenuItems(editor);
+                    // Only keep the most useful block types for editorial content
+                    const KEEP = new Set([
+                      "Heading 1","Heading 2","Heading 3",
+                      "Paragraph","Quote",
+                      "Bullet List","Numbered List","Check List",
+                      "Code Block","Image","Table","Divider","Emoji",
+                    ]);
+                    const filtered = all.filter(item => {
+                      const title = typeof item.title === "string" ? item.title : "";
+                      return KEEP.has(title);
+                    });
+                    if (!query) return filtered;
+                    const q = query.toLowerCase();
+                    return filtered.filter(item =>
+                      (item.title||"").toLowerCase().includes(q) ||
+                      (item.subtext||"").toLowerCase().includes(q)
+                    );
+                  }}
+                />
               </BlockNoteView>
             </div>
 
