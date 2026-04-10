@@ -371,7 +371,7 @@ export function AppProvider({ children }) {
     userWorkspaces,
     currentWorkspaceId,
     setCurrentWorkspaceId,
-    currentWorkspace: DEMO_WORKSPACES.find(w => w.id === currentWorkspaceId) || DEMO_WORKSPACES[0],
+    currentWorkspace: currentWorkspaceId ? (DEMO_WORKSPACES.find(w => w.id === currentWorkspaceId) || null) : null,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
