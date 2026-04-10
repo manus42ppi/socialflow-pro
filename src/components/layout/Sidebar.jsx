@@ -258,7 +258,7 @@ export default function Sidebar() {
             {/* Dropdown */}
             {wsOpen && (
               <div
-                onClick={e => e.stopPropagation()}
+                onMouseDown={e => e.stopPropagation()}
                 style={{
                   position: "absolute", top: "calc(100% + 4px)", left: 8, right: 8, zIndex: 50,
                   background: C.surface, borderRadius: T.rLg, border: `1px solid ${T.gray200}`,
