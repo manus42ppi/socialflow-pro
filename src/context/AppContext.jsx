@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
-import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
+import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { storeGet, storeSet } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
@@ -86,7 +86,7 @@ export function AppProvider({ children }) {
       setPosts(DEMO_POSTS);
       setCampaigns(DEMO_CAMPAIGNS);
       setStories(DEMO_STORIES);
-      setItems([]);
+      setItems(DEMO_MEDIA);
       return;
     }
 
@@ -176,9 +176,12 @@ export function AppProvider({ children }) {
       const saved = localStorage.getItem("demo_media");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.length) { setItems(parsed); mediaLoaded.current = true; }
+        if (parsed?.length) { setItems(parsed); mediaLoaded.current = true; demoMediaLoaded.current = true; return; }
       }
     } catch {}
+    // No saved media → use demo media
+    setItems(DEMO_MEDIA);
+    mediaLoaded.current = true;
     demoMediaLoaded.current = true;
   }, [demoUser]);
 
@@ -222,6 +225,12 @@ export function AppProvider({ children }) {
       ? stories.filter(s => s.workspaceId === currentWorkspaceId)
       : stories
   , [stories, currentWorkspaceId]);
+
+  const filteredItems = useMemo(() =>
+    currentWorkspaceId
+      ? items.filter(i => i.workspaceId === currentWorkspaceId)
+      : items
+  , [items, currentWorkspaceId]);
 
   // ── Navigation actions ────────────────────────────────────────────────────
   const goNav = n => { setNav(n); setFilt("all"); setChFilt("all"); };
@@ -287,7 +296,7 @@ export function AppProvider({ children }) {
   });
 
   // ── Media actions ─────────────────────────────────────────────────────────
-  const uploadItem = i => setItems(prev => [...prev, i]);
+  const uploadItem = i => setItems(prev => [...prev, { ...i, workspaceId: i.workspaceId || currentWorkspaceId || "ws-ppi-media" }]);
   const updateItem = u => setItems(prev => prev.map(x => x.id === u.id ? u : x));
   const deleteItems = ids => setItems(prev => prev.filter(x => !ids.includes(x.id)));
 
@@ -341,7 +350,7 @@ export function AppProvider({ children }) {
     campaigns: filteredCampaigns,
     setCampaigns,
     // Media
-    items,
+    items: filteredItems,
     uploadItem,
     updateItem,
     deleteItems,

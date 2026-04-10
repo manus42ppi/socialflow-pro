@@ -9,7 +9,7 @@ import { STOCK_SRCS, skGet, skSet, stockSearch, SrcBadge, FP, Skeletons, StockKe
 import { useApp } from "../context/AppContext.jsx";
 
 export default function MediaPage(){
-  const { items, posts: allPosts, uploadItem: onUpload, updateItem: onUpdate, deleteItems: onDelete } = useApp();
+  const { items, posts: allPosts, uploadItem: onUpload, updateItem: onUpdate, deleteItems: onDelete, currentWorkspaceId } = useApp();
   const posts = allPosts ?? [];
   const [q,setQ]=useState(""); const [f,setF]=useState("all");
   const [flt,setFlt]=useState({type:"",orient:"",sort:"relevant"});
@@ -26,6 +26,15 @@ export default function MediaPage(){
   const [presetName,setPresetName]=useState("");
   const [showPresetInput,setShowPresetInput]=useState(false);
   const ref=useRef(); const timer=useRef();
+
+  // Reset local filter/search/selection when workspace changes
+  useEffect(() => {
+    setQ("");
+    setF("all");
+    setDet(null);
+    setSel(new Set());
+    setBatchMode(false);
+  }, [currentWorkspaceId]);
 
   const savePreset=()=>{
     const name=presetName.trim()||`Filter ${savedPresets.length+1}`;
@@ -57,7 +66,7 @@ export default function MediaPage(){
           });
         }catch{}
       }
-      const item={id,name:file.name,url,type:mtype,size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:mtype==="image",width,height};
+      const item={id,name:file.name,url,type:mtype,size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:mtype==="image",width,height,workspaceId:currentWorkspaceId||"ws-ppi-media"};
       onUpload(item);
       if(mtype==="image"){
         const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
@@ -73,7 +82,7 @@ export default function MediaPage(){
   // Add external image to library
   const addToLib=async ext=>{
     if(ext.source==="unsplash"&&ext.dlLoc){const k=skGet("unsplash");if(k)fetch(ext.dlLoc,{headers:{Authorization:`Client-ID ${k}`}}).catch(()=>{});}
-    const item={...ext,id:uid(),analyzing:ext.type==="image"};
+    const item={...ext,id:uid(),analyzing:ext.type==="image",workspaceId:currentWorkspaceId||"ws-ppi-media"};
     onUpload(item);
     if(item.type==="image"){
       const timeout2=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
