@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import * as LucideIcons from "lucide-react";
 import { C, T, FONT, IW } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
@@ -170,7 +170,7 @@ const ROW_H = 44;
 const LABEL_W = 160;
 
 export default function PlannerPage() {
-  const { posts: allPosts, campaigns, setEdPost: onEdit } = useApp();
+  const { posts: allPosts, campaigns, setEdPost: onEdit, currentWorkspaceId } = useApp();
   const posts = allPosts.filter(p => !p.deleted);
   const { order, dragId, setDragId, overId, setOverId, drop } =
     useSections("planner", "planner", ["timeline","campaigns","upcoming"]);
@@ -202,6 +202,12 @@ export default function PlannerPage() {
     }), [timeStart]);
 
   const todayX = useMemo(() => dateToX(todayStr), [dateToX, todayStr]);
+
+  // Reset popover + timeline window when workspace changes
+  useEffect(() => {
+    setPopover(null);
+    setTimeStart(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+  }, [currentWorkspaceId]); // eslint-disable-line
 
   // ── Click-popover state ────────────────────────────────────────────────────
   const [popover, setPopover] = useState(null); // { post, rect }

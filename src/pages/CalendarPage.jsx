@@ -47,13 +47,19 @@ function KTag({label,colorIdx=0}){
 }
 
 function CalendarPage(){
-  const { posts: allPosts, setEdPost: onEdit } = useApp();
+  const { posts: allPosts, setEdPost: onEdit, currentWorkspaceId } = useApp();
   const posts = allPosts.filter(p => !p.deleted);
   const {order,dragId:cDragId,setDragId:cSetDragId,overId:cOverId,setOverId:cSetOverId,drop:cDrop}=useSections("calendar","default",['calendar','list']);
   const today=new Date();
   const [cur,setCur]=useState({y:today.getFullYear(),m:today.getMonth()});
   const [viewMode,setViewMode]=useState("month"); // "month" | "agenda"
   const [hovRow,setHovRow]=useState(null);
+
+  // Reset to current month when workspace changes
+  useEffect(()=>{
+    setCur({y:today.getFullYear(),m:today.getMonth()});
+    setHovRow(null);
+  },[currentWorkspaceId]); // eslint-disable-line
 
   const pad=n=>String(n).padStart(2,"0");
   const dateStr=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;

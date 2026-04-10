@@ -7,7 +7,7 @@ import { useApp } from "../../context/AppContext.jsx";
 // Höhe: 60px | Hintergrund: weiß | Rand unten: gray-200
 
 export default function TopBar({ title }) {
-  const { newPost: onNew } = useApp();
+  const { newPost: onNew, currentWorkspaceId, userWorkspaces } = useApp();
   return (
     <div style={{
       height: 60, background: C.surface,
@@ -61,12 +61,23 @@ export default function TopBar({ title }) {
       </button>
 
       {/* New post button */}
-      <Btn onClick={onNew} size="md" style={{ gap: 6 }}>
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-          <path d="M6.5 1v11M1 6.5h11" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-        Neuer Post
-      </Btn>
+      {(() => {
+        const noWs = !currentWorkspaceId && userWorkspaces?.length > 1;
+        return (
+          <div style={{ position: "relative" }} title={noWs ? "Bitte zuerst einen Mandanten wählen" : undefined}>
+            <Btn
+              onClick={noWs ? undefined : onNew}
+              size="md"
+              style={{ gap: 6, opacity: noWs ? 0.45 : 1, cursor: noWs ? "not-allowed" : "pointer" }}
+            >
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path d="M6.5 1v11M1 6.5h11" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+              Neuer Post
+            </Btn>
+          </div>
+        );
+      })()}
     </div>
   );
 }

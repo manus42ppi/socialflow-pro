@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CHANNELS, STORY_CHANNELS, ROLES, DEMO_CAMPAIGNS, DEMO_POSTS, DEMO_STORIES, STAGES } from '../constants/demo.js';
+import { CHANNELS, STORY_CHANNELS, ROLES, DEMO_CAMPAIGNS, DEMO_POSTS, DEMO_STORIES, STAGES, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS, DEMO_MEDIA } from '../constants/demo.js';
 
 // ── CHANNELS ─────────────────────────────────────────────────────────────────
 describe('CHANNELS', () => {
@@ -270,5 +270,200 @@ describe('STAGES', () => {
       expect(s).toHaveProperty('id');
       expect(s).toHaveProperty('label');
     });
+  });
+});
+
+// ── DEMO_WORKSPACES ────────────────────────────────────────────────────────────
+describe('DEMO_WORKSPACES', () => {
+  it('is a non-empty array', () => {
+    expect(Array.isArray(DEMO_WORKSPACES)).toBe(true);
+    expect(DEMO_WORKSPACES.length).toBeGreaterThan(0);
+  });
+
+  it('every workspace has required fields', () => {
+    DEMO_WORKSPACES.forEach(ws => {
+      expect(ws).toHaveProperty('id');
+      expect(ws).toHaveProperty('name');
+      expect(ws).toHaveProperty('color');
+      expect(typeof ws.id).toBe('string');
+      expect(typeof ws.name).toBe('string');
+    });
+  });
+
+  it('workspace IDs are unique', () => {
+    const ids = DEMO_WORKSPACES.map(ws => ws.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('workspace colors are valid hex codes', () => {
+    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+    DEMO_WORKSPACES.forEach(ws => {
+      expect(ws.color).toMatch(hexRegex);
+    });
+  });
+
+  it('includes ppi Media workspace', () => {
+    const ids = DEMO_WORKSPACES.map(ws => ws.id);
+    expect(ids).toContain('ws-ppi-media');
+  });
+});
+
+// ── DEMO_WORKSPACE_MEMBERS ─────────────────────────────────────────────────────
+describe('DEMO_WORKSPACE_MEMBERS', () => {
+  const wsIds = new Set(DEMO_WORKSPACES.map(ws => ws.id));
+  const validRoles = ['admin', 'editor', 'viewer'];
+
+  it('is a non-empty array', () => {
+    expect(Array.isArray(DEMO_WORKSPACE_MEMBERS)).toBe(true);
+    expect(DEMO_WORKSPACE_MEMBERS.length).toBeGreaterThan(0);
+  });
+
+  it('every member entry has workspaceId, userId and role', () => {
+    DEMO_WORKSPACE_MEMBERS.forEach(m => {
+      expect(m).toHaveProperty('workspaceId');
+      expect(m).toHaveProperty('userId');
+      expect(m).toHaveProperty('role');
+      expect(typeof m.workspaceId).toBe('string');
+      expect(typeof m.userId).toBe('string');
+    });
+  });
+
+  it('every workspaceId references a known workspace', () => {
+    DEMO_WORKSPACE_MEMBERS.forEach(m => {
+      expect(wsIds.has(m.workspaceId)).toBe(true);
+    });
+  });
+
+  it('every role is a valid role', () => {
+    DEMO_WORKSPACE_MEMBERS.forEach(m => {
+      expect(validRoles).toContain(m.role);
+    });
+  });
+
+  it('no duplicate userId+workspaceId combinations', () => {
+    const seen = new Set();
+    DEMO_WORKSPACE_MEMBERS.forEach(m => {
+      const key = `${m.userId}::${m.workspaceId}`;
+      expect(seen.has(key)).toBe(false);
+      seen.add(key);
+    });
+  });
+});
+
+// ── DEMO_MEDIA ─────────────────────────────────────────────────────────────────
+describe('DEMO_MEDIA', () => {
+  const validTypes = ['image', 'video', 'document'];
+  const wsIds = new Set(DEMO_WORKSPACES.map(ws => ws.id));
+
+  it('is a non-empty array', () => {
+    expect(Array.isArray(DEMO_MEDIA)).toBe(true);
+    expect(DEMO_MEDIA.length).toBeGreaterThan(0);
+  });
+
+  it('every media item has required fields', () => {
+    DEMO_MEDIA.forEach(item => {
+      expect(item).toHaveProperty('id');
+      expect(item).toHaveProperty('url');
+      expect(item).toHaveProperty('type');
+      expect(item).toHaveProperty('workspaceId');
+      expect(typeof item.id).toBe('string');
+      expect(typeof item.url).toBe('string');
+    });
+  });
+
+  it('media IDs are unique', () => {
+    const ids = DEMO_MEDIA.map(item => item.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('every media item has a valid type', () => {
+    DEMO_MEDIA.forEach(item => {
+      expect(validTypes).toContain(item.type);
+    });
+  });
+
+  it('every media item belongs to a known workspace', () => {
+    DEMO_MEDIA.forEach(item => {
+      expect(wsIds.has(item.workspaceId)).toBe(true);
+    });
+  });
+
+  it('media is distributed across multiple workspaces', () => {
+    const usedWsIds = new Set(DEMO_MEDIA.map(item => item.workspaceId));
+    expect(usedWsIds.size).toBeGreaterThan(1);
+  });
+});
+
+// ── Workspace filtering logic ──────────────────────────────────────────────────
+describe('workspace filtering logic', () => {
+  // Pure filtering helpers — mirrors what AppContext does
+  const filterByWs = (arr, wsId) =>
+    wsId ? arr.filter(x => x.workspaceId === wsId) : arr;
+
+  it('filterByWs returns all items when wsId is null', () => {
+    const result = filterByWs(DEMO_POSTS, null);
+    expect(result.length).toBe(DEMO_POSTS.length);
+  });
+
+  it('filterByWs returns only matching items for a specific workspace', () => {
+    const wsId = DEMO_WORKSPACES[0].id;
+    const result = filterByWs(DEMO_POSTS, wsId);
+    result.forEach(p => expect(p.workspaceId).toBe(wsId));
+  });
+
+  it('filterByWs returns empty array for non-existent workspace', () => {
+    const result = filterByWs(DEMO_POSTS, 'ws-does-not-exist');
+    expect(result.length).toBe(0);
+  });
+
+  it('all DEMO_POSTS belong to a known workspace', () => {
+    const wsIds = new Set(DEMO_WORKSPACES.map(ws => ws.id));
+    DEMO_POSTS.forEach(p => {
+      expect(wsIds.has(p.workspaceId)).toBe(true);
+    });
+  });
+
+  it('all DEMO_CAMPAIGNS belong to a known workspace', () => {
+    const wsIds = new Set(DEMO_WORKSPACES.map(ws => ws.id));
+    DEMO_CAMPAIGNS.forEach(c => {
+      expect(wsIds.has(c.workspaceId)).toBe(true);
+    });
+  });
+
+  it('all DEMO_STORIES belong to a known workspace', () => {
+    const wsIds = new Set(DEMO_WORKSPACES.map(ws => ws.id));
+    DEMO_STORIES.forEach(s => {
+      expect(wsIds.has(s.workspaceId)).toBe(true);
+    });
+  });
+
+  it('DEMO_WORKSPACE_MEMBERS can correctly determine user workspace access', () => {
+    // For each workspace, find which users have access
+    DEMO_WORKSPACES.forEach(ws => {
+      const members = DEMO_WORKSPACE_MEMBERS.filter(m => m.workspaceId === ws.id);
+      // Members should be a subset of known user IDs (non-empty for at least ppi Media)
+      members.forEach(m => {
+        expect(typeof m.userId).toBe('string');
+        expect(m.userId.length).toBeGreaterThan(0);
+      });
+    });
+    // ppi Media workspace should have at least one member
+    const ppiMembers = DEMO_WORKSPACE_MEMBERS.filter(m => m.workspaceId === 'ws-ppi-media');
+    expect(ppiMembers.length).toBeGreaterThan(0);
+  });
+
+  it('filtering campaigns by workspace gives stable subset', () => {
+    const wsId = DEMO_WORKSPACES[0].id;
+    const filtered = filterByWs(DEMO_CAMPAIGNS, wsId);
+    const all = filterByWs(DEMO_CAMPAIGNS, null);
+    expect(filtered.length).toBeLessThanOrEqual(all.length);
+  });
+
+  it('union of all workspace-filtered posts equals all posts', () => {
+    const allFiltered = DEMO_WORKSPACES.flatMap(ws =>
+      DEMO_POSTS.filter(p => p.workspaceId === ws.id)
+    );
+    // Every post should appear in exactly one workspace partition
+    expect(allFiltered.length).toBe(DEMO_POSTS.length);
   });
 });

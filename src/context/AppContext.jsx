@@ -239,7 +239,8 @@ export function AppProvider({ children }) {
 
   // ── Post actions ──────────────────────────────────────────────────────────
   const save = p => {
-    const saved = { ...p, workspaceId: p.workspaceId || currentWorkspaceId || "ws-ppi-media", updatedAt: new Date().toISOString() };
+    const wsId = p.workspaceId || currentWorkspaceId || "ws-ppi-media";
+    const saved = { ...p, workspaceId: wsId, updatedAt: new Date().toISOString() };
     setPosts(prev =>
       prev.find(x => x.id === saved.id) ? prev.map(x => x.id === saved.id ? saved : x) : [...prev, saved]
     );
@@ -257,12 +258,15 @@ export function AppProvider({ children }) {
   const approve = (id, st) => setPosts(prev => prev.map(p => p.id === id ? { ...p, status: st } : p));
   const chSt = (id, st) => setPosts(prev => prev.map(p => p.id === id ? { ...p, status: st } : p));
   const chCamp = (id, cid) => setPosts(prev => prev.map(p => p.id === id ? { ...p, campaignId: cid } : p));
-  const newPost = () => setEdPost({
-    id: null, title: "", content: "", channels: [],
-    scheduledDate: "", scheduledTime: "", status: "draft",
-    mediaId: null, campaignId: null,
-    workspaceId: currentWorkspaceId || "ws-ppi-media",
-  });
+  const newPost = () => {
+    if (!currentWorkspaceId) return; // guard: must have a workspace selected
+    setEdPost({
+      id: null, title: "", content: "", channels: [],
+      scheduledDate: "", scheduledTime: "", status: "draft",
+      mediaId: null, campaignId: null,
+      workspaceId: currentWorkspaceId,
+    });
+  };
 
   // ── Story actions ─────────────────────────────────────────────────────────
   const saveStory = s => {
@@ -284,16 +288,19 @@ export function AppProvider({ children }) {
     setStories(prev => prev.map(s => s.id === storyId ? { ...s, lockedBy: null } : s));
   };
   const delStory = id => setStories(prev => prev.filter(s => s.id !== id));
-  const newStory = () => setEdStory({
-    id: null, title: "", subtitle: "", coverMediaId: null,
-    category: "", blocks: [], materials: [], derivatives: [],
-    targetChannels: [], status: "idea",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: "",
-    lockedBy: null, comments: [], history: [],
-    workspaceId: currentWorkspaceId || "ws-ppi-media",
-  });
+  const newStory = () => {
+    if (!currentWorkspaceId) return; // guard: must have a workspace selected
+    setEdStory({
+      id: null, title: "", subtitle: "", coverMediaId: null,
+      category: "", blocks: [], materials: [], derivatives: [],
+      targetChannels: [], status: "idea",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: "",
+      lockedBy: null, comments: [], history: [],
+      workspaceId: currentWorkspaceId,
+    });
+  };
 
   // ── Media actions ─────────────────────────────────────────────────────────
   const uploadItem = i => setItems(prev => [...prev, { ...i, workspaceId: i.workspaceId || currentWorkspaceId || "ws-ppi-media" }]);

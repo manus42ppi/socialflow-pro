@@ -191,6 +191,8 @@ function AdminPage(){
   const [myChCreds,setMyChCreds]=useState(emptyChState);
   const [myLocalCreds,setMyLocalCreds]=useState(emptyChState);
   const [usageType,setUsageType]=useState("creator"); // "creator" | "business" | "agency"
+  // Workspace members – local copy so toggles work without touching global demo data
+  const [wsMembers,setWsMembers]=useState(()=>DEMO_WORKSPACE_MEMBERS.map(m=>({...m})));
 
   // ── KV persistence ──
   useEffect(()=>{
@@ -201,6 +203,7 @@ function AdminPage(){
     storeGet("admin:notif").then(d=>{if(d)setNotif(p=>({...p,...d}));});
     storeGet("admin:apikeys").then(d=>{if(d){setApiKeys(p=>({...p,...d}));Object.entries(d).forEach(([k,v])=>{if(v)skSet(k,v);});}});
     storeGet("admin:team").then(d=>{if(d&&Array.isArray(d))setUsers(d);});
+    storeGet("admin:wsmembers").then(d=>{if(d&&Array.isArray(d))setWsMembers(d);});
     // Personal channels (per user)
     storeGet("channels:"+me.id).then(d=>{if(d){setMyChCreds(p=>({...p,...d}));setMyLocalCreds(p=>({...p,...d}));}});
     storeGet("usagetype:"+me.id).then(d=>{if(d)setUsageType(d);});
@@ -214,6 +217,17 @@ function AdminPage(){
   const saveUsageType=(t)=>{setUsageType(t);storeSet("usagetype:"+me.id,t);};
   const saveApiKey=(id,v)=>{const n={...apiKeys,[id]:v};setApiKeys(n);skSet(id,v);storeSet("admin:apikeys",n);};
   const saveTeam=(next)=>{setUsers(next);storeSet("admin:team",next);};
+  const toggleMember=(wsId,userId)=>{
+    setWsMembers(prev=>{
+      const isMember=prev.some(m=>m.workspaceId===wsId&&m.userId===userId);
+      const next=isMember
+        ? prev.filter(m=>!(m.workspaceId===wsId&&m.userId===userId))
+        : [...prev,{workspaceId:wsId,userId,role:users.find(u=>u.id===userId)?.role||"editor"}];
+      storeSet("admin:wsmembers",next);
+      return next;
+    });
+    showFlash("ws_"+wsId+"_"+userId);
+  };
   const startEdit=(u)=>{setEditingId(u.id);setEditForm({name:u.name,email:u.email});};
   const commitEdit=(id)=>{
     const next=users.map(u=>{
@@ -567,7 +581,7 @@ function AdminPage(){
           Hier siehst du alle Mandanten der Agentur und kannst festlegen, welche Teammitglieder Zugriff auf welchen Mandanten haben.
         </div>
         {DEMO_WORKSPACES.map(ws=>{
-          const members=DEMO_WORKSPACE_MEMBERS.filter(m=>m.workspaceId===ws.id);
+          const members=wsMembers.filter(m=>m.workspaceId===ws.id);
           const memberUserIds=new Set(members.map(m=>m.userId));
           return(
             <Card key={ws.id} style={{padding:"16px 18px",display:"flex",flexDirection:"column",gap:12}}>
@@ -595,6 +609,7 @@ function AdminPage(){
                 {users.map(u=>{
                   const isMember=memberUserIds.has(u.id);
                   const memberRecord=members.find(m=>m.userId===u.id);
+                  const flashKey="ws_"+ws.id+"_"+u.id;
                   return(
                     <div key={u.id} style={{display:"flex",alignItems:"center",gap:10,
                       padding:"8px 10px",borderRadius:8,
@@ -616,18 +631,25 @@ function AdminPage(){
                         flexShrink:0}}>
                         {ROLES[u.role]?.label||u.role}
                       </span>
-                      {isMember&&memberRecord&&(
-                        <span style={{fontSize:10,fontWeight:700,color:C.success,
-                          background:C.success+"15",padding:"2px 7px",borderRadius:8,flexShrink:0}}>
-                          {memberRecord.role==="admin"?"Admin-Zugriff":memberRecord.role==="editor"?"Editor":"Betrachter"}
-                        </span>
-                      )}
+                      {flash===flashKey
+                        ? <span style={{fontSize:10,fontWeight:700,color:C.success,
+                            display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                            <Check size={10} strokeWidth={2.5}/>{isMember?"Zugriff gewährt":"Zugriff entzogen"}
+                          </span>
+                        : isMember&&memberRecord&&(
+                          <span style={{fontSize:10,fontWeight:700,color:C.success,
+                            background:C.success+"15",padding:"2px 7px",borderRadius:8,flexShrink:0}}>
+                            {memberRecord.role==="admin"?"Admin-Zugriff":memberRecord.role==="editor"?"Editor":"Betrachter"}
+                          </span>
+                        )
+                      }
                       <div style={{width:34,height:20,borderRadius:10,
                         background:isMember?C.accent:C.border,
                         display:"flex",alignItems:"center",padding:"0 2px",cursor:"pointer",
                         transition:"all .2s",justifyContent:isMember?"flex-end":"flex-start",
                         flexShrink:0}}
-                        title={isMember?"Zugriff entziehen":"Zugriff gewähren"}>
+                        title={isMember?"Zugriff entziehen":"Zugriff gewähren"}
+                        onClick={()=>toggleMember(ws.id,u.id)}>
                         <div style={{width:16,height:16,borderRadius:"50%",background:"#fff"}}/>
                       </div>
                     </div>
@@ -637,11 +659,6 @@ function AdminPage(){
             </Card>
           );
         })}
-        <div style={{padding:"12px 16px",borderRadius:10,background:C.accentLight,
-          border:`1px solid ${C.accent}30`,fontSize:12,color:C.textMid,lineHeight:1.6,display:"flex",gap:8}}>
-          <Info size={14} strokeWidth={2} color={C.accent} style={{flexShrink:0,marginTop:1}}/>
-          <span>Mandanten-Zugriffsrechte werden in einer zukuenftigen Version per Klick aenderbar sein. Aktuell dienen sie der Visualisierung der Berechtigungsstruktur.</span>
-        </div>
       </div>}
 
       {/* ── EINSTELLUNGEN ── */}

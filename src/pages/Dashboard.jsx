@@ -13,7 +13,7 @@ import { useApp } from "../context/AppContext.jsx";
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────
 function Dashboard(){
-  const { posts: allPosts, items, campaigns, user, goNav: onNav, goFilter: onFilterNav } = useApp();
+  const { posts: allPosts, items, campaigns, user, goNav: onNav, goFilter: onFilterNav, currentWorkspaceId } = useApp();
   const posts = allPosts.filter(p => !p.deleted);
   const sched=useMemo(()=>posts.filter(p=>p.status==="scheduled"),[posts]);
   const drafts=useMemo(()=>posts.filter(p=>p.status==="draft"),[posts]);
@@ -21,6 +21,9 @@ function Dashboard(){
   const pub=useMemo(()=>posts.filter(p=>p.status==="published"),[posts]);
   const recent=useMemo(()=>[...posts].slice(-12).reverse(),[posts]);
   const [hovCard,setHovCard]=useState(null);
+
+  // Reset hover state when workspace changes
+  useEffect(()=>{ setHovCard(null); },[currentWorkspaceId]); // eslint-disable-line
 
   // Widget order + drag state (uses shared useSections hook)
   const {order:wOrder,dragId,setDragId,overId,setOverId,drop:dropOn}=useSections("dashboard",user.id,['hero','stats','actions','gantt','week','posts']);
