@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Inbox, Clock, CheckCircle, XCircle, Search, Eye, FileText,
   Image as ImageIcon, Upload, X, Timer, AlertCircle, Check,
@@ -11,94 +11,67 @@ import { useApp } from "../context/AppContext.jsx";
 
 const DEMO_SUBMISSIONS = [
   {
-    id: "ugc-1",
+    id: "ugc-1", workspaceId: "ws-ppi-media",
     submittedAt: "2026-04-08T09:15:00Z",
-    name: "Handball-Club Muenchen e.V.",
-    email: "presse@hcm.de",
+    name: "Handball-Club Muenchen e.V.", email: "presse@hcm.de",
     title: "HCM gewinnt Bezirksmeisterschaft – historischer Triumph nach 15 Jahren",
     articleLength: "medium",
     text: "Der Handball-Club Muenchen hat am vergangenen Samstag die Bezirksmeisterschaft gewonnen. Nach einem packenden Finale gegen den TSV Pasing mit 28:25 Toren feierten die Spieler und rund 400 Fans in der Halle. Es ist der erste Meistertitel seit 15 Jahren fuer den Traditionsverein aus Schwabing. Trainer Marco Reuter zeigte sich ueberwaeltigt: Diese Mannschaft hat die ganze Saison unglaublichen Zusammenhalt gezeigt. Naechste Saison spielen wir in der Landesliga.",
-    imageCount: 3,
-    category: "Sport",
-    rightsConfirmed: true,
-    status: "pending",
-    storyId: null,
-    notes: "",
+    imageCount: 3, category: "Sport", rightsConfirmed: true, status: "pending", storyId: null, notes: "",
   },
   {
-    id: "ugc-2",
+    id: "ugc-2", workspaceId: "ws-ppi-media",
     submittedAt: "2026-04-07T14:30:00Z",
-    name: "Grundschule Am Ostpark",
-    email: "schulleitung@ostpark-gs.de",
+    name: "Grundschule Am Ostpark", email: "schulleitung@ostpark-gs.de",
     title: "Schulgarten-Projekt: 200 Quadratmeter Natur mitten in der Stadt",
     articleLength: "medium",
     text: "Die Grundschule Am Ostpark hat ihren neuen Schulgarten eingeweiht. Auf 200 Quadratmetern koennen Schueler der Klassen 1-4 Gemuese und Kraeuter anbauen. Das Projekt wurde durch Elternspenden und einen Stadtbezirks-Foerdertopf finanziert. Schulleiterin Andrea Bauer betonte: Kinder, die wissen wo ihr Essen herkommt, entwickeln ein besseres Verhaeltnis zur Natur. Im Sommer soll die erste Ernte gefeiert werden.",
-    imageCount: 5,
-    category: "Bildung",
-    rightsConfirmed: true,
-    status: "approved",
-    storyId: "story-imported-2",
-    notes: "Gute Qualitaet, Bilder hochaufloesend",
+    imageCount: 5, category: "Bildung", rightsConfirmed: true, status: "approved", storyId: "story-imported-2", notes: "Gute Qualitaet, Bilder hochaufloesend",
   },
   {
-    id: "ugc-3",
+    id: "ugc-3", workspaceId: "ws-ppi-media",
     submittedAt: "2026-04-07T11:00:00Z",
-    name: "Kirchengemeinde St. Lukas",
-    email: "buero@stlukas-muenchen.de",
+    name: "Kirchengemeinde St. Lukas", email: "buero@stlukas-muenchen.de",
     title: "Konzert fuer den guten Zweck: 2.400 Euro fuer Kinderhospiz",
     articleLength: "short",
     text: "Das Benefizkonzert der Kirchengemeinde St. Lukas hat 2.400 Euro fuer das Kinderhospiz Muenchen eingebracht. Ueber 180 Besucher kamen in die Kirche und erlebten ein Programm aus klassischer Musik und Gospelgesang. Pfarrer Thomas Hellmann dankte den Musizierenden und dem Publikum herzlich. Das Geld soll fuer die Anschaffung von Spielgeraeten fuer die kleinen Patienten verwendet werden.",
-    imageCount: 2,
-    category: "Kultur",
-    rightsConfirmed: true,
-    status: "approved",
-    storyId: "story-imported-3",
-    notes: "",
+    imageCount: 2, category: "Kultur", rightsConfirmed: true, status: "approved", storyId: "story-imported-3", notes: "",
   },
   {
-    id: "ugc-4",
+    id: "ugc-4", workspaceId: "ws-ppi-n3xt",
     submittedAt: "2026-04-06T16:45:00Z",
-    name: "Buergerinitiative Gruenanlage Laim",
-    email: "info@gruenanlage-laim.de",
+    name: "Buergerinitiative Gruenanlage Laim", email: "info@gruenanlage-laim.de",
     title: "Petition fuer mehr Gruenflaechen: Schon 1.200 Unterschriften",
     articleLength: "long",
     text: "Die Buergerinitiative Gruenanlage Laim hat in drei Wochen ueber 1.200 Unterschriften gesammelt. Ziel ist der Erhalt einer Brachflaeche an der Landsberger Strasse als Gruenanlage statt als Parkplatz. Initiatorin Sabine Graf erlaeutert: Laim hat die geringste Gruenflaeche pro Einwohner aller Stadtbezirke. Das muss sich aendern. Ein Gespraech mit dem Bezirksausschuss ist fuer kommende Woche geplant.",
-    imageCount: 1,
-    category: "Lokales",
-    rightsConfirmed: true,
-    status: "pending",
-    storyId: null,
-    notes: "",
+    imageCount: 1, category: "Lokales", rightsConfirmed: true, status: "pending", storyId: null, notes: "",
   },
   {
-    id: "ugc-5",
+    id: "ugc-5", workspaceId: "ws-ppi-n3xt",
     submittedAt: "2026-04-05T10:20:00Z",
-    name: "Tennisclub Blau-Weiss Bogenhausen",
-    email: "info@tc-bw-bogenhausen.de",
+    name: "Tennisclub Blau-Weiss Bogenhausen", email: "info@tc-bw-bogenhausen.de",
     title: "Junioren-Turnier: 64 Talente kaempfen um den Stadtpokal",
     articleLength: "short",
     text: "64 Nachwuchsspieler aus 18 Muenchner Tennisvereinen traten beim diesjaehrigen Stadtpokal-Juniorenturnier im TC Blau-Weiss Bogenhausen an. Am Ende gewann Luca Berger vom TC Gruenwald in der Altersklasse U16. Die Veranstaltung war ausverkauft und sorgte fuer eine fantastische Stimmung.",
-    imageCount: 4,
-    category: "Sport",
-    rightsConfirmed: true,
-    status: "rejected",
-    storyId: null,
-    notes: "Zu wenig regionale Relevanz fuer unsere Zielgruppe",
+    imageCount: 4, category: "Sport", rightsConfirmed: true, status: "rejected", storyId: null, notes: "Zu wenig regionale Relevanz fuer unsere Zielgruppe",
   },
   {
-    id: "ugc-6",
+    id: "ugc-6", workspaceId: "ws-ppi-talk",
     submittedAt: "2026-04-04T08:30:00Z",
-    name: "Volkshochschule Muenchen Nord",
-    email: "presse@vhs-muenchen.de",
+    name: "Volkshochschule Muenchen Nord", email: "presse@vhs-muenchen.de",
     title: "Neues KI-Kurs-Angebot: Von Prompt Engineering bis Bildgenerierung",
     articleLength: "medium",
     text: "Die VHS Muenchen Nord baut ihr Angebot im Bereich kuenstliche Intelligenz stark aus. Ab Herbst 2026 gibt es 12 neue Kurse zu Themen wie ChatGPT fuer den Alltag, KI-gestuetzte Bildgenerierung und Prompt Engineering fuer Einsteiger. Kursleiter Prof. Dr. Andreas Vogl: KI ist fuer jeden relevant – nicht nur fuer Techniker. Unsere Kurse richten sich explizit an Menschen ohne IT-Hintergrund.",
-    imageCount: 0,
-    category: "Bildung",
-    rightsConfirmed: false,
-    status: "pending",
-    storyId: null,
-    notes: "Rechtebestaetigung fehlt – bitte nachfragen",
+    imageCount: 0, category: "Bildung", rightsConfirmed: false, status: "pending", storyId: null, notes: "Rechtebestaetigung fehlt – bitte nachfragen",
+  },
+  {
+    id: "ugc-7", workspaceId: "ws-alphabeta",
+    submittedAt: "2026-04-03T13:00:00Z",
+    name: "Designstudio Form & Farbe", email: "hello@formundfarbe.de",
+    title: "Lokaler Designpreis 2026: Muenchner Studio unter den Top 3",
+    articleLength: "medium",
+    text: "Das Muenchner Designstudio Form und Farbe hat beim Deutschen Designpreis 2026 den dritten Platz in der Kategorie Kommunikationsdesign belegt. Mit ihrer Kampagne fuer das Stadtmuseum ueberzeugte das Team die Jury. Gruenterin Lisa Mayer: Wir haben den Mut gehabt, unkonventionell zu denken und die Geschichte des Museums visuell neu zu erzaehlen. Das Preisgeld fliesst komplett in die Ausbildung von Nachwuchsdesignern.",
+    imageCount: 6, category: "Kultur", rightsConfirmed: true, status: "pending", storyId: null, notes: "",
   },
 ];
 
@@ -729,14 +702,20 @@ function EmptyDetail() {
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function UGCPortalPage() {
-  const { setEdStory, goNav } = useApp();
+  const { setEdStory, goNav, currentWorkspaceId, currentWorkspace } = useApp();
   const [submissions, setSubmissions] = useState(DEMO_SUBMISSIONS);
-  const [selected, setSelected] = useState(DEMO_SUBMISSIONS[0]);
   const [filter, setFilter] = useState("all");
   const [searchQ, setSearchQ] = useState("");
   const [showPortalPreview, setShowPortalPreview] = useState(false);
 
-  const filtered = submissions.filter(s => {
+  // Filter by current workspace first, then by status/search
+  const workspaceSubs = currentWorkspaceId
+    ? submissions.filter(s => s.workspaceId === currentWorkspaceId)
+    : submissions;
+
+  const [selected, setSelected] = useState(() => workspaceSubs[0] || null);
+
+  const filtered = workspaceSubs.filter(s => {
     if (filter !== "all" && s.status !== filter) return false;
     if (searchQ) {
       const q = searchQ.toLowerCase();
@@ -746,18 +725,28 @@ export default function UGCPortalPage() {
   });
 
   const counts = {
-    all:      submissions.length,
-    pending:  submissions.filter(s => s.status === "pending").length,
-    approved: submissions.filter(s => s.status === "approved").length,
-    rejected: submissions.filter(s => s.status === "rejected").length,
+    all:      workspaceSubs.length,
+    pending:  workspaceSubs.filter(s => s.status === "pending").length,
+    approved: workspaceSubs.filter(s => s.status === "approved").length,
+    rejected: workspaceSubs.filter(s => s.status === "rejected").length,
   };
 
-  const approvedThisMonth = submissions.filter(s => {
+  const approvedThisMonth = workspaceSubs.filter(s => {
     if (s.status !== "approved") return false;
     const d = new Date(s.submittedAt);
     const now = new Date();
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
+
+  // Reset selection + filter when workspace changes
+  useEffect(() => {
+    setFilter("all");
+    setSearchQ("");
+    const first = currentWorkspaceId
+      ? submissions.find(s => s.workspaceId === currentWorkspaceId)
+      : submissions[0];
+    setSelected(first || null);
+  }, [currentWorkspaceId]); // eslint-disable-line
 
   const updateSub = (id, changes) => {
     setSubmissions(prev => prev.map(s => s.id === id ? { ...s, ...changes } : s));
