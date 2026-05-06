@@ -31,22 +31,22 @@ test.describe('Post History – Publisher Timeline', () => {
 
   test('timeline shows published demo posts', async ({ page }) => {
     await page.locator('button:has-text("Veröffentlicht")').first().click();
-    // All 3 published demo post titles should be visible
-    await expect(page.locator('text=Frühjahrs-Kampagne').first()).toBeVisible({ timeout: 4_000 });
-    await expect(page.locator('text=Workshop Einladung').first()).toBeVisible();
-    await expect(page.locator('text=Jahresrückblick 2025').first()).toBeVisible();
+    // Published demo post titles from ws-ppi-media should be visible
+    await expect(page.locator('text=Behind the Scenes').first()).toBeVisible({ timeout: 4_000 });
+    await expect(page.locator('text=KI-Studie Teaser').first()).toBeVisible();
+    await expect(page.locator('text=Remote Work Insights').first()).toBeVisible();
   });
 
   test('timeline shows month groupings', async ({ page }) => {
     await page.locator('button:has-text("Veröffentlicht")').first().click();
-    await page.waitForSelector('text=Frühjahrs-Kampagne', { timeout: 4_000 });
+    await page.waitForSelector('text=Behind the Scenes', { timeout: 4_000 });
     // Should see month headings like "Februar 2026" or "Dezember 2025"
     await expect(page.locator('text=/2025|2026/i').first()).toBeVisible();
   });
 
   test('timeline items show mini-stats (reach/likes/shares)', async ({ page }) => {
     await page.locator('button:has-text("Veröffentlicht")').first().click();
-    await page.waitForSelector('text=Frühjahrs-Kampagne', { timeout: 4_000 });
+    await page.waitForSelector('text=Behind the Scenes', { timeout: 4_000 });
     // Mini stats use emoji indicators
     await expect(page.locator('text=/👁|♡|↗/').first()).toBeVisible();
   });
@@ -59,10 +59,10 @@ test.describe('Post History – Publisher Timeline', () => {
 
   test('switching back to "Alle" restores grid view', async ({ page }) => {
     await page.locator('button:has-text("Veröffentlicht")').first().click();
-    await page.waitForSelector('text=Frühjahrs-Kampagne', { timeout: 4_000 });
+    await page.waitForSelector('text=Behind the Scenes', { timeout: 4_000 });
     await page.locator('button:has-text("Alle")').first().click();
     // Grid view / sort controls should be back
-    await expect(page.locator('text=⊞ Grid').first()).toBeVisible({ timeout: 3_000 });
+    await expect(page.locator('button:has-text("Grid")').first()).toBeVisible({ timeout: 3_000 });
   });
 });
 
@@ -73,22 +73,22 @@ test.describe('Post History – Detail Drawer', () => {
     await page.locator('text=Publisher').first().click();
     await page.waitForSelector('text=/Geplant|Alle/i', { timeout: 5_000 });
     await page.locator('button:has-text("Veröffentlicht")').first().click();
-    await page.waitForSelector('text=Frühjahrs-Kampagne', { timeout: 5_000 });
+    await page.waitForSelector('text=Behind the Scenes', { timeout: 5_000 });
   });
 
   test('clicking a timeline item opens the detail drawer', async ({ page }) => {
-    await page.locator('text=Frühjahrs-Kampagne').first().click();
+    await page.locator('text=Behind the Scenes').first().click();
     await expect(page.locator('text=/Reichweite|Impressionen/i').first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('drawer shows post title', async ({ page }) => {
-    await page.locator('text=Frühjahrs-Kampagne').first().click();
+    await page.locator('text=Behind the Scenes').first().click();
     await page.waitForSelector('text=/Reichweite/i', { timeout: 5_000 });
-    await expect(page.locator('text=Frühjahrs-Kampagne').first()).toBeVisible();
+    await expect(page.locator('text=Behind the Scenes').first()).toBeVisible();
   });
 
   test('drawer shows all 6 performance metrics', async ({ page }) => {
-    await page.locator('text=Frühjahrs-Kampagne').first().click();
+    await page.locator('text=Behind the Scenes').first().click();
     await page.waitForSelector('text=/Reichweite/i', { timeout: 5_000 });
     await expect(page.locator('text=Reichweite').first()).toBeVisible();
     await expect(page.locator('text=Impressionen').first()).toBeVisible();
@@ -99,14 +99,14 @@ test.describe('Post History – Detail Drawer', () => {
   });
 
   test('drawer shows Zeitanalyse section', async ({ page }) => {
-    await page.locator('text=Frühjahrs-Kampagne').first().click();
+    await page.locator('text=Behind the Scenes').first().click();
     await page.waitForSelector('text=/Zeitanalyse/i', { timeout: 5_000 });
     await expect(page.locator('text=/Zeitanalyse/i').first()).toBeVisible();
     await expect(page.locator('text=/Optimales Fenster/i').first()).toBeVisible();
   });
 
   test('drawer closes on Escape key', async ({ page }) => {
-    await page.locator('text=Frühjahrs-Kampagne').first().click();
+    await page.locator('text=Behind the Scenes').first().click();
     await page.waitForSelector('text=/Reichweite/i', { timeout: 5_000 });
     await page.keyboard.press('Escape');
     // Drawer metrics should be gone
@@ -114,7 +114,7 @@ test.describe('Post History – Detail Drawer', () => {
   });
 
   test('drawer closes via X button', async ({ page }) => {
-    await page.locator('text=Frühjahrs-Kampagne').first().click();
+    await page.locator('text=Behind the Scenes').first().click();
     await page.waitForSelector('text=/Reichweite/i', { timeout: 5_000 });
     // Find close button inside the drawer (right side panel)
     await page.locator('[style*="slideInRight"] button').first().click();
@@ -123,7 +123,7 @@ test.describe('Post History – Detail Drawer', () => {
 
   test('performance numbers are consistent (not random)', async ({ page }) => {
     // Open drawer, note the reach value, close, open again → same number
-    await page.locator('text=Frühjahrs-Kampagne').first().click();
+    await page.locator('text=Behind the Scenes').first().click();
     await page.waitForSelector('text=/Reichweite/i', { timeout: 5_000 });
     const metricBox = page.locator('text=Reichweite').first();
     await expect(metricBox).toBeVisible();
@@ -144,7 +144,7 @@ test.describe('Performance Page – Top Posts', () => {
 
   test('Top Posts section shows published demo posts', async ({ page }) => {
     // Should show titles from published posts (not empty)
-    const topPosts = page.locator('text=/Frühjahrs-Kampagne|Workshop Einladung|Jahresrückblick/i');
+    const topPosts = page.locator('text=/Behind the Scenes|KI-Studie Teaser|Remote Work Insights/i');
     await expect(topPosts.first()).toBeVisible({ timeout: 5_000 });
   });
 
@@ -160,14 +160,14 @@ test.describe('Performance Page – Top Posts', () => {
 
   test('clicking a Top Post opens the detail drawer', async ({ page }) => {
     // Click the first top post row
-    const firstPost = page.locator('text=/Frühjahrs-Kampagne|Workshop Einladung|Jahresrückblick/i').first();
+    const firstPost = page.locator('text=/Behind the Scenes|KI-Studie Teaser|Remote Work Insights/i').first();
     await firstPost.click();
     // Drawer should open with performance metrics
     await expect(page.locator('text=/Reichweite|Impressionen/i').first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('detail drawer from Performance shows correct post content', async ({ page }) => {
-    const firstPost = page.locator('text=/Frühjahrs-Kampagne|Workshop Einladung|Jahresrückblick/i').first();
+    const firstPost = page.locator('text=/Behind the Scenes|KI-Studie Teaser|Remote Work Insights/i').first();
     const postTitle = await firstPost.textContent();
     await firstPost.click();
     await page.waitForSelector('text=/Reichweite/i', { timeout: 5_000 });

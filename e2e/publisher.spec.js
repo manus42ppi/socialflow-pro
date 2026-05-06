@@ -16,7 +16,7 @@ test.describe('Publisher', () => {
   test('status filter pills are visible', async ({ page }) => {
     await expect(page.locator('text=Alle').first()).toBeVisible();
     await expect(page.locator('text=Geplant').first()).toBeVisible();
-    await expect(page.locator('text=/Entwurf/i').first()).toBeVisible();
+    await expect(page.locator('text=/Entwürf/i').first()).toBeVisible();
   });
 
   test('channel filter tabs exist', async ({ page }) => {
