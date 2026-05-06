@@ -14,7 +14,10 @@ test.describe('Navigation', () => {
     { nav: 'Medienbibliothek', heading: 'Medienbibliothek' },
     { nav: 'Performance',      heading: 'Performance'      },
     { nav: 'Kampagnen',        heading: 'Kampagnen'        },
-    { nav: 'Research',         heading: 'Research'         },
+    { nav: 'Trends',           heading: 'Trends'           },
+    { nav: 'Domain-Analyse',   heading: 'Domain-Analyse'   },
+    { nav: 'Content-Audit',    heading: 'Content-Audit'    },
+    { nav: 'Social Intelligence', heading: 'Social Intelligence' },
   ];
 
   for (const { nav, heading } of pages) {
