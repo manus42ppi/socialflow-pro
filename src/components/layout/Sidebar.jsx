@@ -21,6 +21,19 @@ export default function Sidebar() {
 
   const [wsOpen, setWsOpen] = useState(false);
 
+  // Collapsed nav groups – persisted per key in localStorage
+  const [collapsedGroups, setCollapsedGroups] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("sb_collapsed_groups") || "{}"); }
+    catch { return {}; }
+  });
+  const toggleGroup = (label) => {
+    setCollapsedGroups(prev => {
+      const next = { ...prev, [label]: !prev[label] };
+      try { localStorage.setItem("sb_collapsed_groups", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
   useEffect(() => {
     if (!wsOpen) return;
     const close = () => setWsOpen(false);
@@ -340,22 +353,43 @@ export default function Sidebar() {
 
       {/* ── Nav groups ─────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "10px 8px 0" }}>
-        {NAV_GROUPS.map((grp, gi) => (
+        {NAV_GROUPS.map((grp, gi) => {
+          const isGrpCollapsed = !!collapsedGroups[grp.label];
+          return (
           <div key={grp.label} style={{ marginBottom: 4 }}>
             {/* Group label – nur wenn aufgeklappt */}
             {open && (
-              <div style={{
-                padding: gi > 0 ? "12px 12px 4px" : "2px 12px 4px",
-              }}>
+              <div style={{ padding: gi > 0 ? "12px 12px 4px" : "2px 12px 4px" }}>
                 {gi > 0 && (
                   <div style={{ height: 1, background: T.gray100, marginBottom: 10 }} />
                 )}
-                <span style={{
-                  fontSize: 10, fontWeight: 700, color: T.gray400,
-                  letterSpacing: ".08em", textTransform: "uppercase",
-                }}>
-                  {grp.label}
-                </span>
+                <button
+                  onClick={() => toggleGroup(grp.label)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    width: "100%", background: "none", border: "none", padding: 0,
+                    cursor: "pointer", borderRadius: 4,
+                  }}
+                  onMouseEnter={e => e.currentTarget.querySelector(".grp-chevron").style.opacity = "1"}
+                  onMouseLeave={e => e.currentTarget.querySelector(".grp-chevron").style.opacity = isGrpCollapsed ? "1" : "0"}
+                >
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, color: T.gray400,
+                    letterSpacing: ".08em", textTransform: "uppercase",
+                  }}>
+                    {grp.label}
+                  </span>
+                  <ChevronDown
+                    className="grp-chevron"
+                    size={11} strokeWidth={2.5} color={T.gray400}
+                    style={{
+                      transition: "transform .2s, opacity .15s",
+                      transform: isGrpCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                      opacity: isGrpCollapsed ? 1 : 0,
+                      flexShrink: 0,
+                    }}
+                  />
+                </button>
               </div>
             )}
             {/* Divider im collapsed Modus */}
@@ -363,7 +397,7 @@ export default function Sidebar() {
               <div style={{ height: 1, background: T.gray100, margin: "6px 8px 10px" }} />
             )}
 
-            {grp.items.map(({ id, label, I }) => (
+            {!isGrpCollapsed && grp.items.map(({ id, label, I }) => (
               <div key={id}>
                 <NavBtn
                   id={id} label={label} I={I}
@@ -413,7 +447,8 @@ export default function Sidebar() {
               </div>
             ))}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ── Bottom: Utility + Admin + User ─────────────────────────────────── */}
