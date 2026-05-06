@@ -16,7 +16,12 @@ import MediaPage from "./pages/MediaPage.jsx";
 import CalendarPage from "./pages/CalendarPage.jsx";
 import PlannerPage from "./pages/PlannerPage.jsx";
 import PerformancePage from "./pages/PerformancePage.jsx";
-import ResearchPage from "./pages/ResearchPage.jsx";
+import TrendsPage from "./pages/TrendsPage.jsx";
+import DomainAnalysePage from "./pages/DomainAnalysePage.jsx";
+import WettbewerberPage from "./pages/WettbewerberPage.jsx";
+import ContentAuditPage from "./pages/ContentAuditPage.jsx";
+import StructureAuditPage from "./pages/StructureAuditPage.jsx";
+import SocialIntelligencePage from "./pages/SocialIntelligencePage.jsx";
 import MonitoringPage from "./pages/MonitoringPage.jsx";
 import StoriesPage from "./pages/StoriesPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
@@ -50,8 +55,11 @@ function AppShell() {
     dashboard: "Dashboard", publisher: "Publisher",
     trash: "Papierkorb", stories: "Storys", campaigns: "Kampagnen",
     media: "Medienbibliothek", calendar: "Kalender", planner: "Planner",
-    performance: "Performance", research: "Recherche",
+    performance: "Performance",
     monitoring: "Instagram Monitoring", admin: "Admin", ugc: "UGC Portal",
+    trends: "Trends", "domain-analyse": "Domain-Analyse",
+    wettbewerber: "Wettbewerber", "content-audit": "Content-Audit",
+    "structure-audit": "Structure-Audit", "social-intel": "Social Intelligence",
   };
 
   return (
@@ -72,9 +80,14 @@ function AppShell() {
                   {nav === "media"       && <MediaPage />}
                   {nav === "calendar"    && <CalendarPage />}
                   {nav === "planner"     && <PlannerPage />}
-                  {nav === "performance" && <PerformancePage />}
-                  {nav === "research"    && <ResearchPage />}
-                  {nav === "monitoring"  && <MonitoringPage />}
+                  {nav === "performance"     && <PerformancePage />}
+                  {nav === "monitoring"     && <MonitoringPage />}
+                  {nav === "trends"         && <TrendsPage />}
+                  {nav === "domain-analyse" && <DomainAnalysePage />}
+                  {nav === "wettbewerber"   && <WettbewerberPage />}
+                  {nav === "content-audit"  && <ContentAuditPage />}
+                  {nav === "structure-audit"&& <StructureAuditPage />}
+                  {nav === "social-intel"   && <SocialIntelligencePage />}
                   {nav === "stories"     && <StoriesPage />}
                   {nav === "admin"       && <AdminPage />}
                   {nav === "ugc"         && <UGCPortalPage />}

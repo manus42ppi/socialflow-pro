@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
-  Flag, Trash2, BookOpen, CalendarRange, Compass, Eye, Inbox,
+  Flag, Trash2, BookOpen, CalendarRange, Eye, Inbox,
+  Flame, Globe, Target, FileText, Code2, Share2,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -30,7 +31,6 @@ export const NAV_GROUPS = [
   {
     label: "CONTENT CREATION",
     items: [
-      { id:"research",    label:"Recherche",         I:Compass      },
       { id:"stories",     label:"Storys",            I:BookOpen     },
       { id:"ugc",         label:"UGC Portal",        I:Inbox        },
       { id:"publisher",   label:"Publisher",         I:Send         },
@@ -53,8 +53,14 @@ export const NAV_GROUPS = [
   {
     label: "ANALYSE",
     items: [
-      { id:"performance",  label:"Performance",       I:BarChart2    },
-      { id:"monitoring",   label:"Monitoring",        I:Eye          },
+      { id:"performance",       label:"Performance",       I:BarChart2    },
+      { id:"monitoring",        label:"Monitoring",        I:Eye          },
+      { id:"trends",            label:"Trends",            I:Flame        },
+      { id:"domain-analyse",    label:"Domain-Analyse",    I:Globe        },
+      { id:"wettbewerber",      label:"Wettbewerber",      I:Target       },
+      { id:"content-audit",     label:"Content-Audit",     I:FileText     },
+      { id:"structure-audit",   label:"Structure-Audit",   I:Code2        },
+      { id:"social-intel",      label:"Social Intelligence", I:Share2     },
     ],
   },
 ];
@@ -72,17 +78,22 @@ export const NAV = [
 ];
 
 export const TITLE = {
-  dashboard:    "Dashboard",
-  publisher:    "Publisher",
-  trash:        "Papierkorb",
-  stories:      "Storys",
-  ugc:          "UGC Portal",
-  campaigns:    "Kampagnen",
-  media:        "Medienbibliothek",
-  calendar:     "Kalender",
-  planner:      "Planner",
-  performance:  "Performance",
-  research:     "Recherche",
-  monitoring:   "Instagram Monitoring",
-  admin:        "Admin",
+  dashboard:          "Dashboard",
+  publisher:          "Publisher",
+  trash:              "Papierkorb",
+  stories:            "Storys",
+  ugc:                "UGC Portal",
+  campaigns:          "Kampagnen",
+  media:              "Medienbibliothek",
+  calendar:           "Kalender",
+  planner:            "Planner",
+  performance:        "Performance",
+  monitoring:         "Instagram Monitoring",
+  admin:              "Admin",
+  trends:             "Trends",
+  "domain-analyse":   "Domain-Analyse",
+  wettbewerber:       "Wettbewerber",
+  "content-audit":    "Content-Audit",
+  "structure-audit":  "Structure-Audit",
+  "social-intel":     "Social Intelligence",
 };
