@@ -3,6 +3,7 @@ import {
   RefreshCw, ExternalLink, TrendingUp, Flame, Clock,
   Newspaper, Instagram, Facebook, MessageCircle, Wifi, WifiOff,
   AlertCircle, Heart, MessageSquare, Share2, BadgeCheck,
+  Globe, Search, Zap, BarChart2, Users, Target, Plus, X, ChevronRight,
 } from "lucide-react";
 import { C, FONT, IW } from "../constants/colors.js";
 
@@ -390,8 +391,455 @@ function ViralPostModal({ post, platform, accent, onClose }) {
   );
 }
 
+// ── Domain helpers ────────────────────────────────────────────────────────────
+function cleanDomain(input) {
+  try {
+    let d = input.trim().toLowerCase();
+    if (!d.startsWith("http")) d = "https://" + d;
+    const url = new URL(d);
+    return url.hostname.replace(/^www\./, "");
+  } catch {
+    return input.trim().toLowerCase().replace(/^www\./, "");
+  }
+}
+
+function fmtNum(n) {
+  if (n == null) return "–";
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000)     return (n / 1_000).toFixed(1) + "K";
+  return String(n);
+}
+
+// ── Domain-Analyse tab ────────────────────────────────────────────────────────
+const ANALYZE_STEPS = ["Verbinde…", "Analysiere Tech-Stack…", "KI generiert Insights…"];
+
+function ScoreBadge({ label, value }) {
+  const v = value ?? 0;
+  const color = v >= 90 ? "#16A34A" : v >= 50 ? "#D97706" : "#DC2626";
+  const bg    = v >= 90 ? "#DCFCE7"  : v >= 50 ? "#FEF3C7"  : "#FEE2E2";
+  const r     = 22;
+  const circ  = 2 * Math.PI * r;
+  const dash  = circ * (v / 100);
+  return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+      <svg width={56} height={56} viewBox="0 0 56 56">
+        <circle cx={28} cy={28} r={r} fill={bg} stroke={C.border} strokeWidth={2}/>
+        <circle cx={28} cy={28} r={r} fill="none" stroke={color} strokeWidth={4}
+          strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
+          transform="rotate(-90 28 28)"/>
+        <text x={28} y={33} textAnchor="middle" fontSize={13} fontWeight={700} fill={color}>{v}</text>
+      </svg>
+      <span style={{ fontSize:10.5, color:C.textMid, fontWeight:600 }}>{label}</span>
+    </div>
+  );
+}
+
+function TrendBadge({ signal }) {
+  const map = { wachsend:["#16A34A","#DCFCE7","▲"], stabil:["#D97706","#FEF3C7","→"], rückläufig:["#DC2626","#FEE2E2","▼"] };
+  const [clr, bg, icon] = map[signal] || [C.textMute, C.borderLight, "–"];
+  return (
+    <span style={{ fontSize:11, fontWeight:700, color:clr, background:bg, borderRadius:20, padding:"2px 10px" }}>
+      {icon} {signal || "–"}
+    </span>
+  );
+}
+
+function DomainAnalyseTab() {
+  const [domain,    setDomain]    = useState("");
+  const [loading,   setLoading]   = useState(false);
+  const [stepIdx,   setStepIdx]   = useState(0);
+  const [data,      setData]      = useState(null);
+  const [err,       setErr]       = useState(null);
+  const [clients,   setClients]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem("sf_research_clients") || "[]"); } catch { return []; }
+  });
+  const stepTimer = useRef();
+
+  async function analyze(raw) {
+    const d = cleanDomain(raw || domain);
+    if (!d) return;
+    setLoading(true); setErr(null); setData(null); setStepIdx(0);
+    let si = 0;
+    stepTimer.current = setInterval(() => {
+      si = Math.min(si + 1, ANALYZE_STEPS.length - 1);
+      setStepIdx(si);
+    }, 3000);
+    try {
+      const res  = await fetch("/analyze", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ domain: d }) });
+      const json = await res.json();
+      if (json.error) { setErr(json.error); return; }
+      setData(json);
+    } catch (e) {
+      setErr(e.message || "Unbekannter Fehler");
+    } finally {
+      clearInterval(stepTimer.current);
+      setLoading(false);
+    }
+  }
+
+  function saveClient() {
+    const d = data?.domain;
+    if (!d) return;
+    const next = [{ domain:d, ts: new Date().toISOString() }, ...clients.filter(c => c.domain !== d)].slice(0, 20);
+    setClients(next);
+    localStorage.setItem("sf_research_clients", JSON.stringify(next));
+  }
+
+  const card = { background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"14px 18px", marginBottom:14 };
+  const ai   = data?.ai;
+
+  return (
+    <div style={{ maxWidth:860, margin:"0 auto", paddingBottom:40 }}>
+
+      {/* Search bar */}
+      <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+        <div style={{ flex:1, display:"flex", alignItems:"center", gap:8, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"0 12px" }}>
+          <Globe size={15} strokeWidth={IW} color={C.textMute}/>
+          <input
+            value={domain}
+            onChange={e => setDomain(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && analyze()}
+            placeholder="domain.de oder https://example.com"
+            style={{ flex:1, border:"none", outline:"none", fontFamily:FONT, fontSize:13, color:C.text, background:"transparent", padding:"10px 0" }}
+          />
+        </div>
+        <button
+          onClick={() => analyze()}
+          disabled={loading || !domain.trim()}
+          style={{ padding:"0 20px", borderRadius:10, border:"none", background:C.accent, color:"#fff", cursor:loading?"default":"pointer", fontFamily:FONT, fontSize:13, fontWeight:700, opacity:loading||!domain.trim()?0.6:1 }}>
+          {loading ? "…" : "Analysieren"}
+        </button>
+      </div>
+
+      {/* Previous clients */}
+      {clients.length > 0 && (
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:16 }}>
+          {clients.map(c => (
+            <button key={c.domain} onClick={() => { setDomain(c.domain); analyze(c.domain); }}
+              style={{ fontSize:11, fontWeight:600, padding:"3px 10px", borderRadius:20, border:`1px solid ${C.border}`, background:C.surface, color:C.textMid, cursor:"pointer", fontFamily:FONT }}>
+              {c.domain}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <div style={{ ...card, display:"flex", flexDirection:"column", alignItems:"center", padding:"36px 18px", gap:16 }}>
+          <div style={{ width:36, height:36, border:`3px solid ${C.accent}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }}/>
+          <div style={{ fontSize:14, fontWeight:600, color:C.textMid, fontFamily:FONT }}>
+            {ANALYZE_STEPS[stepIdx]}
+          </div>
+          <div style={{ display:"flex", gap:6 }}>
+            {ANALYZE_STEPS.map((s, i) => (
+              <div key={s} style={{ width:6, height:6, borderRadius:"50%", background: i <= stepIdx ? C.accent : C.border, transition:"background .3s" }}/>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {err && !loading && (
+        <div style={{ ...card, color:"#DC2626", fontSize:13 }}>
+          <AlertCircle size={14} strokeWidth={2} style={{ marginRight:6, verticalAlign:"middle" }}/>{err}
+        </div>
+      )}
+
+      {/* Results */}
+      {data && !loading && ai && (
+        <>
+          {/* Header card */}
+          <div style={{ ...card }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+              <div>
+                <div style={{ fontSize:18, fontWeight:800, color:C.text, letterSpacing:"-.3px" }}>{data.domain}</div>
+                <div style={{ display:"flex", gap:8, marginTop:6, flexWrap:"wrap" }}>
+                  {ai.category && <span style={{ fontSize:11, fontWeight:700, padding:"2px 10px", borderRadius:20, background:C.accentLight, color:C.accent }}>{ai.category}</span>}
+                  {ai.audienceType && <span style={{ fontSize:11, fontWeight:700, padding:"2px 10px", borderRadius:20, background:"#F3F4F6", color:C.textMid }}>{ai.audienceType}</span>}
+                  {ai.trendSignal && <TrendBadge signal={ai.trendSignal}/>}
+                </div>
+              </div>
+              <button onClick={saveClient} style={{ fontSize:12, fontWeight:700, padding:"6px 14px", borderRadius:8, border:`1px solid ${C.border}`, background:C.surface, color:C.textMid, cursor:"pointer", fontFamily:FONT, display:"flex", alignItems:"center", gap:5 }}>
+                <Plus size={12} strokeWidth={2.5}/>Als Client speichern
+              </button>
+            </div>
+          </div>
+
+          {/* Traffic row */}
+          <div style={{ display:"flex", gap:12, marginBottom:14 }}>
+            {[
+              { label:"Monatliche Besucher", value:fmtNum(ai.trafficEstimate?.monthly), icon:<Users size={16} strokeWidth={IW} color={C.accent}/> },
+              { label:"Global Rank",          value:ai.globalRank ? "#"+fmtNum(ai.globalRank) : "–",  icon:<BarChart2 size={16} strokeWidth={IW} color={C.accent}/> },
+              { label:"SEO-Wert (EUR/Monat)", value:ai.seo?.seoValue ? fmtNum(ai.seo.seoValue)+"€" : "–", icon:<TrendingUp size={16} strokeWidth={IW} color={C.accent}/> },
+            ].map(m => (
+              <div key={m.label} style={{ ...card, flex:1, marginBottom:0, textAlign:"center", padding:"16px 12px" }}>
+                <div style={{ marginBottom:6 }}>{m.icon}</div>
+                <div style={{ fontSize:22, fontWeight:800, color:C.text }}>{m.value}</div>
+                <div style={{ fontSize:11, color:C.textMute, marginTop:4 }}>{m.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* AI Summary */}
+          {ai.summary && (
+            <div style={{ ...card, background:C.accentLight, border:`1px solid ${C.accent}33` }}>
+              <div style={{ fontSize:11.5, fontWeight:700, color:C.accent, marginBottom:6, display:"flex", alignItems:"center", gap:5 }}>
+                <Zap size={12} strokeWidth={2.5}/>KI-Fazit
+              </div>
+              <p style={{ margin:0, fontSize:13, color:C.text, lineHeight:1.65 }}>{ai.summary}</p>
+            </div>
+          )}
+
+          {/* Stärken & Schwächen */}
+          {(ai.strengths?.length > 0 || ai.weaknesses?.length > 0) && (
+            <div style={{ display:"flex", gap:12, marginBottom:14 }}>
+              <div style={{ ...card, flex:1, marginBottom:0 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"#16A34A", marginBottom:8 }}>Stärken</div>
+                {ai.strengths?.map((s, i) => (
+                  <div key={i} style={{ display:"flex", gap:7, marginBottom:5, fontSize:12.5, color:C.textMid, lineHeight:1.5 }}>
+                    <span style={{ color:"#16A34A", fontWeight:700, flexShrink:0 }}>•</span>{s}
+                  </div>
+                ))}
+              </div>
+              <div style={{ ...card, flex:1, marginBottom:0 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"#DC2626", marginBottom:8 }}>Schwächen</div>
+                {ai.weaknesses?.map((w, i) => (
+                  <div key={i} style={{ display:"flex", gap:7, marginBottom:5, fontSize:12.5, color:C.textMid, lineHeight:1.5 }}>
+                    <span style={{ color:"#DC2626", fontWeight:700, flexShrink:0 }}>•</span>{w}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tech-Stack */}
+          {data.tech && Object.keys(data.tech).length > 0 && (
+            <div style={{ ...card }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.textMid, marginBottom:10 }}>Tech-Stack</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                {Object.entries(data.tech).map(([cat, tools]) =>
+                  Array.isArray(tools) && tools.map(t => (
+                    <span key={cat+t} title={cat} style={{ fontSize:11, fontWeight:600, padding:"3px 10px", borderRadius:20, background:C.bg, border:`1px solid ${C.border}`, color:C.textMid }}>
+                      {t}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Performance scores */}
+          {data.pagespeed && (
+            <div style={{ ...card }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.textMid, marginBottom:12 }}>PageSpeed Scores</div>
+              <div style={{ display:"flex", gap:24, justifyContent:"center", flexWrap:"wrap" }}>
+                <ScoreBadge label="Performance"    value={data.pagespeed.performance}    />
+                <ScoreBadge label="Accessibility"  value={data.pagespeed.accessibility}  />
+                <ScoreBadge label="SEO"            value={data.pagespeed.seo}            />
+                <ScoreBadge label="Best Practices" value={data.pagespeed.bestPractices}  />
+              </div>
+            </div>
+          )}
+
+          {/* Empfehlungen */}
+          {ai.recommendations?.length > 0 && (
+            <div style={{ ...card }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.textMid, marginBottom:10, display:"flex", alignItems:"center", gap:5 }}>
+                <Target size={13} strokeWidth={2}/>Empfehlungen
+              </div>
+              {ai.recommendations.map((r, i) => (
+                <div key={i} style={{ display:"flex", gap:10, marginBottom:8, fontSize:12.5, color:C.textMid, lineHeight:1.55 }}>
+                  <span style={{ minWidth:20, height:20, borderRadius:"50%", background:C.accentLight, color:C.accent, fontWeight:700, fontSize:10.5, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{i+1}</span>
+                  {r}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Wettbewerber tab ──────────────────────────────────────────────────────────
+function WettbewerberTab() {
+  const [domains,   setDomains]   = useState(["spiegel.de", "focus.de"]);
+  const [input,     setInput]     = useState("");
+  const [results,   setResults]   = useState({});
+  const [loading,   setLoading]   = useState({});
+  const [analyzed,  setAnalyzed]  = useState(false);
+
+  function addDomain() {
+    const d = cleanDomain(input);
+    if (!d || domains.includes(d) || domains.length >= 4) return;
+    setDomains(prev => [...prev, d]);
+    setInput("");
+  }
+
+  function removeDomain(d) {
+    setDomains(prev => prev.filter(x => x !== d));
+    setResults(prev => { const n = {...prev}; delete n[d]; return n; });
+  }
+
+  async function analyzeAll() {
+    setAnalyzed(true);
+    const newLoading = {};
+    domains.forEach(d => { newLoading[d] = true; });
+    setLoading(newLoading);
+
+    const tasks = domains.map(async d => {
+      try {
+        const res  = await fetch("/analyze", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ domain: d }) });
+        const json = await res.json();
+        setResults(prev => ({ ...prev, [d]: json }));
+      } catch {
+        setResults(prev => ({ ...prev, [d]: { error: true } }));
+      } finally {
+        setLoading(prev => ({ ...prev, [d]: false }));
+      }
+    });
+    await Promise.all(tasks);
+  }
+
+  const card = { background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"14px 18px" };
+
+  // Find winner for a numeric metric (highest = green)
+  function isWinner(domain, getter) {
+    const vals = domains.map(d => getter(results[d])).filter(v => v != null && !isNaN(v));
+    if (vals.length < 2) return false;
+    const max = Math.max(...vals);
+    const mine = getter(results[domain]);
+    return mine != null && mine === max;
+  }
+
+  const allDone = domains.length > 0 && domains.every(d => results[d] && !loading[d]);
+
+  return (
+    <div style={{ maxWidth:1000, margin:"0 auto", paddingBottom:40 }}>
+
+      {/* Add input */}
+      <div style={{ ...card, marginBottom:14 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:C.textMid, marginBottom:10 }}>Domains vergleichen (max. 4)</div>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:10 }}>
+          {domains.map(d => (
+            <div key={d} style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:C.accentLight, color:C.accent, border:`1px solid ${C.accent}33` }}>
+              {d}
+              <button onClick={() => removeDomain(d)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center", padding:0, color:C.accent }}>
+                <X size={11} strokeWidth={2.5}/>
+              </button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && addDomain()}
+            placeholder="domain.de eingeben…"
+            disabled={domains.length >= 4}
+            style={{ flex:1, border:`1px solid ${C.border}`, borderRadius:8, outline:"none", padding:"7px 12px", fontFamily:FONT, fontSize:12.5, color:C.text, background:domains.length>=4?C.bg:C.surface }}
+          />
+          <button onClick={addDomain} disabled={domains.length >= 4 || !input.trim()}
+            style={{ padding:"7px 12px", borderRadius:8, border:`1px solid ${C.border}`, background:C.surface, cursor:"pointer", display:"flex", alignItems:"center", gap:4, fontSize:12, fontWeight:700, color:C.textMid, opacity:domains.length>=4||!input.trim()?0.5:1 }}>
+            <Plus size={14} strokeWidth={2.5}/>
+          </button>
+          <button onClick={analyzeAll} disabled={domains.length === 0}
+            style={{ padding:"7px 18px", borderRadius:8, border:"none", background:C.accent, color:"#fff", cursor:domains.length===0?"default":"pointer", fontFamily:FONT, fontSize:12.5, fontWeight:700, opacity:domains.length===0?0.6:1 }}>
+            Alle analysieren
+          </button>
+        </div>
+      </div>
+
+      {/* Per-domain loading spinners */}
+      {analyzed && !allDone && (
+        <div style={{ display:"flex", gap:12, marginBottom:14, flexWrap:"wrap" }}>
+          {domains.map(d => (
+            <div key={d} style={{ ...card, flex:1, minWidth:140, display:"flex", alignItems:"center", gap:10, padding:"12px 14px" }}>
+              {loading[d] ? (
+                <div style={{ width:16, height:16, border:`2px solid ${C.accent}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite", flexShrink:0 }}/>
+              ) : results[d]?.error ? (
+                <AlertCircle size={14} strokeWidth={2} color="#DC2626"/>
+              ) : (
+                <div style={{ width:8, height:8, borderRadius:"50%", background:"#16A34A", flexShrink:0 }}/>
+              )}
+              <span style={{ fontSize:12.5, fontWeight:600, color:C.text }}>{d}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Comparison table */}
+      {allDone && (
+        <>
+          <div style={{ ...card, marginBottom:14, overflowX:"auto" }}>
+            <div style={{ fontSize:12, fontWeight:700, color:C.textMid, marginBottom:12 }}>Vergleich</div>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:FONT, fontSize:12.5 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign:"left", padding:"6px 10px", color:C.textMute, fontSize:11, fontWeight:600, borderBottom:`1px solid ${C.border}` }}>Metrik</th>
+                  {domains.map(d => (
+                    <th key={d} style={{ textAlign:"center", padding:"6px 10px", color:C.text, fontSize:12, fontWeight:700, borderBottom:`1px solid ${C.border}` }}>{d}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label:"Monatl. Traffic",    get: r => r?.ai?.trafficEstimate?.monthly,                       fmt: v => fmtNum(v),   higher:"good" },
+                  { label:"Global Rank",         get: r => r?.ai?.globalRank ? -r.ai.globalRank : null,           fmt: v => v!=null ? "#"+fmtNum(-v) : "–", higher:"good" },
+                  { label:"Performance Score",   get: r => r?.pagespeed?.performance,                             fmt: v => v!=null ? v+"/100" : "–", higher:"good" },
+                  { label:"Trend-Signal",        get: r => null,                                                   fmt: (_, d) => results[d]?.ai?.trendSignal || "–", higher:null },
+                  { label:"Kategorie",           get: r => null,                                                   fmt: (_, d) => results[d]?.ai?.category || "–",       higher:null },
+                  { label:"Zielgruppe",          get: r => null,                                                   fmt: (_, d) => results[d]?.ai?.audienceType || "–",   higher:null },
+                  { label:"Top Keywords",        get: r => null,                                                   fmt: (_, d) => results[d]?.ai?.behavior?.topKeywords?.slice(0,3).join(", ") || "–", higher:null },
+                ].map(row => (
+                  <tr key={row.label}>
+                    <td style={{ padding:"8px 10px", color:C.textMid, fontWeight:600, borderBottom:`1px solid ${C.borderLight}`, whiteSpace:"nowrap" }}>{row.label}</td>
+                    {domains.map(d => {
+                      const r      = results[d];
+                      const val    = row.get(r);
+                      const winner = row.higher && isWinner(d, row.get);
+                      return (
+                        <td key={d} style={{
+                          padding:"8px 10px", textAlign:"center", borderBottom:`1px solid ${C.borderLight}`,
+                          background: winner ? "#DCFCE7" : "transparent",
+                          color: winner ? "#16A34A" : C.text,
+                          fontWeight: winner ? 700 : 400,
+                        }}>
+                          {row.fmt(val, d)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Stärken per domain */}
+          <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+            {domains.map(d => {
+              const strengths = results[d]?.ai?.strengths || [];
+              return (
+                <div key={d} style={{ ...card, flex:"1 1 200px", minWidth:200 }}>
+                  <div style={{ fontSize:12.5, fontWeight:700, color:C.text, marginBottom:8 }}>{d}</div>
+                  {strengths.length > 0 ? strengths.map((s, i) => (
+                    <div key={i} style={{ display:"flex", gap:6, marginBottom:5, fontSize:12, color:C.textMid, lineHeight:1.5 }}>
+                      <span style={{ color:"#16A34A", fontWeight:700, flexShrink:0 }}>•</span>{s}
+                    </div>
+                  )) : <span style={{ fontSize:12, color:C.textMute }}>–</span>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function ResearchPage() {
+  const [mainTab,      setMainTab]      = useState("trends");
   const [activeSrc,    setActiveSrc]    = useState("all");
   const [articles,     setArticles]     = useState([]);
   const [loading,      setLoading]      = useState(false);
@@ -639,6 +1087,12 @@ export default function ResearchPage() {
   );
 
   // ── Layout ─────────────────────────────────────────────────────────────────
+  const MAIN_TABS = [
+    { id:"trends",   label:"Trends",        icon:<TrendingUp size={13} strokeWidth={IW}/> },
+    { id:"domain",   label:"Domain-Analyse", icon:<Globe size={13} strokeWidth={IW}/> },
+    { id:"wettbewerber", label:"Wettbewerber", icon:<Search size={13} strokeWidth={IW}/> },
+  ];
+
   return (
     <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", background:"#F9FAFB", fontFamily:FONT }}>
       {selectedPost && (
@@ -650,52 +1104,95 @@ export default function ResearchPage() {
         />
       )}
       {/* Header */}
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px 10px", flexShrink:0, borderBottom:`1px solid ${C.borderLight}`, background:"#fff" }}>
-        <div>
-          <div style={{ fontFamily:FONT, fontSize:20, fontWeight:700, color:C.text, letterSpacing:"-.3px" }}>Research</div>
-          <div style={{ fontSize:11.5, color:C.textMute, marginTop:2, display:"flex", alignItems:"center", gap:8 }}>
-            {lastUpdate ? (
-              <>
-                <span style={{ display:"flex", alignItems:"center", gap:3 }}><Wifi size={10} strokeWidth={2} color="#16A34A"/>Zuletzt: {lastUpdate.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</span>
-                {autoRefresh && <span>· Refresh in {fmtCountdown(nextIn)}</span>}
-              </>
-            ) : loading ? <span>Lade…</span> : null}
+      <div style={{ padding:"14px 20px 0", flexShrink:0, borderBottom:`1px solid ${C.borderLight}`, background:"#fff" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+          <div>
+            <div style={{ fontFamily:FONT, fontSize:20, fontWeight:700, color:C.text, letterSpacing:"-.3px" }}>Research</div>
+            {mainTab === "trends" && (
+              <div style={{ fontSize:11.5, color:C.textMute, marginTop:2, display:"flex", alignItems:"center", gap:8 }}>
+                {lastUpdate ? (
+                  <>
+                    <span style={{ display:"flex", alignItems:"center", gap:3 }}><Wifi size={10} strokeWidth={2} color="#16A34A"/>Zuletzt: {lastUpdate.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</span>
+                    {autoRefresh && <span>· Refresh in {fmtCountdown(nextIn)}</span>}
+                  </>
+                ) : loading ? <span>Lade…</span> : null}
+              </div>
+            )}
           </div>
+          {mainTab === "trends" && (
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <button onClick={() => setAutoRefresh(s => !s)} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 11px", borderRadius:20, cursor:"pointer", fontFamily:FONT, fontSize:11, fontWeight:600, transition:"all .12s", border:`1.5px solid ${autoRefresh?"#16A34A":C.border}`, background:autoRefresh?"#F0FDF4":"transparent", color:autoRefresh?"#16A34A":C.textMute }}>
+                {autoRefresh ? <Wifi size={11} strokeWidth={2}/> : <WifiOff size={11} strokeWidth={2}/>}
+                Auto-Refresh {autoRefresh?"an":"aus"}
+              </button>
+              <button onClick={() => { doFetch(true); setNextIn(REFRESH_INTERVAL/1000); }} disabled={loading} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 13px", borderRadius:8, border:`1px solid ${C.border}`, background:C.surface, color:loading?C.textMute:C.text, cursor:loading?"default":"pointer", fontSize:12, fontWeight:600, fontFamily:FONT }}>
+                <RefreshCw size={13} strokeWidth={2} style={{ animation:loading?"spin .8s linear infinite":"none" }}/>
+                Aktualisieren
+              </button>
+            </div>
+          )}
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <button onClick={() => setAutoRefresh(s => !s)} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 11px", borderRadius:20, cursor:"pointer", fontFamily:FONT, fontSize:11, fontWeight:600, transition:"all .12s", border:`1.5px solid ${autoRefresh?"#16A34A":C.border}`, background:autoRefresh?"#F0FDF4":"transparent", color:autoRefresh?"#16A34A":C.textMute }}>
-            {autoRefresh ? <Wifi size={11} strokeWidth={2}/> : <WifiOff size={11} strokeWidth={2}/>}
-            Auto-Refresh {autoRefresh?"an":"aus"}
-          </button>
-          <button onClick={() => { doFetch(true); setNextIn(REFRESH_INTERVAL/1000); }} disabled={loading} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 13px", borderRadius:8, border:`1px solid ${C.border}`, background:C.surface, color:loading?C.textMute:C.text, cursor:loading?"default":"pointer", fontSize:12, fontWeight:600, fontFamily:FONT }}>
-            <RefreshCw size={13} strokeWidth={2} style={{ animation:loading?"spin .8s linear infinite":"none" }}/>
-            Aktualisieren
-          </button>
+
+        {/* Tab bar */}
+        <div style={{ display:"flex", gap:4 }}>
+          {MAIN_TABS.map(t => {
+            const on = mainTab === t.id;
+            return (
+              <button key={t.id} onClick={() => setMainTab(t.id)} style={{
+                display:"flex", alignItems:"center", gap:5,
+                padding:"7px 16px", borderRadius:"8px 8px 0 0", cursor:"pointer", fontFamily:FONT,
+                fontSize:12.5, fontWeight:on?700:500, transition:"all .12s",
+                border:`1px solid ${on ? C.border : "transparent"}`,
+                borderBottom: on ? "1px solid #fff" : "1px solid transparent",
+                background: on ? "#fff" : "transparent",
+                color: on ? C.accent : C.textMid,
+                marginBottom: on ? -1 : 0,
+              }}>
+                {t.icon}{t.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Two columns */}
-      <div style={{ flex:1, overflow:"hidden", display:"flex" }}>
-        {/* LEFT: Pressespiegel */}
-        <div style={{ flex:"0 0 58%", display:"flex", flexDirection:"column", overflow:"hidden", borderRight:`1px solid ${C.borderLight}`, padding:"16px 20px" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, flexShrink:0 }}>
-            <Newspaper size={16} strokeWidth={IW} color={C.textMid}/>
-            <span style={{ fontFamily:FONT, fontWeight:700, fontSize:14, color:C.text }}>Pressespiegel</span>
-            {articles.length > 0 && <span style={{ fontSize:10, fontWeight:700, color:C.textMute, background:C.borderLight, borderRadius:10, padding:"1px 7px" }}>{articles.length} Artikel</span>}
-            {loading && articles.length > 0 && <div style={{ width:14, height:14, border:`2px solid ${C.accent}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite", marginLeft:"auto" }}/>}
+      {/* Trends tab: two columns */}
+      {mainTab === "trends" && (
+        <div style={{ flex:1, overflow:"hidden", display:"flex" }}>
+          {/* LEFT: Pressespiegel */}
+          <div style={{ flex:"0 0 58%", display:"flex", flexDirection:"column", overflow:"hidden", borderRight:`1px solid ${C.borderLight}`, padding:"16px 20px" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, flexShrink:0 }}>
+              <Newspaper size={16} strokeWidth={IW} color={C.textMid}/>
+              <span style={{ fontFamily:FONT, fontWeight:700, fontSize:14, color:C.text }}>Pressespiegel</span>
+              {articles.length > 0 && <span style={{ fontSize:10, fontWeight:700, color:C.textMute, background:C.borderLight, borderRadius:10, padding:"1px 7px" }}>{articles.length} Artikel</span>}
+              {loading && articles.length > 0 && <div style={{ width:14, height:14, border:`2px solid ${C.accent}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite", marginLeft:"auto" }}/>}
+            </div>
+            <div style={{ flex:1, overflow:"hidden" }}>{pressPanel}</div>
           </div>
-          <div style={{ flex:1, overflow:"hidden" }}>{pressPanel}</div>
-        </div>
 
-        {/* RIGHT: Social Trends */}
-        <div style={{ flex:"0 0 42%", display:"flex", flexDirection:"column", overflow:"hidden", padding:"16px 20px", background:"#fff" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, flexShrink:0 }}>
-            <TrendingUp size={16} strokeWidth={IW} color={C.textMid}/>
-            <span style={{ fontFamily:FONT, fontWeight:700, fontSize:14, color:C.text }}>Social Trends</span>
+          {/* RIGHT: Social Trends */}
+          <div style={{ flex:"0 0 42%", display:"flex", flexDirection:"column", overflow:"hidden", padding:"16px 20px", background:"#fff" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, flexShrink:0 }}>
+              <TrendingUp size={16} strokeWidth={IW} color={C.textMid}/>
+              <span style={{ fontFamily:FONT, fontWeight:700, fontSize:14, color:C.text }}>Social Trends</span>
+            </div>
+            <div style={{ flex:1, overflow:"hidden" }}>{socialPanel}</div>
           </div>
-          <div style={{ flex:1, overflow:"hidden" }}>{socialPanel}</div>
         </div>
-      </div>
+      )}
+
+      {/* Domain-Analyse tab */}
+      {mainTab === "domain" && (
+        <div style={{ flex:1, overflowY:"auto", padding:"24px 24px" }}>
+          <DomainAnalyseTab/>
+        </div>
+      )}
+
+      {/* Wettbewerber tab */}
+      {mainTab === "wettbewerber" && (
+        <div style={{ flex:1, overflowY:"auto", padding:"24px 24px" }}>
+          <WettbewerberTab/>
+        </div>
+      )}
     </div>
   );
 }
