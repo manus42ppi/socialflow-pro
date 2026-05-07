@@ -493,15 +493,18 @@ const SLASH_ORDER = [
 ];
 
 // ── ADD BLOCK BUTTON — "+" in the side menu for mouse-first users ─────────
-// ── ADD-BLOCK SINGLETON ────────────────────────────────────────────────────────
-// ROOT CAUSE OF PREVIOUS BUG: AddBlockButton lives inside BlockNote's SideMenu.
-// When the mouse moves away from the block, BlockNote unmounts the SideMenu →
-// AddBlockButton unmounts → portal/state are destroyed before the user can click.
+// ── ADD-BLOCK MENU ─────────────────────────────────────────────────────────────
+// Architecture (learned from BlockNote's own AddBlockButton source):
 //
-// FIX: Decouple trigger from UI via a module-level bus.
-//   • AddBlockButton  = pure trigger (no state, no portal)
-//   • GlobalAddBlockMenu = renders the actual menu at StoryEditorModal root level,
-//     completely outside the SideMenu lifecycle — never unmounts with it.
+//  • The insert operation MUST happen inside AddBlockButton's scope because
+//    that's where useBlockNoteEditor() returns a valid editor context.
+//  • GlobalAddBlockMenu is pure UI — it only calls the onInsert callback
+//    provided by AddBlockButton. It never touches the editor directly.
+//  • The callback is a JS closure that captures editor + block at click time.
+//    Even after SideMenu unmounts AddBlockButton, the closure stays alive as
+//    long as onInsertRef holds a reference to it.
+//  • insertBlocks() returns the newly created blocks; we use
+//    setTextCursorPosition() to move the cursor into the new block.
 
 const ADD_BLOCK_BUS = { open: null, close: null };
 
@@ -516,18 +519,15 @@ const ADD_BLOCK_QUICK = [
   { type:"image",            props:{},          icon:"🖼", label:"Bild"          },
 ];
 
-// Mounted once at StoryEditorModal root — survives SideMenu mount/unmount cycles.
+// Mounted once at StoryEditorModal root — outlives BlockNote's SideMenu.
+// Pure UI: shows the dropdown, calls onInsert callback on selection.
 function GlobalAddBlockMenu() {
-  // pos controls visibility; editor + block live in refs so insert()
-  // always reads the latest values regardless of closure timing.
-  const [pos, setPos]       = useState(null); // null | { top, left }
-  const editorRef           = useRef(null);
-  const targetBlockRef      = useRef(null);
+  const [pos, setPos]   = useState(null); // null | { top, left }
+  const onInsertRef     = useRef(null);   // (type, props) => void
 
   useEffect(() => {
-    ADD_BLOCK_BUS.open = ({ top, left, blockId, editor }) => {
-      editorRef.current      = editor;
-      targetBlockRef.current = blockId;   // store ID string — always stable
+    ADD_BLOCK_BUS.open = ({ top, left, onInsert }) => {
+      onInsertRef.current = onInsert;
       setPos({ top, left });
     };
     ADD_BLOCK_BUS.close = () => setPos(null);
@@ -541,63 +541,44 @@ function GlobalAddBlockMenu() {
     return () => window.removeEventListener("keydown", onKey);
   }, [!!pos]);
 
-  const insert = (q) => {
-    const editor  = editorRef.current;
-    const blockId = targetBlockRef.current;
-    if (!editor || !blockId) { setPos(null); return; }
-    editor.focus();
-    editor.insertBlocks([{ type: q.type, props: q.props }], blockId, "after");
-    setPos(null);                          // close after successful insert
-  };
-
   if (!pos) return null;
+
+  const handleSelect = (q) => {
+    setPos(null);
+    if (onInsertRef.current) onInsertRef.current(q.type, q.props);
+  };
 
   return createPortal(
     <>
-      {/* Full-screen overlay — clicking outside closes the menu */}
-      <div
-        style={{ position: "fixed", inset: 0, zIndex: 99998 }}
-        onMouseDown={() => setPos(null)}
-      />
-      {/* Dropdown menu — above the overlay */}
+      {/* Transparent backdrop — mousedown outside closes the menu */}
+      <div style={{ position:"fixed", inset:0, zIndex:99998 }}
+           onMouseDown={() => setPos(null)} />
+      {/* Dropdown */}
       <div style={{
-        position: "fixed",
-        top: pos.top,
-        left: pos.left,
-        transform: "translateY(-50%)",
-        zIndex: 99999,
-        background: "#fff",
-        border: "1px solid #e5e7eb",
-        borderRadius: 10,
-        boxShadow: "0 4px 24px rgba(0,0,0,.14)",
-        padding: 5,
-        minWidth: 178,
-        fontFamily: FONT,
+        position:"fixed", top:pos.top, left:pos.left,
+        transform:"translateY(-50%)", zIndex:99999,
+        background:"#fff", border:"1px solid #e5e7eb", borderRadius:10,
+        boxShadow:"0 4px 24px rgba(0,0,0,.14)", padding:5,
+        minWidth:178, fontFamily:FONT,
       }}>
         {ADD_BLOCK_QUICK.map((q, i) => (
-          <button
-            key={i}
-            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); insert(q); }}
+          <button key={i}
+            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); handleSelect(q); }}
             style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 8,
-              padding: "5px 8px", borderRadius: 6, border: "none",
-              background: "transparent", cursor: "pointer", textAlign: "left",
-              fontFamily: FONT,
+              width:"100%", display:"flex", alignItems:"center", gap:8,
+              padding:"5px 8px", borderRadius:6, border:"none",
+              background:"transparent", cursor:"pointer", textAlign:"left", fontFamily:FONT,
             }}
             onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}
           >
             <div style={{
-              width: 26, height: 26, borderRadius: 6, background: "#f3f4f6",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: q.icon.length <= 2 ? 10 : 14, fontWeight: 700,
-              color: "#374151", flexShrink: 0, letterSpacing: "-.03em",
-            }}>
-              {q.icon}
-            </div>
-            <span style={{ fontSize: 12.5, color: "#374151", fontWeight: 500 }}>
-              {q.label}
-            </span>
+              width:26, height:26, borderRadius:6, background:"#f3f4f6", flexShrink:0,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:q.icon.length <= 2 ? 10 : 14, fontWeight:700,
+              color:"#374151", letterSpacing:"-.03em",
+            }}>{q.icon}</div>
+            <span style={{ fontSize:12.5, color:"#374151", fontWeight:500 }}>{q.label}</span>
           </button>
         ))}
       </div>
@@ -606,8 +587,9 @@ function GlobalAddBlockMenu() {
   );
 }
 
-// Inside SideMenu — pure trigger, no state, no portal.
-// Just fires ADD_BLOCK_BUS.open() with position + editor reference.
+// Rendered inside BlockNote's SideMenu — the only place useBlockNoteEditor()
+// is in scope. Creates the insert callback as a closure over editor + block,
+// then hands it to GlobalAddBlockMenu via ADD_BLOCK_BUS.
 function AddBlockButton({ block }) {
   const editor = useBlockNoteEditor();
   const btnRef = useRef(null);
@@ -618,30 +600,30 @@ function AddBlockButton({ block }) {
     if (!ADD_BLOCK_BUS.open) return;
     const rect = btnRef.current.getBoundingClientRect();
     ADD_BLOCK_BUS.open({
-      top: rect.top + rect.height / 2,
+      top:  rect.top + rect.height / 2,
       left: rect.right + 10,
-      blockId: block.id,    // stable string ID — survives SideMenu unmount
-      editor,
+      // Closure captures editor + block — valid even after SideMenu unmounts.
+      // insertBlocks() returns the new block; setTextCursorPosition() moves cursor.
+      onInsert: (type, props) => {
+        const [newBlock] = editor.insertBlocks([{ type, props }], block, "after");
+        if (newBlock) editor.setTextCursorPosition(newBlock, "end");
+        editor.focus();
+      },
     });
   };
 
   return (
-    <button
-      ref={btnRef}
-      onMouseDown={handleOpen}
-      title="Block einfügen (+)"
+    <button ref={btnRef} onMouseDown={handleOpen} title="Block einfügen"
       style={{
-        width: 22, height: 22, borderRadius: 5, flexShrink: 0,
-        border: "1px solid #e5e7eb", background: "white", color: "#6b7280",
-        fontSize: 15, fontWeight: 600, lineHeight: "20px",
-        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "all .12s", fontFamily: FONT,
+        width:22, height:22, borderRadius:5, flexShrink:0,
+        border:"1px solid #e5e7eb", background:"white", color:"#6b7280",
+        fontSize:15, fontWeight:600, lineHeight:"20px", cursor:"pointer",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        transition:"all .12s", fontFamily:FONT,
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db"; e.currentTarget.style.color = "#374151"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; }}
-    >
-      +
-    </button>
+      onMouseEnter={e => { e.currentTarget.style.background="#f9fafb"; e.currentTarget.style.borderColor="#d1d5db"; e.currentTarget.style.color="#374151"; }}
+      onMouseLeave={e => { e.currentTarget.style.background="white"; e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#6b7280"; }}
+    >+</button>
   );
 }
 
