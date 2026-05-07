@@ -151,8 +151,13 @@ export default function Login({ onLogin }) {
           ))}
         </div>
 
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)" }}>
-          © 2026 SocialFlow Pro
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)" }}>
+            © 2026 SocialFlow Pro
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,.22)", fontFamily: "monospace", letterSpacing: ".03em" }}>
+            build {__BUILD_NUMBER__} · {__BUILD_SHA__}
+          </div>
         </div>
       </div>
 
