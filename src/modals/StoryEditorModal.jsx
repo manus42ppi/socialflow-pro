@@ -493,9 +493,18 @@ const SLASH_ORDER = [
 ];
 
 // ── ADD BLOCK BUTTON — "+" in the side menu for mouse-first users ─────────
-// Rendered via createPortal → completely detached from BlockNote's SideMenu
-// DOM so repositioning of the SideMenu cannot affect the dropdown position.
-// Position is fixed at click-time using getBoundingClientRect().
+// ── ADD-BLOCK SINGLETON ────────────────────────────────────────────────────────
+// ROOT CAUSE OF PREVIOUS BUG: AddBlockButton lives inside BlockNote's SideMenu.
+// When the mouse moves away from the block, BlockNote unmounts the SideMenu →
+// AddBlockButton unmounts → portal/state are destroyed before the user can click.
+//
+// FIX: Decouple trigger from UI via a module-level bus.
+//   • AddBlockButton  = pure trigger (no state, no portal)
+//   • GlobalAddBlockMenu = renders the actual menu at StoryEditorModal root level,
+//     completely outside the SideMenu lifecycle — never unmounts with it.
+
+const ADD_BLOCK_BUS = { open: null, close: null };
+
 const ADD_BLOCK_QUICK = [
   { type:"paragraph",        props:{},          icon:"¶",  label:"Text"          },
   { type:"heading",          props:{level:1},   icon:"H1", label:"Überschrift 1" },
@@ -507,113 +516,128 @@ const ADD_BLOCK_QUICK = [
   { type:"image",            props:{},          icon:"🖼", label:"Bild"          },
 ];
 
+// Mounted once at StoryEditorModal root — survives SideMenu mount/unmount cycles.
+function GlobalAddBlockMenu() {
+  const [menuState, setMenuState] = useState(null); // null | { top, left, targetBlock, editor }
+
+  useEffect(() => {
+    ADD_BLOCK_BUS.open  = (state) => setMenuState(state);
+    ADD_BLOCK_BUS.close = ()      => setMenuState(null);
+    return () => { ADD_BLOCK_BUS.open = null; ADD_BLOCK_BUS.close = null; };
+  }, []);
+
+  useEffect(() => {
+    if (!menuState) return;
+    const onKey = (e) => { if (e.key === "Escape") setMenuState(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [!!menuState]);
+
+  const insert = (q) => {
+    if (!menuState?.targetBlock || !menuState?.editor) return;
+    try {
+      menuState.editor.insertBlocks(
+        [{ type: q.type, props: q.props }],
+        menuState.targetBlock,
+        "after"
+      );
+      menuState.editor.focus();
+    } catch {}
+    setMenuState(null);
+  };
+
+  if (!menuState) return null;
+
+  return createPortal(
+    <>
+      {/* Full-screen overlay — clicking outside closes the menu */}
+      <div
+        style={{ position: "fixed", inset: 0, zIndex: 99998 }}
+        onMouseDown={() => setMenuState(null)}
+      />
+      {/* Dropdown menu — above the overlay */}
+      <div style={{
+        position: "fixed",
+        top: menuState.top,
+        left: menuState.left,
+        transform: "translateY(-50%)",
+        zIndex: 99999,
+        background: "#fff",
+        border: "1px solid #e5e7eb",
+        borderRadius: 10,
+        boxShadow: "0 4px 24px rgba(0,0,0,.14)",
+        padding: 5,
+        minWidth: 178,
+        fontFamily: FONT,
+      }}>
+        {ADD_BLOCK_QUICK.map((q, i) => (
+          <button
+            key={i}
+            onMouseDown={e => { e.preventDefault(); insert(q); }}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 8,
+              padding: "5px 8px", borderRadius: 6, border: "none",
+              background: "transparent", cursor: "pointer", textAlign: "left",
+              fontFamily: FONT,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            <div style={{
+              width: 26, height: 26, borderRadius: 6, background: "#f3f4f6",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: q.icon.length <= 2 ? 10 : 14, fontWeight: 700,
+              color: "#374151", flexShrink: 0, letterSpacing: "-.03em",
+            }}>
+              {q.icon}
+            </div>
+            <span style={{ fontSize: 12.5, color: "#374151", fontWeight: 500 }}>
+              {q.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </>,
+    document.body
+  );
+}
+
+// Inside SideMenu — pure trigger, no state, no portal.
+// Just fires ADD_BLOCK_BUS.open() with position + editor reference.
 function AddBlockButton({ block }) {
   const editor = useBlockNoteEditor();
-  // menuState: null = closed  |  { top, left, targetBlock } = open
-  const [menuState, setMenuState] = useState(null);
   const btnRef = useRef(null);
 
   const handleOpen = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (menuState) { setMenuState(null); return; }
+    if (!ADD_BLOCK_BUS.open) return;
     const rect = btnRef.current.getBoundingClientRect();
-    setMenuState({
-      // Position dropdown to the right of the button, vertically centered
-      top:  rect.top + rect.height / 2,
+    ADD_BLOCK_BUS.open({
+      top: rect.top + rect.height / 2,
       left: rect.right + 10,
-      targetBlock: block,   // capture block at open-time — SideMenu may reposition later
+      targetBlock: block,
+      editor,
     });
   };
 
-  const insert = (q) => {
-    if (!menuState?.targetBlock) return;
-    try {
-      editor.insertBlocks([{ type: q.type, props: q.props }], menuState.targetBlock, "after");
-      editor.focus();
-    } catch {}
-    setMenuState(null);
-  };
-
   return (
-    <>
-      <button
-        ref={btnRef}
-        onMouseDown={handleOpen}
-        title="Block einfügen (+)"
-        style={{
-          width: 22, height: 22, borderRadius: 5, flexShrink: 0,
-          border: `1px solid ${menuState ? "#d1d5db" : "#e5e7eb"}`,
-          background: menuState ? "#f3f4f6" : "white",
-          color: menuState ? "#374151" : "#6b7280",
-          fontSize: 15, fontWeight: 600, lineHeight: "20px",
-          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          transition: "all .12s", fontFamily: FONT,
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db"; e.currentTarget.style.color = "#374151"; }}
-        onMouseLeave={e => { if (!menuState) { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; } }}
-      >
-        +
-      </button>
-
-      {/* Portal — rendered in document.body, position: fixed so it never
-          moves even if BlockNote repositions the SideMenu.
-          Overlay (z 99998) catches outside-clicks reliably; menu (z 99999) sits on top. */}
-      {menuState && createPortal(
-        <>
-          {/* Transparent full-screen overlay — clicking it closes the menu */}
-          <div
-            style={{ position: "fixed", inset: 0, zIndex: 99998 }}
-            onMouseDown={() => setMenuState(null)}
-          />
-          {/* The actual dropdown menu */}
-          <div
-            style={{
-              position: "fixed",
-              top:  menuState.top,
-              left: menuState.left,
-              transform: "translateY(-50%)",
-              zIndex: 99999,
-              background: "#fff",
-              border: "1px solid #e5e7eb",
-              borderRadius: 10,
-              boxShadow: "0 4px 24px rgba(0,0,0,.14)",
-              padding: 5,
-              minWidth: 178,
-              fontFamily: FONT,
-            }}
-          >
-            {ADD_BLOCK_QUICK.map((q, i) => (
-              <button
-                key={i}
-                onMouseDown={e => { e.preventDefault(); insert(q); }}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 8,
-                  padding: "5px 8px", borderRadius: 6, border: "none",
-                  background: "transparent", cursor: "pointer", textAlign: "left",
-                  fontFamily: FONT,
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-              >
-                <div style={{
-                  width: 26, height: 26, borderRadius: 6, background: "#f3f4f6",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: q.icon.length <= 2 ? 10 : 14, fontWeight: 700,
-                  color: "#374151", flexShrink: 0, letterSpacing: "-.03em",
-                }}>
-                  {q.icon}
-                </div>
-                <span style={{ fontSize: 12.5, color: "#374151", fontWeight: 500 }}>
-                  {q.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </>,
-        document.body
-      )}
-    </>
+    <button
+      ref={btnRef}
+      onMouseDown={handleOpen}
+      title="Block einfügen (+)"
+      style={{
+        width: 22, height: 22, borderRadius: 5, flexShrink: 0,
+        border: "1px solid #e5e7eb", background: "white", color: "#6b7280",
+        fontSize: 15, fontWeight: 600, lineHeight: "20px",
+        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "all .12s", fontFamily: FONT,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db"; e.currentTarget.style.color = "#374151"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; }}
+    >
+      +
+    </button>
   );
 }
 
@@ -1218,6 +1242,8 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      {/* Global singleton — mounted here so it outlives BlockNote's SideMenu */}
+      <GlobalAddBlockMenu />
       <style>{CSS}</style>
       <style>{`
         /* ── BlockNote base ── */
