@@ -174,16 +174,26 @@ export default function Sidebar() {
             }}>
               <Layers size={15} color="#fff" strokeWidth={1.7} />
             </div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: T.gray900, whiteSpace: "nowrap" }}>
-              SocialFlow
-            </span>
-            <span style={{
-              fontSize: 9, fontWeight: 800, color: C.accent,
-              background: T.brand100, padding: "2px 6px",
-              borderRadius: 4, letterSpacing: ".05em", whiteSpace: "nowrap",
-            }}>
-              PRO
-            </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: T.gray900, whiteSpace: "nowrap" }}>
+                  SocialFlow
+                </span>
+                <span style={{
+                  fontSize: 9, fontWeight: 800, color: C.accent,
+                  background: T.brand100, padding: "2px 6px",
+                  borderRadius: 4, letterSpacing: ".05em", whiteSpace: "nowrap",
+                }}>
+                  PRO
+                </span>
+              </div>
+              <span style={{
+                fontSize: 9, color: T.gray400, letterSpacing: ".02em",
+                fontWeight: 500, whiteSpace: "nowrap", lineHeight: 1,
+              }}>
+                build {__BUILD_NUMBER__} · {__BUILD_SHA__}
+              </span>
+            </div>
           </div>
           <button
             onClick={toggle}
