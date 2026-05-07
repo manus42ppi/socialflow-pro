@@ -4,8 +4,7 @@ import "@blocknote/ariakit/style.css";
 import {
   useCreateBlockNote, useBlockNoteEditor, FilePanelController,
   FormattingToolbarController, FormattingToolbar,
-  BlockTypeSelect, BasicTextStyleButton, TextAlignButton,
-  ColorStyleButton, NestBlockButton, UnnestBlockButton, CreateLinkButton,
+  BlockTypeSelect, BasicTextStyleButton, CreateLinkButton,
   blockTypeSelectItems,
   SideMenuController, SideMenu, DragHandleButton, DeleteButton,
   SuggestionMenuController, getDefaultReactSlashMenuItems,
@@ -484,6 +483,110 @@ const USEFUL_BLOCK_PROPS  = [
   undefined,                            // quote
 ];
 
+// Preferred order for slash menu — most common first
+const SLASH_ORDER = [
+  "Paragraph",
+  "Heading 1","Heading 2","Heading 3",
+  "Bullet List","Numbered List","Check List",
+  "Image","Video",
+  "Quote","Divider","Table","Code Block",
+];
+
+// ── ADD BLOCK BUTTON — "+" in the side menu for mouse-first users ─────────
+// Inspired by Notion's + button: shows a quick-pick dropdown without needing
+// to know the "/" shortcut. The 8 most common block types as icon+label rows.
+function AddBlockButton({ block }) {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const QUICK = [
+    { type:"paragraph",        props:{},          icon:"¶",  label:"Text"         },
+    { type:"heading",          props:{level:1},   icon:"H1", label:"Überschrift 1" },
+    { type:"heading",          props:{level:2},   icon:"H2", label:"Überschrift 2" },
+    { type:"heading",          props:{level:3},   icon:"H3", label:"Überschrift 3" },
+    { type:"bulletListItem",   props:{},          icon:"•",  label:"Aufzählung"   },
+    { type:"numberedListItem", props:{},          icon:"1.", label:"Nummeriert"   },
+    { type:"checkListItem",    props:{},          icon:"☐",  label:"Aufgabe"      },
+    { type:"image",            props:{},          icon:"🖼", label:"Bild"         },
+  ];
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  const insert = (q) => {
+    try {
+      editor.insertBlocks([{ type: q.type, props: q.props }], block, "after");
+      editor.focus();
+    } catch {}
+    setOpen(false);
+  };
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "flex", alignItems: "center" }}>
+      <button
+        onMouseDown={e => { e.preventDefault(); setOpen(v => !v); }}
+        title="Block einfügen"
+        style={{
+          width: 22, height: 22, borderRadius: 5, flexShrink: 0,
+          border: `1px solid ${open ? "#d1d5db" : "#e5e7eb"}`,
+          background: open ? "#f3f4f6" : "white",
+          color: "#6b7280", fontSize: 15, fontWeight: 600, lineHeight: "20px",
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all .12s", fontFamily: FONT,
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db"; e.currentTarget.style.color = "#374151"; }}
+        onMouseLeave={e => { if (!open) { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; } }}
+      >
+        +
+      </button>
+      {open && (
+        <div
+          onMouseDown={e => e.stopPropagation()}
+          style={{
+            position: "absolute", left: "calc(100% + 8px)", top: "50%",
+            transform: "translateY(-50%)", zIndex: 9999,
+            background: "#fff", border: "1px solid #e5e7eb",
+            borderRadius: 10, boxShadow: "0 4px 24px rgba(0,0,0,.13)",
+            padding: 5, minWidth: 176, fontFamily: FONT,
+          }}
+        >
+          {QUICK.map((q, i) => (
+            <button
+              key={i}
+              onMouseDown={e => { e.preventDefault(); insert(q); }}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", gap: 8,
+                padding: "5px 8px", borderRadius: 6, border: "none",
+                background: "transparent", cursor: "pointer", textAlign: "left",
+                fontFamily: FONT,
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <div style={{
+                width: 26, height: 26, borderRadius: 6, background: "#f3f4f6",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: q.icon.length <= 2 ? 10 : 14, fontWeight: 700,
+                color: "#374151", flexShrink: 0, letterSpacing: "-.03em",
+              }}>
+                {q.icon}
+              </div>
+              <span style={{ fontSize: 12.5, color: "#374151", fontWeight: 500 }}>
+                {q.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── UNIFIED FORMATTING TOOLBAR (formatting + KI in one bar) ───────────────
 function UnifiedFormattingToolbar() {
   const [mode, setMode] = useState("format"); // "format" | "ai" | "loading" | "result"
@@ -590,12 +693,6 @@ function UnifiedFormattingToolbar() {
           <BasicTextStyleButton basicTextStyle="italic"    key="italic" />
           <BasicTextStyleButton basicTextStyle="underline" key="underline" />
           <BasicTextStyleButton basicTextStyle="strike"    key="strike" />
-          <TextAlignButton textAlignment="left"   key="alignLeft" />
-          <TextAlignButton textAlignment="center" key="alignCenter" />
-          <TextAlignButton textAlignment="right"  key="alignRight" />
-          <ColorStyleButton key="color" />
-          <NestBlockButton   key="nest" />
-          <UnnestBlockButton key="unnest" />
           <CreateLinkButton  key="link" />
           <div key="sep-img" style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.2)", margin: "4px 2px" }} />
           <button key="insert-image"
@@ -1498,6 +1595,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 <FilePanelController filePanel={MediaLibraryFilePanel} />
                 <SideMenuController sideMenu={props => (
                   <SideMenu {...props}>
+                    <AddBlockButton block={props.block} />
                     <DragHandleButton {...props} />
                     <DeleteButton {...props} />
                   </SideMenu>
@@ -1506,22 +1604,23 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   triggerCharacter="/"
                   getItems={async query => {
                     const all = getDefaultReactSlashMenuItems(editor);
-                    // Only keep the most useful block types for editorial content
-                    const KEEP = new Set([
-                      "Heading 1","Heading 2","Heading 3",
-                      "Paragraph","Quote",
-                      "Bullet List","Numbered List","Check List",
-                      "Code Block","Image","Table","Divider","Emoji",
-                    ]);
+                    const KEEP = new Set(SLASH_ORDER);
                     const filtered = all.filter(item => {
                       const title = typeof item.title === "string" ? item.title : "";
                       return KEEP.has(title);
                     });
-                    if (!query) return filtered;
+                    // Sort by our preferred order (most common first)
+                    const sorted = [...filtered].sort((a, b) => {
+                      const ai = SLASH_ORDER.indexOf(a.title);
+                      const bi = SLASH_ORDER.indexOf(b.title);
+                      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                    });
+                    if (!query) return sorted;
                     const q = query.toLowerCase();
-                    return filtered.filter(item =>
+                    return sorted.filter(item =>
                       (item.title||"").toLowerCase().includes(q) ||
-                      (item.subtext||"").toLowerCase().includes(q)
+                      (item.subtext||"").toLowerCase().includes(q) ||
+                      (item.aliases||[]).some(a => a.toLowerCase().includes(q))
                     );
                   }}
                 />
