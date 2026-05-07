@@ -525,9 +525,9 @@ function GlobalAddBlockMenu() {
   const targetBlockRef      = useRef(null);
 
   useEffect(() => {
-    ADD_BLOCK_BUS.open = ({ top, left, targetBlock, editor }) => {
+    ADD_BLOCK_BUS.open = ({ top, left, blockId, editor }) => {
       editorRef.current      = editor;
-      targetBlockRef.current = targetBlock;
+      targetBlockRef.current = blockId;   // store ID string — always stable
       setPos({ top, left });
     };
     ADD_BLOCK_BUS.close = () => setPos(null);
@@ -542,14 +542,12 @@ function GlobalAddBlockMenu() {
   }, [!!pos]);
 
   const insert = (q) => {
-    const editor      = editorRef.current;
-    const targetBlock = targetBlockRef.current;
-    if (!editor || !targetBlock) return;
-    try {
-      editor.insertBlocks([{ type: q.type, props: q.props }], targetBlock, "after");
-      editor.focus();
-    } catch {}
-    setPos(null);
+    const editor  = editorRef.current;
+    const blockId = targetBlockRef.current;
+    if (!editor || !blockId) { setPos(null); return; }
+    editor.focus();
+    editor.insertBlocks([{ type: q.type, props: q.props }], blockId, "after");
+    setPos(null);                          // close after successful insert
   };
 
   if (!pos) return null;
@@ -579,7 +577,7 @@ function GlobalAddBlockMenu() {
         {ADD_BLOCK_QUICK.map((q, i) => (
           <button
             key={i}
-            onClick={() => insert(q)}
+            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); insert(q); }}
             style={{
               width: "100%", display: "flex", alignItems: "center", gap: 8,
               padding: "5px 8px", borderRadius: 6, border: "none",
@@ -622,7 +620,7 @@ function AddBlockButton({ block }) {
     ADD_BLOCK_BUS.open({
       top: rect.top + rect.height / 2,
       left: rect.right + 10,
-      targetBlock: block,
+      blockId: block.id,    // stable string ID — survives SideMenu unmount
       editor,
     });
   };
