@@ -4,8 +4,16 @@ import { execSync } from 'child_process'
 
 // Inject build metadata at compile-time so the sidebar can show which
 // commit is deployed — lets you verify a Cloudflare Pages deploy is live.
+//
+// Cloudflare Pages (and most CI systems) do a shallow clone (depth=1),
+// so `git rev-list --count HEAD` would return 1. We unshallow first to
+// get the real commit count. On a full local clone --unshallow fails
+// harmlessly and we proceed with the existing full history.
 function getBuildMeta() {
   try {
+    try {
+      execSync('git fetch --unshallow --quiet', { stdio: 'pipe', timeout: 30_000 });
+    } catch { /* already a full clone, or no remote — safe to ignore */ }
     const count = execSync('git rev-list --count HEAD').toString().trim();
     const sha   = execSync('git rev-parse --short HEAD').toString().trim();
     return { count, sha };
