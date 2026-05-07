@@ -513,17 +513,6 @@ function AddBlockButton({ block }) {
   const [menuState, setMenuState] = useState(null);
   const btnRef = useRef(null);
 
-  // Close on any outside click
-  useEffect(() => {
-    if (!menuState) return;
-    const close = (e) => {
-      const portal = document.getElementById("sf-add-block-portal");
-      if (!portal?.contains(e.target)) setMenuState(null);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [menuState]);
-
   const handleOpen = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -568,53 +557,60 @@ function AddBlockButton({ block }) {
       </button>
 
       {/* Portal — rendered in document.body, position: fixed so it never
-          moves even if BlockNote repositions the SideMenu */}
+          moves even if BlockNote repositions the SideMenu.
+          Overlay (z 99998) catches outside-clicks reliably; menu (z 99999) sits on top. */}
       {menuState && createPortal(
-        <div
-          id="sf-add-block-portal"
-          onMouseDown={e => e.stopPropagation()}
-          style={{
-            position: "fixed",
-            top:  menuState.top,
-            left: menuState.left,
-            transform: "translateY(-50%)",
-            zIndex: 99999,
-            background: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 10,
-            boxShadow: "0 4px 24px rgba(0,0,0,.14)",
-            padding: 5,
-            minWidth: 178,
-            fontFamily: FONT,
-          }}
-        >
-          {ADD_BLOCK_QUICK.map((q, i) => (
-            <button
-              key={i}
-              onMouseDown={e => { e.preventDefault(); insert(q); }}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", gap: 8,
-                padding: "5px 8px", borderRadius: 6, border: "none",
-                background: "transparent", cursor: "pointer", textAlign: "left",
-                fontFamily: FONT,
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >
-              <div style={{
-                width: 26, height: 26, borderRadius: 6, background: "#f3f4f6",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: q.icon.length <= 2 ? 10 : 14, fontWeight: 700,
-                color: "#374151", flexShrink: 0, letterSpacing: "-.03em",
-              }}>
-                {q.icon}
-              </div>
-              <span style={{ fontSize: 12.5, color: "#374151", fontWeight: 500 }}>
-                {q.label}
-              </span>
-            </button>
-          ))}
-        </div>,
+        <>
+          {/* Transparent full-screen overlay — clicking it closes the menu */}
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 99998 }}
+            onMouseDown={() => setMenuState(null)}
+          />
+          {/* The actual dropdown menu */}
+          <div
+            style={{
+              position: "fixed",
+              top:  menuState.top,
+              left: menuState.left,
+              transform: "translateY(-50%)",
+              zIndex: 99999,
+              background: "#fff",
+              border: "1px solid #e5e7eb",
+              borderRadius: 10,
+              boxShadow: "0 4px 24px rgba(0,0,0,.14)",
+              padding: 5,
+              minWidth: 178,
+              fontFamily: FONT,
+            }}
+          >
+            {ADD_BLOCK_QUICK.map((q, i) => (
+              <button
+                key={i}
+                onMouseDown={e => { e.preventDefault(); insert(q); }}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 8,
+                  padding: "5px 8px", borderRadius: 6, border: "none",
+                  background: "transparent", cursor: "pointer", textAlign: "left",
+                  fontFamily: FONT,
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <div style={{
+                  width: 26, height: 26, borderRadius: 6, background: "#f3f4f6",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: q.icon.length <= 2 ? 10 : 14, fontWeight: 700,
+                  color: "#374151", flexShrink: 0, letterSpacing: "-.03em",
+                }}>
+                  {q.icon}
+                </div>
+                <span style={{ fontSize: 12.5, color: "#374151", fontWeight: 500 }}>
+                  {q.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>,
         document.body
       )}
     </>
