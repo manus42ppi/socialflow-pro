@@ -493,69 +493,102 @@ const SLASH_ORDER = [
 ];
 
 // ── ADD BLOCK BUTTON — "+" in the side menu for mouse-first users ─────────
-// Inspired by Notion's + button: shows a quick-pick dropdown without needing
-// to know the "/" shortcut. The 8 most common block types as icon+label rows.
+// Rendered via createPortal → completely detached from BlockNote's SideMenu
+// DOM so repositioning of the SideMenu cannot affect the dropdown position.
+// Position is fixed at click-time using getBoundingClientRect().
+const ADD_BLOCK_QUICK = [
+  { type:"paragraph",        props:{},          icon:"¶",  label:"Text"          },
+  { type:"heading",          props:{level:1},   icon:"H1", label:"Überschrift 1" },
+  { type:"heading",          props:{level:2},   icon:"H2", label:"Überschrift 2" },
+  { type:"heading",          props:{level:3},   icon:"H3", label:"Überschrift 3" },
+  { type:"bulletListItem",   props:{},          icon:"•",  label:"Aufzählung"    },
+  { type:"numberedListItem", props:{},          icon:"1.", label:"Nummeriert"    },
+  { type:"checkListItem",    props:{},          icon:"☐",  label:"Aufgabe"       },
+  { type:"image",            props:{},          icon:"🖼", label:"Bild"          },
+];
+
 function AddBlockButton({ block }) {
   const editor = useBlockNoteEditor();
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  // menuState: null = closed  |  { top, left, targetBlock } = open
+  const [menuState, setMenuState] = useState(null);
+  const btnRef = useRef(null);
 
-  const QUICK = [
-    { type:"paragraph",        props:{},          icon:"¶",  label:"Text"         },
-    { type:"heading",          props:{level:1},   icon:"H1", label:"Überschrift 1" },
-    { type:"heading",          props:{level:2},   icon:"H2", label:"Überschrift 2" },
-    { type:"heading",          props:{level:3},   icon:"H3", label:"Überschrift 3" },
-    { type:"bulletListItem",   props:{},          icon:"•",  label:"Aufzählung"   },
-    { type:"numberedListItem", props:{},          icon:"1.", label:"Nummeriert"   },
-    { type:"checkListItem",    props:{},          icon:"☐",  label:"Aufgabe"      },
-    { type:"image",            props:{},          icon:"🖼", label:"Bild"         },
-  ];
-
+  // Close on any outside click
   useEffect(() => {
-    if (!open) return;
-    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    if (!menuState) return;
+    const close = (e) => {
+      const portal = document.getElementById("sf-add-block-portal");
+      if (!portal?.contains(e.target)) setMenuState(null);
+    };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
-  }, [open]);
+  }, [menuState]);
+
+  const handleOpen = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (menuState) { setMenuState(null); return; }
+    const rect = btnRef.current.getBoundingClientRect();
+    setMenuState({
+      // Position dropdown to the right of the button, vertically centered
+      top:  rect.top + rect.height / 2,
+      left: rect.right + 10,
+      targetBlock: block,   // capture block at open-time — SideMenu may reposition later
+    });
+  };
 
   const insert = (q) => {
+    if (!menuState?.targetBlock) return;
     try {
-      editor.insertBlocks([{ type: q.type, props: q.props }], block, "after");
+      editor.insertBlocks([{ type: q.type, props: q.props }], menuState.targetBlock, "after");
       editor.focus();
     } catch {}
-    setOpen(false);
+    setMenuState(null);
   };
 
   return (
-    <div ref={ref} style={{ position: "relative", display: "flex", alignItems: "center" }}>
+    <>
       <button
-        onMouseDown={e => { e.preventDefault(); setOpen(v => !v); }}
-        title="Block einfügen"
+        ref={btnRef}
+        onMouseDown={handleOpen}
+        title="Block einfügen (+)"
         style={{
           width: 22, height: 22, borderRadius: 5, flexShrink: 0,
-          border: `1px solid ${open ? "#d1d5db" : "#e5e7eb"}`,
-          background: open ? "#f3f4f6" : "white",
-          color: "#6b7280", fontSize: 15, fontWeight: 600, lineHeight: "20px",
+          border: `1px solid ${menuState ? "#d1d5db" : "#e5e7eb"}`,
+          background: menuState ? "#f3f4f6" : "white",
+          color: menuState ? "#374151" : "#6b7280",
+          fontSize: 15, fontWeight: 600, lineHeight: "20px",
           cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
           transition: "all .12s", fontFamily: FONT,
         }}
         onMouseEnter={e => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db"; e.currentTarget.style.color = "#374151"; }}
-        onMouseLeave={e => { if (!open) { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; } }}
+        onMouseLeave={e => { if (!menuState) { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; } }}
       >
         +
       </button>
-      {open && (
+
+      {/* Portal — rendered in document.body, position: fixed so it never
+          moves even if BlockNote repositions the SideMenu */}
+      {menuState && createPortal(
         <div
+          id="sf-add-block-portal"
           onMouseDown={e => e.stopPropagation()}
           style={{
-            position: "absolute", left: "calc(100% + 8px)", top: "50%",
-            transform: "translateY(-50%)", zIndex: 9999,
-            background: "#fff", border: "1px solid #e5e7eb",
-            borderRadius: 10, boxShadow: "0 4px 24px rgba(0,0,0,.13)",
-            padding: 5, minWidth: 176, fontFamily: FONT,
+            position: "fixed",
+            top:  menuState.top,
+            left: menuState.left,
+            transform: "translateY(-50%)",
+            zIndex: 99999,
+            background: "#fff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 10,
+            boxShadow: "0 4px 24px rgba(0,0,0,.14)",
+            padding: 5,
+            minWidth: 178,
+            fontFamily: FONT,
           }}
         >
-          {QUICK.map((q, i) => (
+          {ADD_BLOCK_QUICK.map((q, i) => (
             <button
               key={i}
               onMouseDown={e => { e.preventDefault(); insert(q); }}
@@ -581,9 +614,10 @@ function AddBlockButton({ block }) {
               </span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 
