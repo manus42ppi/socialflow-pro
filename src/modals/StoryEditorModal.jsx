@@ -518,48 +518,54 @@ const ADD_BLOCK_QUICK = [
 
 // Mounted once at StoryEditorModal root — survives SideMenu mount/unmount cycles.
 function GlobalAddBlockMenu() {
-  const [menuState, setMenuState] = useState(null); // null | { top, left, targetBlock, editor }
+  // pos controls visibility; editor + block live in refs so insert()
+  // always reads the latest values regardless of closure timing.
+  const [pos, setPos]       = useState(null); // null | { top, left }
+  const editorRef           = useRef(null);
+  const targetBlockRef      = useRef(null);
 
   useEffect(() => {
-    ADD_BLOCK_BUS.open  = (state) => setMenuState(state);
-    ADD_BLOCK_BUS.close = ()      => setMenuState(null);
+    ADD_BLOCK_BUS.open = ({ top, left, targetBlock, editor }) => {
+      editorRef.current      = editor;
+      targetBlockRef.current = targetBlock;
+      setPos({ top, left });
+    };
+    ADD_BLOCK_BUS.close = () => setPos(null);
     return () => { ADD_BLOCK_BUS.open = null; ADD_BLOCK_BUS.close = null; };
   }, []);
 
   useEffect(() => {
-    if (!menuState) return;
-    const onKey = (e) => { if (e.key === "Escape") setMenuState(null); };
+    if (!pos) return;
+    const onKey = (e) => { if (e.key === "Escape") setPos(null); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [!!menuState]);
+  }, [!!pos]);
 
   const insert = (q) => {
-    if (!menuState?.targetBlock || !menuState?.editor) return;
+    const editor      = editorRef.current;
+    const targetBlock = targetBlockRef.current;
+    if (!editor || !targetBlock) return;
     try {
-      menuState.editor.insertBlocks(
-        [{ type: q.type, props: q.props }],
-        menuState.targetBlock,
-        "after"
-      );
-      menuState.editor.focus();
+      editor.insertBlocks([{ type: q.type, props: q.props }], targetBlock, "after");
+      editor.focus();
     } catch {}
-    setMenuState(null);
+    setPos(null);
   };
 
-  if (!menuState) return null;
+  if (!pos) return null;
 
   return createPortal(
     <>
       {/* Full-screen overlay — clicking outside closes the menu */}
       <div
         style={{ position: "fixed", inset: 0, zIndex: 99998 }}
-        onMouseDown={() => setMenuState(null)}
+        onMouseDown={() => setPos(null)}
       />
       {/* Dropdown menu — above the overlay */}
       <div style={{
         position: "fixed",
-        top: menuState.top,
-        left: menuState.left,
+        top: pos.top,
+        left: pos.left,
         transform: "translateY(-50%)",
         zIndex: 99999,
         background: "#fff",
@@ -573,7 +579,7 @@ function GlobalAddBlockMenu() {
         {ADD_BLOCK_QUICK.map((q, i) => (
           <button
             key={i}
-            onMouseDown={e => { e.preventDefault(); insert(q); }}
+            onClick={() => insert(q)}
             style={{
               width: "100%", display: "flex", alignItems: "center", gap: 8,
               padding: "5px 8px", borderRadius: 6, border: "none",
