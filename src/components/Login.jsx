@@ -156,7 +156,7 @@ export default function Login({ onLogin }) {
             © 2026 SocialFlow Pro
           </div>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,.22)", fontFamily: "monospace", letterSpacing: ".03em" }}>
-            build {__BUILD_NUMBER__} · {__BUILD_SHA__}
+            v1.0.{__BUILD_NUMBER__}
           </div>
         </div>
       </div>

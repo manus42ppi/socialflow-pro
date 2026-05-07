@@ -191,7 +191,7 @@ export default function Sidebar() {
                 fontSize: 9, color: T.gray400, letterSpacing: ".02em",
                 fontWeight: 500, whiteSpace: "nowrap", lineHeight: 1,
               }}>
-                build {__BUILD_NUMBER__} · {__BUILD_SHA__}
+                v1.0.{__BUILD_NUMBER__}
               </span>
             </div>
           </div>
