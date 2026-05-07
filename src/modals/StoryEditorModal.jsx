@@ -509,14 +509,14 @@ const SLASH_ORDER = [
 const ADD_BLOCK_BUS = { open: null, close: null };
 
 const ADD_BLOCK_QUICK = [
-  { type:"paragraph",        props:{},          icon:"¶",  label:"Text"          },
+  { type:"paragraph",        props:null,        icon:"¶",  label:"Text"          },
   { type:"heading",          props:{level:1},   icon:"H1", label:"Überschrift 1" },
   { type:"heading",          props:{level:2},   icon:"H2", label:"Überschrift 2" },
   { type:"heading",          props:{level:3},   icon:"H3", label:"Überschrift 3" },
-  { type:"bulletListItem",   props:{},          icon:"•",  label:"Aufzählung"    },
-  { type:"numberedListItem", props:{},          icon:"1.", label:"Nummeriert"    },
-  { type:"checkListItem",    props:{},          icon:"☐",  label:"Aufgabe"       },
-  { type:"image",            props:{},          icon:"🖼", label:"Bild"          },
+  { type:"bulletListItem",   props:null,        icon:"•",  label:"Aufzählung"    },
+  { type:"numberedListItem", props:null,        icon:"1.", label:"Nummeriert"    },
+  { type:"checkListItem",    props:null,        icon:"☐",  label:"Aufgabe"       },
+  { type:"image",            props:null,        icon:"🖼", label:"Bild"          },
 ];
 
 // Mounted once at StoryEditorModal root — outlives BlockNote's SideMenu.
@@ -543,9 +543,11 @@ function GlobalAddBlockMenu() {
 
   if (!pos) return null;
 
-  const handleSelect = (q) => {
+  const handleSelect = (type, props) => {
+    // Insert FIRST (synchronous, before any React re-render),
+    // then close the menu.
+    if (onInsertRef.current) onInsertRef.current(type, props);
     setPos(null);
-    if (onInsertRef.current) onInsertRef.current(q.type, q.props);
   };
 
   return createPortal(
@@ -563,7 +565,7 @@ function GlobalAddBlockMenu() {
       }}>
         {ADD_BLOCK_QUICK.map((q, i) => (
           <button key={i}
-            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); handleSelect(q); }}
+            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); handleSelect(q.type, q.props); }}
             style={{
               width:"100%", display:"flex", alignItems:"center", gap:8,
               padding:"5px 8px", borderRadius:6, border:"none",
@@ -605,9 +607,19 @@ function AddBlockButton({ block }) {
       // Closure captures editor + block — valid even after SideMenu unmounts.
       // insertBlocks() returns the new block; setTextCursorPosition() moves cursor.
       onInsert: (type, props) => {
-        const [newBlock] = editor.insertBlocks([{ type, props }], block, "after");
-        if (newBlock) editor.setTextCursorPosition(newBlock, "end");
-        editor.focus();
+        try {
+          // Build block spec — only include props when non-null
+          const spec = props ? { type, props } : { type };
+          const inserted = editor.insertBlocks([spec], block.id, "after");
+          const nb = inserted?.[0];
+          // setTextCursorPosition only works on blocks with text content
+          if (nb && nb.content !== undefined) {
+            try { editor.setTextCursorPosition(nb, "end"); } catch {}
+          }
+          editor.focus();
+        } catch (err) {
+          console.error("[AddBlock] insertBlocks error:", err, { type, props, blockId: block.id });
+        }
       },
     });
   };
