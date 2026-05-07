@@ -15,22 +15,43 @@
 | KV-Store | Cloudflare KV | `/store` → Clerk-JWT geschützt, Demo-User: kein KV |
 | Backend-Fns | `functions/` | Cloudflare Pages Functions (ig-monitor, instagram, store, ai, rss) |
 | Live | https://socialflow-pro.pages.dev | Cloudflare Pages, auto-deploy bei Push auf `main` |
-| Repo | https://github.com/manus42ppi/socialflow-pro | Branch: `main` |
+| Preview | https://develop.socialflow-pro.pages.dev | Auto-deploy bei Push auf `develop` |
+| Repo | https://github.com/manus42ppi/socialflow-pro | Arbeits-Branch: `develop` |
+
+### Branch-Strategie (WICHTIG — Cloudflare Build-Quota schonen)
+```
+develop  →  Preview-URL (develop.socialflow-pro.pages.dev)  – hier wird gearbeitet
+main     →  Produktion  (socialflow-pro.pages.dev)          – nur bei bewusstem Release
+```
+
+**Claude Code arbeitet IMMER auf `develop`, NIEMALS direkt auf `main`.**
+Merge zu `main` nur wenn der User explizit "jetzt deployen" oder "release" sagt.
 
 ### Dev-Workflow
 ```bash
+# Aktuellen Branch prüfen — muss immer "develop" sein
+git branch --show-current
+
 # Dev-Server starten (npm nicht im PATH → direkt node)
 /usr/local/bin/node node_modules/vite/bin/vite.js
 
 # Build prüfen
 /usr/local/bin/node node_modules/vite/bin/vite.js build
 
-# Tests ausführen (116 Tests, alle grün)
+# Tests ausführen
 node node_modules/.bin/vitest run
 
-# Push → Cloudflare deployed automatisch (~30 Sek)
-git push origin main
+# Normale Arbeit: auf develop pushen → Preview-URL
+git push origin develop
+
+# Release auf Produktion: develop → main mergen (nur auf explizite Anfrage!)
+git checkout main && git merge develop && git push origin main && git checkout develop
 ```
+
+### Commit-Strategie
+- WIP-Commits die KEINEN Cloudflare-Build brauchen: `[skip ci]` ans Ende der Message
+- Normale Feature-Commits auf develop: bauen die Preview-URL (1 Build)
+- Release auf main: 1 weiterer Build für Produktion
 
 ### Demo-Login im Preview (React Events funktionieren nicht nativ)
 ```js
