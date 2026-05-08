@@ -17,7 +17,7 @@ import { createPortal } from "react-dom"; // still used by MediaLibraryFilePanel
 import {
   X, Save, Check, Link as LinkIcon, StickyNote,
   Trash2, Wand2, Loader, Image as ImageIcon,
-  ChevronLeft, AlignLeft, Eye, Clock,
+  ChevronLeft, ChevronDown, AlignLeft, Eye, Clock,
   TrendingUp, TrendingDown, Minus,
   BarChart2, Hash, Tag, RefreshCw, Globe, ExternalLink,
 } from "lucide-react";
@@ -1033,6 +1033,44 @@ function UnifiedFormattingToolbar() {
   );
 }
 
+// ── ACCORDION SECTION (right sidebar) ─────────────────────────────────────────
+function AccSection({ label, badge, badgeWarn, isOpen, onToggle, children }) {
+  return (
+    <div style={{ borderBottom: `1px solid ${T.gray100}` }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%", display: "flex", alignItems: "center",
+          padding: "9px 14px", border: "none", cursor: "pointer",
+          background: "transparent", gap: 6, fontFamily: FONT, boxSizing: "border-box",
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = T.gray50}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      >
+        <span style={{ flex: 1, fontSize: 9.5, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", textAlign: "left" }}>
+          {label}
+        </span>
+        {badge != null && (
+          <span style={{
+            background: badgeWarn ? T.error600 : T.gray200,
+            color: badgeWarn ? T.white : T.gray500,
+            borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px", flexShrink: 0,
+          }}>{badge}</span>
+        )}
+        <ChevronDown
+          size={11} strokeWidth={2.5} color={T.gray400}
+          style={{ transition: "transform .18s", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}
+        />
+      </button>
+      {isOpen && (
+        <div style={{ padding: "0 14px 12px" }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function StoryEditorModal() {
   const { edStory: story, items, posts, saveStory: onSave, updateStory, lockStory, unlockStory, setEdStory, setPosts, user } = useApp();
@@ -1066,7 +1104,19 @@ export default function StoryEditorModal() {
     webUpdatedAt: story.webUpdatedAt || null,
   });
 
-  const [rightTab, setRightTab] = useState("materials");
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("story_panel_collapsed") || "{}"); }
+    catch { return {}; }
+  });
+  const toggleSection = (id) => {
+    setCollapsed(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      try { localStorage.setItem("story_panel_collapsed", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  // defaultOpen: true means open unless the user explicitly collapsed it
+  const sOpen = (id, def = true) => collapsed[id] === undefined ? def : !collapsed[id];
   const [commentInput, setCommentInput] = useState("");
   const [lastSaved, setLastSaved] = useState(null);
   const [hasUnsaved, setHasUnsaved] = useState(false);
@@ -1354,7 +1404,7 @@ export default function StoryEditorModal() {
     const f = formRef.current;
 
     setDeriving(prev => ({ ...prev, [chId]: true }));
-    setRightTab("derivatives");
+    setCollapsed(prev => ({ ...prev, derivatives: false })); // open accordion
 
     let content = storyText;
     try {
@@ -2062,11 +2112,11 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               )}
             </div>
 
-            {/* ── Metadata: Status, Kategorie, Kanäle, Tags ────────────── */}
-            <div style={{ padding: "12px 14px", borderBottom: `1px solid ${T.gray100}`, display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, background: T.white }}>
-              {/* Status */}
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Status</div>
+            {/* ── Scrollable accordion sections ─────────────────────────── */}
+            <div style={{ flex: 1, overflowY: "auto" }}>
+
+              {/* STATUS */}
+              <AccSection label="Status" isOpen={sOpen("status")} onToggle={() => toggleSection("status")}>
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                   {STATUSES.map(s => {
                     const on = form.status === s.id;
@@ -2085,306 +2135,250 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                     );
                   })}
                 </div>
-              </div>
-              {/* Kategorie */}
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Kategorie</div>
+              </AccSection>
+
+              {/* KATEGORIE */}
+              <AccSection label="Kategorie" isOpen={sOpen("kategorie")} onToggle={() => toggleSection("kategorie")}>
                 <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  style={{ width: "100%", padding: "4px 6px", borderRadius: 6, border: `1px solid ${T.gray200}`, background: T.white, color: form.category ? T.gray700 : T.gray400, fontSize: 11, fontFamily: FONT, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
+                  style={{ width: "100%", padding: "5px 7px", borderRadius: 6, border: `1px solid ${T.gray200}`, background: T.white, color: form.category ? T.gray700 : T.gray400, fontSize: 11, fontFamily: FONT, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
                   {CATS.map(c => <option key={c} value={c}>{c || "Keine Kategorie"}</option>)}
                 </select>
-              </div>
-              {/* Ziel-Kanäle */}
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Ziel-Kanäle</div>
+              </AccSection>
+
+              {/* ZIEL-KANÄLE */}
+              <AccSection label="Ziel-Kanäle" isOpen={sOpen("kanale")} onToggle={() => toggleSection("kanale")}>
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                   {STORY_CHANNELS.map(ch => {
                     const active = form.targetChannels.includes(ch.id);
                     return (
                       <button key={ch.id} onClick={() => toggleChannel(ch.id)} title={ch.label}
                         style={{
-                          width: 26, height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+                          width: 28, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
                           border: `1.5px solid ${active ? ch.color + "66" : T.gray200}`,
                           background: active ? ch.color + "14" : "transparent",
                           cursor: "pointer", transition: "all .12s",
                         }}>
-                        <ChIco id={ch.id} size={13} color={active ? ch.color : T.gray400} />
+                        <ChIco id={ch.id} size={14} color={active ? ch.color : T.gray400} />
                       </button>
                     );
                   })}
                 </div>
-              </div>
-              {/* Tags */}
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Tags</div>
+              </AccSection>
+
+              {/* TAGS */}
+              <AccSection label="Tags" isOpen={sOpen("tags")} onToggle={() => toggleSection("tags")}>
                 <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
                   placeholder="tag1, tag2, tag3…"
-                  style={{ width: "100%", padding: "4px 8px", borderRadius: 6, border: `1px solid ${T.gray200}`, background: T.white, color: T.gray700, fontSize: 11, fontFamily: FONT, outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "5px 8px", borderRadius: 6, border: `1px solid ${T.gray200}`, background: T.white, color: T.gray700, fontSize: 11, fontFamily: FONT, outline: "none", boxSizing: "border-box" }}
                 />
-              </div>
-            </div>
-            {/* Tab bar */}
-            <div style={{ display: "flex", borderBottom: `1px solid ${T.gray100}`, flexShrink: 0, background: T.white }}>
-              {[
-                ["materials",   "Material",   form.materials.length],
-                ["derivatives", "Ableit.",    form.derivatives.length],
-                ["seo",         "SEO",        seoScore < 50 ? "!" : 0],
-                ["comments",    "Komm.",      (form.comments||[]).filter(c=>!c.resolved).length],
-                ["history",     "Verlauf",    0],
-              ].map(([id, label, count]) => (
-                <button key={id} onClick={() => setRightTab(id)}
-                  style={{
-                    flex: 1, padding: "10px 2px", border: "none", cursor: "pointer",
-                    background: rightTab === id ? T.gray50 : "transparent",
-                    borderBottom: rightTab === id ? `2px solid ${T.brand600}` : "2px solid transparent",
-                    color: rightTab === id ? T.brand600 : T.gray400,
-                    fontFamily: FONT, fontSize: 10.5, fontWeight: rightTab === id ? 700 : 500,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
-                    transition: "color .12s",
-                  }}>
-                  {label}
-                  {count && count !== 0 && (
-                    <span style={{
-                      background: id === "seo"
-                        ? (rightTab === id ? T.brand600 : T.error600)
-                        : (rightTab === id ? T.brand600 : T.gray200),
-                      color: rightTab === id || id === "seo" ? T.white : T.gray500,
-                      borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px",
-                    }}>{count}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab content */}
-            <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
-
-              {/* ── MATERIALIEN TAB ──────────────────────────────────── */}
-              {rightTab === "materials" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <p style={{ margin: 0, fontSize: 11, color: C.textMute, fontFamily: FONT, lineHeight: 1.5 }}>
-                    Sammle Links, Notizen und Bilder zu dieser Story.
-                  </p>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {addingLink ? (
-                      <div style={{ background: C.bg, border: `1px solid ${C.accent}44`, borderRadius: 9, padding: 12 }}>
-                        <input
-                          autoFocus
-                          value={linkInput}
-                          onChange={e => setLinkInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter") addLink(); if (e.key === "Escape") setAddingLink(false); }}
-                          placeholder="https://…"
-                          style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 6 }}
-                        />
-                        <input
-                          value={linkTitle}
-                          onChange={e => setLinkTitle(e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter") addLink(); }}
-                          placeholder="Titel (optional)"
-                          style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 8 }}
-                        />
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={addLink} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Hinzufügen</button>
-                          <button onClick={() => { setAddingLink(false); setLinkInput(""); setLinkTitle(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button onClick={() => setAddingLink(true)}
-                        style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", borderRadius: 7, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
-                        <LinkIcon size={12} strokeWidth={IW} /> Link hinzufügen
-                      </button>
-                    )}
-
-                    {addingNote ? (
-                      <div style={{ background: C.bg, border: `1px solid #F59E0B44`, borderRadius: 9, padding: 12 }}>
-                        <textarea
-                          autoFocus
-                          value={noteInput}
-                          onChange={e => setNoteInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter" && e.metaKey) addNote(); if (e.key === "Escape") setAddingNote(false); }}
-                          placeholder="Notiz, Idee oder Quellenangabe…"
-                          rows={3}
-                          style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", resize: "none", marginBottom: 8 }}
-                        />
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={addNote} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: "#F59E0B", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Speichern</button>
-                          <button onClick={() => { setAddingNote(false); setNoteInput(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button onClick={() => setAddingNote(true)}
-                        style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", borderRadius: 7, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
-                        <StickyNote size={12} strokeWidth={IW} /> Notiz hinzufügen
-                      </button>
-                    )}
-
-                    <button onClick={() => setShowImagePicker(true)}
-                      style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", borderRadius: 7, border: `1px dashed ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
-                      <ImageIcon size={12} strokeWidth={IW} /> Bild hinzufügen
-                    </button>
+                {form.tags && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                    {form.tags.split(",").map(t => t.trim()).filter(Boolean).map((t, i) => (
+                      <span key={i} style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 10, background: T.brand50, color: T.brand600, fontFamily: FONT, fontWeight: 600 }}>{t}</span>
+                    ))}
                   </div>
+                )}
+              </AccSection>
 
-                  {form.materials.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "12px 0", color: C.textMute, fontSize: 11, fontFamily: FONT }}>
-                      Noch keine Materialien gesammelt.
+              {/* MATERIALIEN */}
+              <AccSection
+                label="Materialien"
+                badge={form.materials.length > 0 ? form.materials.length : null}
+                isOpen={sOpen("materials")}
+                onToggle={() => toggleSection("materials")}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {addingLink ? (
+                    <div style={{ background: T.gray50, border: `1px solid ${T.brand200}`, borderRadius: 9, padding: 12 }}>
+                      <input autoFocus value={linkInput}
+                        onChange={e => setLinkInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") addLink(); if (e.key === "Escape") setAddingLink(false); }}
+                        placeholder="https://…"
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${T.gray200}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 6 }}
+                      />
+                      <input value={linkTitle}
+                        onChange={e => setLinkTitle(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") addLink(); }}
+                        placeholder="Titel (optional)"
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${T.gray200}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 8 }}
+                      />
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={addLink} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: T.brand600, color: T.white, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Hinzufügen</button>
+                        <button onClick={() => { setAddingLink(false); setLinkInput(""); setLinkTitle(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${T.gray200}`, background: "transparent", color: T.gray500, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
+                      </div>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {form.materials.map(mat => (
-                        <MaterialCard key={mat.id} mat={mat} onRemove={removeMaterial} />
-                      ))}
+                    <button onClick={() => setAddingLink(true)}
+                      style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", borderRadius: 7, border: `1px dashed ${T.gray200}`, background: "transparent", color: T.gray500, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
+                      <LinkIcon size={12} strokeWidth={IW} /> Link hinzufügen
+                    </button>
+                  )}
+                  {addingNote ? (
+                    <div style={{ background: T.gray50, border: `1px solid #F59E0B44`, borderRadius: 9, padding: 12 }}>
+                      <textarea autoFocus value={noteInput}
+                        onChange={e => setNoteInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter" && e.metaKey) addNote(); if (e.key === "Escape") setAddingNote(false); }}
+                        placeholder="Notiz, Idee oder Quellenangabe…"
+                        rows={3}
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${T.gray200}`, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box", resize: "none", marginBottom: 8 }}
+                      />
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={addNote} style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", background: "#F59E0B", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: FONT }}>Speichern</button>
+                        <button onClick={() => { setAddingNote(false); setNoteInput(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${T.gray200}`, background: "transparent", color: T.gray500, cursor: "pointer", fontSize: 12, fontFamily: FONT }}>Abbrechen</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => setAddingNote(true)}
+                      style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", borderRadius: 7, border: `1px dashed ${T.gray200}`, background: "transparent", color: T.gray500, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
+                      <StickyNote size={12} strokeWidth={IW} /> Notiz hinzufügen
+                    </button>
+                  )}
+                  <button onClick={() => setShowImagePicker(true)}
+                    style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", borderRadius: 7, border: `1px dashed ${T.gray200}`, background: "transparent", color: T.gray500, cursor: "pointer", fontSize: 12, fontFamily: FONT, width: "100%" }}>
+                    <ImageIcon size={12} strokeWidth={IW} /> Bild hinzufügen
+                  </button>
+                  {form.materials.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "4px 0 2px", color: T.gray400, fontSize: 11, fontFamily: FONT }}>Noch keine Materialien.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+                      {form.materials.map(mat => <MaterialCard key={mat.id} mat={mat} onRemove={removeMaterial} />)}
                     </div>
                   )}
                 </div>
-              )}
+              </AccSection>
 
-              {/* ── ABLEITUNGEN TAB ──────────────────────────────────── */}
-              {rightTab === "derivatives" && (
+              {/* ABLEITUNGEN */}
+              <AccSection
+                label="Ableitungen"
+                badge={form.derivatives.length > 0 ? form.derivatives.length : null}
+                isOpen={sOpen("derivatives", false)}
+                onToggle={() => toggleSection("derivatives")}
+              >
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <p style={{ margin: "0 0 8px", fontSize: 11, color: C.textMute, fontFamily: FONT, lineHeight: 1.5 }}>
-                    KI erstellt kanalspezifische Entwürfe aus dieser Story.
-                    {!hasContent && <span style={{ color: "#F59E0B" }}> Schreibe zuerst Inhalt.</span>}
-                  </p>
-
+                  {!hasContent && (
+                    <p style={{ margin: "0 0 6px", fontSize: 11, color: "#F59E0B", fontFamily: FONT, lineHeight: 1.5 }}>
+                      Schreibe zuerst Inhalt im Editor.
+                    </p>
+                  )}
                   {(form.targetChannels.length > 0
                     ? STORY_CHANNELS.filter(c => form.targetChannels.includes(c.id))
                     : STORY_CHANNELS
                   ).map(ch => {
                     const derivative = form.derivatives.find(d => d.channel === ch.id);
                     return (
-                      <DerivativeRow
-                        key={ch.id}
-                        channel={ch}
-                        derivative={derivative}
-                        onCreate={createDerivative}
-                        hasContent={hasContent}
-                        loading={!!deriving[ch.id]}
-                      />
+                      <DerivativeRow key={ch.id} channel={ch} derivative={derivative}
+                        onCreate={createDerivative} hasContent={hasContent} loading={!!deriving[ch.id]} />
                     );
                   })}
-
                   {form.targetChannels.length === 0 && (
-                    <p style={{ margin: "8px 0 0", fontSize: 10, color: C.textMute, fontFamily: FONT, textAlign: "center" }}>
-                      Wähle Ziel-Kanäle in der Sidebar um die Auswahl einzugrenzen.
+                    <p style={{ margin: "6px 0 0", fontSize: 10, color: T.gray400, fontFamily: FONT, textAlign: "center" }}>
+                      Wähle Ziel-Kanäle um die Auswahl einzugrenzen.
                     </p>
                   )}
                 </div>
-              )}
+              </AccSection>
 
-              {/* ── SEO TAB ──────────────────────────────────────────── */}
-              {rightTab === "seo" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-                  {/* SEO Score */}
-                  <div style={{ background: C.bg, borderRadius: 10, padding: "12px 14px", border: `1px solid ${C.border}` }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
+              {/* SEO */}
+              <AccSection
+                label="SEO"
+                badge={seoScore < 50 ? "!" : seoScore}
+                badgeWarn={seoScore < 50}
+                isOpen={sOpen("seo")}
+                onToggle={() => toggleSection("seo")}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {/* Score card */}
+                  <div style={{ background: T.gray50, borderRadius: 8, padding: "10px 12px", border: `1px solid ${T.gray100}` }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: T.gray700, fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
                         <BarChart2 size={13} strokeWidth={IW} color={seoColor} /> SEO-Score
                       </span>
                       <span style={{ fontSize: 20, fontWeight: 800, color: seoColor, fontFamily: FONT }}>{seoScore}</span>
                     </div>
-                    <div style={{ height: 6, background: C.borderLight, borderRadius: 10, overflow: "hidden" }}>
+                    <div style={{ height: 5, background: T.gray100, borderRadius: 10, overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${seoScore}%`, background: seoColor, borderRadius: 10, transition: "width .4s" }} />
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 10 }}>
                       {(seoResult?.checks || []).map((chk, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-                          <span style={{ flexShrink: 0, marginTop: 1, fontSize: 10, color: chk.ok ? "#10B981" : "#EF4444", fontWeight: 800 }}>
-                            {chk.ok ? "✓" : "✗"}
-                          </span>
-                          <span style={{ fontSize: 10.5, color: chk.ok ? C.textMid : C.text, fontFamily: FONT, lineHeight: 1.4 }}>{chk.label}</span>
+                          <span style={{ flexShrink: 0, marginTop: 1, fontSize: 10, color: chk.ok ? "#10B981" : "#EF4444", fontWeight: 800 }}>{chk.ok ? "✓" : "✗"}</span>
+                          <span style={{ fontSize: 10.5, color: T.gray600, fontFamily: FONT, lineHeight: 1.4 }}>{chk.label}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-
-                  {/* Focus Keyword */}
+                  {/* Focus keyword */}
                   <div>
-                    <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Focus-Keyword</div>
-                    <input
-                      value={form.seoKeyword}
-                      onChange={e => setForm(f => ({ ...f, seoKeyword: e.target.value }))}
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Focus-Keyword</div>
+                    <input value={form.seoKeyword} onChange={e => setForm(f => ({ ...f, seoKeyword: e.target.value }))}
                       placeholder="z.B. social media strategie"
-                      style={{ width: "100%", boxSizing: "border-box", padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, fontFamily: FONT, outline: "none" }}
+                      style={{ width: "100%", boxSizing: "border-box", padding: "6px 9px", borderRadius: 7, border: `1px solid ${T.gray200}`, background: T.white, color: T.gray700, fontSize: 12, fontFamily: FONT, outline: "none" }}
                     />
-                    <div style={{ fontSize: 10, color: C.textMute, marginTop: 3, fontFamily: FONT }}>Keyword, für das du ranken möchtest.</div>
+                    <div style={{ fontSize: 10, color: T.gray400, marginTop: 3, fontFamily: FONT }}>Keyword, für das du ranken möchtest.</div>
                   </div>
-
                   {/* Readability */}
                   {readability && (
-                    <div style={{ background: C.bg, borderRadius: 10, padding: "12px 14px", border: `1px solid ${C.border}` }}>
+                    <div style={{ background: T.gray50, borderRadius: 8, padding: "10px 12px", border: `1px solid ${T.gray100}` }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT }}>Lesbarkeit</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: T.gray700, fontFamily: FONT }}>Lesbarkeit</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: readability.color, fontFamily: FONT }}>{readability.level}</span>
                       </div>
-                      <div style={{ height: 5, background: C.borderLight, borderRadius: 10, overflow: "hidden", marginBottom: 9 }}>
+                      <div style={{ height: 5, background: T.gray100, borderRadius: 10, overflow: "hidden", marginBottom: 9 }}>
                         <div style={{ height: "100%", width: `${readability.fre}%`, background: readability.color, borderRadius: 10, transition: "width .4s" }} />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                         {[
                           [`Flesch-Score: ${readability.fre}/100`, readability.fre >= 40],
-                          [`Ø Satzlänge: ${readability.asl} Wörter ${readability.asl > 20 ? "⚠ zu lang" : ""}`, readability.asl <= 20],
+                          [`Ø Satzlänge: ${readability.asl} Wörter${readability.asl > 20 ? " ⚠ zu lang" : ""}`, readability.asl <= 20],
                           [`Ø Wortlänge: ${readability.acw} Zeichen`, readability.acw <= 7],
                           [`Lange Sätze (>25 W.): ${readability.longSentences}`, readability.longSentences === 0],
-                        ].map(([label, ok], i) => (
+                        ].map(([lbl, ok], i) => (
                           <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                             <span style={{ fontSize: 10, color: ok ? "#10B981" : "#F59E0B", fontWeight: 800, flexShrink: 0 }}>{ok ? "✓" : "!"}</span>
-                            <span style={{ fontSize: 10.5, color: C.textMid, fontFamily: FONT }}>{label}</span>
+                            <span style={{ fontSize: 10.5, color: T.gray600, fontFamily: FONT }}>{lbl}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-
-                  {/* Auto-Tags */}
+                  {/* Tags */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
-                      <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
                         <Tag size={10} strokeWidth={2} /> Tags
                       </div>
                       <button onClick={generateTags} disabled={tagsLoading || !hasContent}
-                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.accent}44`, background: "transparent", color: C.accent, fontSize: 10.5, fontWeight: 600, cursor: hasContent ? "pointer" : "default", opacity: hasContent ? 1 : 0.4, fontFamily: FONT }}>
-                        {tagsLoading ? <Loader size={10} style={{ animation: "spin 1s linear infinite" }} /> : <RefreshCw size={10} strokeWidth={2} />}
-                        KI-Tags
+                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: `1px solid ${T.brand200}`, background: "transparent", color: T.brand600, fontSize: 10.5, fontWeight: 600, cursor: hasContent ? "pointer" : "default", opacity: hasContent ? 1 : 0.4, fontFamily: FONT }}>
+                        {tagsLoading ? <Loader size={10} style={{ animation: "spin 1s linear infinite" }} /> : <RefreshCw size={10} strokeWidth={2} />} KI-Tags
                       </button>
                     </div>
-                    <input
-                      value={form.tags}
-                      onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+                    <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
                       placeholder="tag1, tag2, tag3…"
-                      style={{ width: "100%", boxSizing: "border-box", padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, fontFamily: FONT, outline: "none" }}
+                      style={{ width: "100%", boxSizing: "border-box", padding: "6px 9px", borderRadius: 7, border: `1px solid ${T.gray200}`, background: T.white, color: T.gray700, fontSize: 12, fontFamily: FONT, outline: "none" }}
                     />
-                    {/* Tag pills */}
                     {form.tags && (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
                         {form.tags.split(",").map(t => t.trim()).filter(Boolean).map((t, i) => (
-                          <span key={i} style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 10, background: C.accentLight, color: C.accent, fontFamily: FONT, fontWeight: 600 }}>{t}</span>
+                          <span key={i} style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 10, background: T.brand50, color: T.brand600, fontFamily: FONT, fontWeight: 600 }}>{t}</span>
                         ))}
                       </div>
                     )}
                   </div>
-
                   {/* Hashtags */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
-                      <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
                         <Hash size={10} strokeWidth={2} /> Hashtags
                       </div>
                       <button onClick={generateHashtags} disabled={hashtagLoading || !hasContent}
-                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.accent}44`, background: "transparent", color: C.accent, fontSize: 10.5, fontWeight: 600, cursor: hasContent ? "pointer" : "default", opacity: hasContent ? 1 : 0.4, fontFamily: FONT }}>
-                        {hashtagLoading ? <Loader size={10} style={{ animation: "spin 1s linear infinite" }} /> : <RefreshCw size={10} strokeWidth={2} />}
-                        Vorschläge
+                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: `1px solid ${T.brand200}`, background: "transparent", color: T.brand600, fontSize: 10.5, fontWeight: 600, cursor: hasContent ? "pointer" : "default", opacity: hasContent ? 1 : 0.4, fontFamily: FONT }}>
+                        {hashtagLoading ? <Loader size={10} style={{ animation: "spin 1s linear infinite" }} /> : <RefreshCw size={10} strokeWidth={2} />} Vorschläge
                       </button>
                     </div>
-                    <textarea
-                      value={form.hashtags}
-                      onChange={e => setForm(f => ({ ...f, hashtags: e.target.value }))}
-                      placeholder="#social #marketing …"
-                      rows={3}
-                      style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, fontFamily: FONT, outline: "none" }}
+                    <textarea value={form.hashtags} onChange={e => setForm(f => ({ ...f, hashtags: e.target.value }))}
+                      placeholder="#social #marketing …" rows={3}
+                      style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "6px 9px", borderRadius: 7, border: `1px solid ${T.gray200}`, background: T.white, color: T.gray700, fontSize: 12, fontFamily: FONT, outline: "none" }}
                     />
-                    {/* Hashtag pills */}
                     {form.hashtags && (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
                         {form.hashtags.split(/[\s,]+/).map(h => h.trim()).filter(h => h.startsWith("#")).map((h, i) => (
@@ -2393,40 +2387,29 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                       </div>
                     )}
                   </div>
-
                   {/* Meta (Web) */}
-                  <div style={{ background: C.bg, borderRadius: 10, padding: "12px 14px", border: `1px solid ${C.border}` }}>
-                    <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>Meta (Web)</div>
+                  <div style={{ background: T.gray50, borderRadius: 8, padding: "10px 12px", border: `1px solid ${T.gray100}` }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>Meta (Web)</div>
                     <div style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.textMid, fontFamily: FONT, marginBottom: 4 }}>SEO-Titel</div>
-                      <input
-                        value={form.metaTitle}
-                        onChange={e => setForm(f => ({ ...f, metaTitle: e.target.value }))}
-                        placeholder={form.title || "Seitentitel für Google…"}
-                        maxLength={70}
-                        style={{ width: "100%", boxSizing: "border-box", padding: "6px 10px", borderRadius: 6, border: `1px solid ${(form.metaTitle||form.title||"").length > 60 ? "#EF4444" : C.border}`, background: C.surface, color: C.text, fontSize: 11.5, fontFamily: FONT, outline: "none" }}
+                      <div style={{ fontSize: 10.5, fontWeight: 600, color: T.gray600, fontFamily: FONT, marginBottom: 4 }}>SEO-Titel</div>
+                      <input value={form.metaTitle} onChange={e => setForm(f => ({ ...f, metaTitle: e.target.value }))}
+                        placeholder={form.title || "Seitentitel für Google…"} maxLength={70}
+                        style={{ width: "100%", boxSizing: "border-box", padding: "6px 9px", borderRadius: 6, border: `1px solid ${(form.metaTitle||form.title||"").length > 60 ? "#EF4444" : T.gray200}`, background: T.white, color: T.gray700, fontSize: 11.5, fontFamily: FONT, outline: "none" }}
                       />
-                      <div style={{ fontSize: 9.5, color: (form.metaTitle||form.title||"").length > 60 ? "#EF4444" : C.textMute, textAlign: "right", marginTop: 2, fontFamily: FONT }}>{(form.metaTitle||form.title||"").length}/70</div>
+                      <div style={{ fontSize: 9.5, color: (form.metaTitle||form.title||"").length > 60 ? "#EF4444" : T.gray400, textAlign: "right", marginTop: 2, fontFamily: FONT }}>{(form.metaTitle||form.title||"").length}/70</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.textMid, fontFamily: FONT, marginBottom: 4 }}>Meta-Beschreibung</div>
-                      <textarea
-                        value={form.metaDesc}
-                        onChange={e => setForm(f => ({ ...f, metaDesc: e.target.value }))}
-                        placeholder="Kurzbeschreibung für Suchergebnisse (50–160 Zeichen)…"
-                        rows={3}
-                        maxLength={160}
-                        style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "6px 10px", borderRadius: 6, border: `1px solid ${form.metaDesc && (form.metaDesc.length < 50 || form.metaDesc.length > 160) ? "#EF4444" : C.border}`, background: C.surface, color: C.text, fontSize: 11.5, fontFamily: FONT, outline: "none" }}
+                      <div style={{ fontSize: 10.5, fontWeight: 600, color: T.gray600, fontFamily: FONT, marginBottom: 4 }}>Meta-Beschreibung</div>
+                      <textarea value={form.metaDesc} onChange={e => setForm(f => ({ ...f, metaDesc: e.target.value }))}
+                        placeholder="Kurzbeschreibung für Suchergebnisse (50–160 Zeichen)…" rows={3} maxLength={160}
+                        style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "6px 9px", borderRadius: 6, border: `1px solid ${form.metaDesc && (form.metaDesc.length < 50 || form.metaDesc.length > 160) ? "#EF4444" : T.gray200}`, background: T.white, color: T.gray700, fontSize: 11.5, fontFamily: FONT, outline: "none" }}
                       />
-                      <div style={{ fontSize: 9.5, color: form.metaDesc && (form.metaDesc.length < 50 || form.metaDesc.length > 160) ? "#EF4444" : C.textMute, textAlign: "right", marginTop: 2, fontFamily: FONT }}>{(form.metaDesc||"").length}/160</div>
+                      <div style={{ fontSize: 9.5, color: form.metaDesc && (form.metaDesc.length < 50 || form.metaDesc.length > 160) ? "#EF4444" : T.gray400, textAlign: "right", marginTop: 2, fontFamily: FONT }}>{(form.metaDesc||"").length}/160</div>
                     </div>
-                    {/* Google preview */}
                     {(form.metaTitle || form.title) && (
-                      <div style={{ marginTop: 10, padding: "10px 12px", background: C.surface, borderRadius: 8, border: `1px solid ${C.borderLight}` }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Google-Vorschau</div>
-                        <div style={{ fontSize: 14, color: "#1a0dab", fontFamily: "Arial,sans-serif", lineHeight: 1.3, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {form.metaTitle || form.title}
-                        </div>
+                      <div style={{ marginTop: 10, padding: "10px 12px", background: T.white, borderRadius: 8, border: `1px solid ${T.gray100}` }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Google-Vorschau</div>
+                        <div style={{ fontSize: 14, color: "#1a0dab", fontFamily: "Arial,sans-serif", lineHeight: 1.3, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{form.metaTitle || form.title}</div>
                         <div style={{ fontSize: 11, color: "#006621", fontFamily: "Arial,sans-serif", marginBottom: 2 }}>socialflow-pro.pages.dev</div>
                         <div style={{ fontSize: 11.5, color: "#545454", fontFamily: "Arial,sans-serif", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                           {form.metaDesc || form.subtitle || "Keine Meta-Beschreibung gesetzt."}
@@ -2434,48 +2417,47 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                       </div>
                     )}
                   </div>
-
                 </div>
-              )}
+              </AccSection>
 
-              {/* ── KOMMENTARE TAB ────────────────────────────────────── */}
-              {rightTab === "comments" && (
+              {/* KOMMENTARE */}
+              <AccSection
+                label="Kommentare"
+                badge={(form.comments||[]).filter(c=>!c.resolved).length > 0 ? (form.comments||[]).filter(c=>!c.resolved).length : null}
+                isOpen={sOpen("comments", false)}
+                onToggle={() => toggleSection("comments")}
+              >
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {/* Input */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <textarea
-                      value={commentInput}
-                      onChange={e => setCommentInput(e.target.value)}
+                    <textarea value={commentInput} onChange={e => setCommentInput(e.target.value)}
                       onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); addComment(); } }}
-                      placeholder="Kommentar schreiben… (Cmd+Enter senden)"
-                      rows={3}
-                      style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: FONT, outline: "none", color: C.text }}
+                      placeholder="Kommentar schreiben… (Cmd+Enter senden)" rows={3}
+                      style={{ width: "100%", boxSizing: "border-box", resize: "none", padding: "8px 10px", borderRadius: 8, border: `1px solid ${T.gray200}`, fontSize: 12, fontFamily: FONT, outline: "none", color: T.gray700 }}
                     />
                     <button onClick={addComment} disabled={!commentInput.trim()}
-                      style={{ alignSelf: "flex-end", background: commentInput.trim() ? C.accent : C.border, border: "none", borderRadius: 6, color: "#fff", fontSize: 11, fontWeight: 700, padding: "5px 12px", cursor: commentInput.trim() ? "pointer" : "default", fontFamily: FONT }}>
+                      style={{ alignSelf: "flex-end", background: commentInput.trim() ? T.brand600 : T.gray200, border: "none", borderRadius: 6, color: commentInput.trim() ? T.white : T.gray400, fontSize: 11, fontWeight: 700, padding: "5px 12px", cursor: commentInput.trim() ? "pointer" : "default", fontFamily: FONT }}>
                       Senden
                     </button>
                   </div>
-                  {/* Comment list */}
                   {(form.comments || []).length === 0 ? (
-                    <p style={{ color: C.textMute, fontSize: 12, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Noch keine Kommentare.</p>
+                    <p style={{ color: T.gray400, fontSize: 12, fontFamily: FONT, textAlign: "center", padding: "4px 0" }}>Noch keine Kommentare.</p>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {[...(form.comments || [])].reverse().map(c => (
-                        <div key={c.id} style={{ background: c.resolved ? C.borderLight : C.bg, borderRadius: 8, padding: "8px 10px", opacity: c.resolved ? 0.5 : 1 }}>
+                        <div key={c.id} style={{ background: c.resolved ? T.gray50 : T.white, borderRadius: 8, padding: "8px 10px", opacity: c.resolved ? 0.55 : 1, border: `1px solid ${T.gray100}` }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                            <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.accent, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: "50%", background: T.brand600, color: T.white, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                               {(c.authorName || "?").slice(0, 2).toUpperCase()}
                             </div>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT }}>{c.authorName}</span>
-                            <span style={{ fontSize: 10, color: C.textMute, fontFamily: FONT, marginLeft: "auto" }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: T.gray800, fontFamily: FONT }}>{c.authorName}</span>
+                            <span style={{ fontSize: 10, color: T.gray400, fontFamily: FONT, marginLeft: "auto" }}>
                               {new Date(c.createdAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
-                          <p style={{ margin: "0 0 6px", fontSize: 12, color: C.text, fontFamily: FONT, lineHeight: 1.5 }}>{c.text}</p>
+                          <p style={{ margin: "0 0 6px", fontSize: 12, color: T.gray700, fontFamily: FONT, lineHeight: 1.5 }}>{c.text}</p>
                           {!c.resolved && (
                             <button onClick={() => resolveComment(c.id)}
-                              style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, color: C.textMute, fontSize: 10, fontWeight: 600, padding: "2px 8px", cursor: "pointer", fontFamily: FONT }}>
+                              style={{ background: "none", border: `1px solid ${T.gray200}`, borderRadius: 5, color: T.gray500, fontSize: 10, fontWeight: 600, padding: "2px 8px", cursor: "pointer", fontFamily: FONT }}>
                               Erledigt
                             </button>
                           )}
@@ -2484,27 +2466,26 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                     </div>
                   )}
                 </div>
-              )}
+              </AccSection>
 
-              {/* ── VERLAUF TAB ───────────────────────────────────────── */}
-              {rightTab === "history" && (
+              {/* VERLAUF */}
+              <AccSection label="Verlauf" isOpen={sOpen("history", false)} onToggle={() => toggleSection("history")}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {(form.history || []).length === 0 ? (
-                    <p style={{ color: C.textMute, fontSize: 12, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Noch keine gespeicherten Versionen.</p>
+                    <p style={{ color: T.gray400, fontSize: 12, fontFamily: FONT, textAlign: "center", padding: "4px 0" }}>Noch keine gespeicherten Versionen.</p>
                   ) : (
                     [...(form.history || [])].reverse().map((h, i) => (
-                      <div key={h.id} style={{ background: i === 0 ? C.accentLight : C.bg, borderRadius: 8, padding: "8px 10px", border: `1px solid ${i === 0 ? C.accent + "33" : C.border}` }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: i === 0 ? C.accent : C.text, fontFamily: FONT }}>
+                      <div key={h.id} style={{ background: i === 0 ? T.brand50 : T.gray50, borderRadius: 8, padding: "8px 10px", border: `1px solid ${i === 0 ? T.brand200 : T.gray100}` }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: i === 0 ? T.brand600 : T.gray700, fontFamily: FONT }}>
                           {new Date(h.savedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short" })} · {new Date(h.savedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
                         </div>
-                        <div style={{ fontSize: 11, color: C.textMute, fontFamily: FONT, marginTop: 2 }}>
-                          {h.savedBy} · {h.wordCount} Wörter
-                        </div>
+                        <div style={{ fontSize: 11, color: T.gray400, fontFamily: FONT, marginTop: 2 }}>{h.savedBy} · {h.wordCount} Wörter</div>
                       </div>
                     ))
                   )}
                 </div>
-              )}
+              </AccSection>
+
             </div>
           </div>
         </div>
