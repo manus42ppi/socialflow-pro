@@ -494,10 +494,22 @@ const SLASH_ORDER = [
   "Quote","Divider","Table","Code Block",
 ];
 
-// ── ADD BLOCK BUTTON — "+" in the side menu ──────────────────────────────
-// Strategy: insert an empty paragraph immediately, then show a custom
-// dropdown so the user can pick the block type. updateBlock() converts it.
-// All mousedown handlers call e.preventDefault() so the editor never blurs.
+// ── ADD BLOCK BUTTON + PICKER ─────────────────────────────────────────────
+// Architecture: AddBlockButton is a DUMB button. It reads the currently-hovered
+// block from the SideMenuExtension store and calls a module-level callback when
+// clicked. The actual picker UI lives in BlockPickerPortal, which is rendered at
+// the StoryEditorModal level — completely outside the SideMenu lifecycle.
+//
+// WHY: editor.insertBlocks() triggers a BlockNote re-render that causes the
+// SideMenuExtension to update its hovered block, which unmounts the old
+// AddBlockButton before React can render the picker portal. Moving picker state
+// to the modal level solves this entirely.
+//
+// TESTING LESSON: Never test by calling React fiber props directly
+// (__reactProps.onMouseDown). Always use real dispatchEvent or preview_click
+// to reproduce actual browser behavior, and verify state AFTER the editor
+// re-render settles (300–500ms timeout).
+
 const ADD_BLOCK_TYPES = [
   { type:"paragraph",        label:"Text",          icon:"¶"  },
   { type:"heading", lv:1,    label:"Überschrift 1", icon:"H1" },
@@ -508,121 +520,121 @@ const ADD_BLOCK_TYPES = [
   { type:"checkListItem",    label:"Aufgabe",       icon:"☐"  },
 ];
 
+// Module-level ref: set by BlockPickerPortal on mount so AddBlockButton can
+// call it without any shared React state (survives SideMenu unmount/remount).
+let _openBlockPicker = null;
+
 function AddBlockButton() {
   const editor = useBlockNoteEditor();
-  // Read the current hovered block from the SideMenuExtension store
-  // (SideMenuController passes no props to the sideMenu render fn — block lives in the store)
   const ext = editor.getExtension(SideMenuExtension);
+  // Read which block the SideMenu is currently anchored to from the extension store
   const block = useStore(ext.store, (s) => s?.block);
-
-  const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top:0, left:0 });
-  const [insertedBlock, setInsertedBlock] = useState(null);
   const btnRef = useRef(null);
-  const menuRef = useRef(null);
 
-  // Open / toggle the picker
   const handleBtnMouseDown = (e) => {
     e.preventDefault(); // keep editor focused
     e.stopPropagation();
-    if (!block) return; // extension store not ready yet
-    if (open) { setOpen(false); return; }
-    try {
-      const [nb] = editor.insertBlocks([{ type:"paragraph" }], block, "after");
-      if (!nb) return;
-      setInsertedBlock(nb);
-      editor.setTextCursorPosition(nb, "end");
-      editor.focus();
-      const rect = btnRef.current?.getBoundingClientRect();
-      if (rect) setMenuPos({ top: rect.bottom + 6, left: rect.left });
-      setOpen(true);
-    } catch (err) {
-      console.error("[AddBlock]", err);
-    }
+    if (!block || !_openBlockPicker) return;
+    const rect = btnRef.current?.getBoundingClientRect();
+    _openBlockPicker(block, rect); // delegate entirely to BlockPickerPortal
   };
 
-  // Select a block type from the picker
-  const handleItemMouseDown = (e, bt) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (insertedBlock) {
-      try {
-        const upd = { type: bt.type };
-        if (bt.lv) upd.props = { level: bt.lv };
-        editor.updateBlock(insertedBlock, upd);
-        editor.setTextCursorPosition(insertedBlock, "end");
-        editor.focus();
-      } catch (err) {
-        console.error("[AddBlock] update:", err);
-      }
-    }
-    setOpen(false);
-    setInsertedBlock(null);
-  };
+  return (
+    <button ref={btnRef} onMouseDown={handleBtnMouseDown} title="Block einfügen"
+      style={{
+        width:22, height:22, borderRadius:5, flexShrink:0,
+        border:"1px solid #e5e7eb", background:"white", color:"#6b7280",
+        fontSize:15, fontWeight:600, lineHeight:"20px", cursor:"pointer",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        transition:"all .12s", fontFamily:FONT,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background="#f9fafb"; e.currentTarget.style.borderColor="#d1d5db"; e.currentTarget.style.color="#374151"; }}
+      onMouseLeave={e => { e.currentTarget.style.background="white"; e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#6b7280"; }}
+    >+</button>
+  );
+}
 
-  // Close when clicking outside the menu
+// Rendered at the StoryEditorModal level — never unmounts when SideMenu changes.
+// Block insertion only happens here, AFTER the user picks a type.
+function BlockPickerPortal({ editor }) {
+  const [state, setState] = useState(null); // null | { block, pos:{top,left} }
+  const menuRef = useRef(null);
+
+  // Register the opener so AddBlockButton can call it
   useEffect(() => {
-    if (!open) return;
+    _openBlockPicker = (block, rect) => {
+      setState({
+        block,
+        pos: rect ? { top: rect.bottom + 6, left: rect.left } : { top: 200, left: 200 },
+      });
+    };
+    return () => { _openBlockPicker = null; };
+  }, []);
+
+  // Close when clicking outside the picker
+  useEffect(() => {
+    if (!state) return;
     const handleOut = (e) => {
       if (menuRef.current?.contains(e.target)) return;
-      if (btnRef.current?.contains(e.target)) return;
-      setOpen(false);
-      setInsertedBlock(null);
+      setState(null);
     };
     document.addEventListener("mousedown", handleOut, true);
     return () => document.removeEventListener("mousedown", handleOut, true);
-  }, [open]);
+  }, [state]);
 
-  return (
-    <>
-      <button ref={btnRef} onMouseDown={handleBtnMouseDown} title="Block einfügen"
-        style={{
-          width:22, height:22, borderRadius:5, flexShrink:0,
-          border:"1px solid #e5e7eb", background:"white", color:"#6b7280",
-          fontSize:15, fontWeight:600, lineHeight:"20px", cursor:"pointer",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          transition:"all .12s", fontFamily:FONT,
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background="#f9fafb"; e.currentTarget.style.borderColor="#d1d5db"; e.currentTarget.style.color="#374151"; }}
-        onMouseLeave={e => { e.currentTarget.style.background="white"; e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#6b7280"; }}
-      >+</button>
+  const handleItemMouseDown = (e, bt) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const { block } = state;
+    setState(null); // close picker immediately
+    try {
+      const def = { type: bt.type };
+      if (bt.lv) def.props = { level: bt.lv };
+      const [nb] = editor.insertBlocks([def], block, "after");
+      if (nb) {
+        editor.setTextCursorPosition(nb, "end");
+        editor.focus();
+      }
+    } catch (err) {
+      console.error("[BlockPicker]", err);
+    }
+  };
 
-      {open && createPortal(
-        <div ref={menuRef} style={{
-          position:"fixed", top:menuPos.top, left:menuPos.left,
-          zIndex:99999, background:"#fff",
-          border:"1px solid #e5e7eb", borderRadius:10,
-          boxShadow:"0 4px 24px rgba(0,0,0,.14)",
-          padding:"5px", minWidth:220, fontFamily:FONT,
-        }}>
-          <div style={{fontSize:10.5, color:"#9ca3af", padding:"5px 10px 7px",
-            fontWeight:600, textTransform:"uppercase", letterSpacing:".05em"}}>
-            Block-Typ wählen
-          </div>
-          {ADD_BLOCK_TYPES.map(bt => (
-            <div key={`${bt.type}-${bt.lv||""}`}
-              onMouseDown={(e) => handleItemMouseDown(e, bt)}
-              style={{
-                display:"flex", alignItems:"center", gap:10,
-                padding:"8px 10px", borderRadius:7,
-                cursor:"pointer", fontSize:13, color:"#374151",
-                userSelect:"none",
-              }}
-              onMouseEnter={e => e.currentTarget.style.background="#f3f4f6"}
-              onMouseLeave={e => e.currentTarget.style.background="transparent"}
-            >
-              <span style={{
-                width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center",
-                background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:6,
-                fontSize:11, fontWeight:700, color:"#6b7280", flexShrink:0,
-              }}>{bt.icon}</span>
-              {bt.label}
-            </div>
-          ))}
-        </div>,
-        document.body
-      )}
-    </>
+  if (!state) return null;
+
+  return createPortal(
+    <div ref={menuRef} style={{
+      position:"fixed", top:state.pos.top, left:state.pos.left,
+      zIndex:99999, background:"#fff",
+      border:"1px solid #e5e7eb", borderRadius:10,
+      boxShadow:"0 4px 24px rgba(0,0,0,.14)",
+      padding:"5px", minWidth:220, fontFamily:FONT,
+    }}>
+      <div style={{fontSize:10.5, color:"#9ca3af", padding:"5px 10px 7px",
+        fontWeight:600, textTransform:"uppercase", letterSpacing:".05em"}}>
+        Block-Typ wählen
+      </div>
+      {ADD_BLOCK_TYPES.map(bt => (
+        <div key={`${bt.type}-${bt.lv||""}`}
+          onMouseDown={(e) => handleItemMouseDown(e, bt)}
+          style={{
+            display:"flex", alignItems:"center", gap:10,
+            padding:"8px 10px", borderRadius:7,
+            cursor:"pointer", fontSize:13, color:"#374151", userSelect:"none",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background="#f3f4f6"}
+          onMouseLeave={e => e.currentTarget.style.background="transparent"}
+        >
+          <span style={{
+            width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center",
+            background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:6,
+            fontSize:11, fontWeight:700, color:"#6b7280", flexShrink:0,
+          }}>{bt.icon}</span>
+          {bt.label}
+        </div>
+      ))}
+    </div>,
+    document.body
   );
 }
 
@@ -1664,6 +1676,8 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   }}
                 />
               </BlockNoteView>
+              {/* Portal lives outside BlockNote tree so it survives SideMenu remounts */}
+              <BlockPickerPortal editor={editor} />
             </div>
 
             {/* Sticky word count bar */}
