@@ -512,9 +512,10 @@ function AddBlockButton({ block }) {
       editor.setTextCursorPosition(nb, "end");
       // 3. Focus the editor DOM element
       editor.focus();
-      // 4. Insert "/" — the SuggestionMenuController picks this up and
-      //    opens the slash-command menu with all available block types.
-      editor.insertInlineContent([{ type: "text", text: "/" }]);
+      // 4. Insert "/" via execCommand — this goes through ProseMirror's native
+      //    input handler and correctly triggers the SuggestionMenuController.
+      //    editor.insertInlineContent() bypasses the suggestion plugin; execCommand does not.
+      document.execCommand("insertText", false, "/");
     } catch (err) {
       console.error("[AddBlock] error:", err);
     }
