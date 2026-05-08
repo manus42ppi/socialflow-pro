@@ -21,7 +21,7 @@ import {
   TrendingUp, TrendingDown, Minus,
   BarChart2, Hash, Tag, RefreshCw, Globe, ExternalLink,
 } from "lucide-react";
-import { C, FONT, IW, CSS } from "../constants/colors.js";
+import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
 import { uid, aiCall, fileToDataURL } from "../utils/store.js";
 import { Btn } from "../components/ui/index.jsx";
@@ -1241,7 +1241,8 @@ export default function StoryEditorModal() {
       }).catch(() => {}); // fire-and-forget
     }
 
-    onSave({
+    // updateStory keeps the editor open (onSave/saveStory would close it)
+    updateStory({
       ...f,
       id: f.id || uid(),
       status: status || f.status,
@@ -1800,13 +1801,13 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
           {/* ── RIGHT PANEL: Materials + Derivatives ──────────────────── */}
           <div style={{
-            width: 290, borderLeft: `1px solid ${C.border}`,
-            background: C.surface, display: "flex", flexDirection: "column", flexShrink: 0,
+            width: 290, borderLeft: `1px solid ${T.gray200}`,
+            background: T.white, display: "flex", flexDirection: "column", flexShrink: 0,
             overflow: "hidden",
           }}>
 
             {/* ── AKTIONEN ─────────────────────────────────────────────── */}
-            <div style={{ padding: "13px 14px 12px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <div style={{ padding: "12px 14px", borderBottom: `1px solid ${T.gray100}`, flexShrink: 0, background: T.white }}>
 
               {/* Save-status */}
               {saveStatusLabel?.text && (
@@ -1821,12 +1822,13 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   onClick={() => handleSave()}
                   style={{
                     flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                    padding: "7px 0", borderRadius: 7, border: `1px solid ${C.border}`,
-                    background: C.surface, color: C.textMid, fontFamily: FONT,
+                    padding: "7px 0", borderRadius: T.rMd, border: `1px solid ${T.gray200}`,
+                    background: T.white, color: T.gray600, fontFamily: FONT,
                     fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .12s",
+                    boxShadow: T.shadowXs,
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "66"; e.currentTarget.style.color = C.accent; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textMid; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = T.gray50; e.currentTarget.style.borderColor = T.gray300; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = T.white; e.currentTarget.style.borderColor = T.gray200; }}
                 >
                   <Save size={13} strokeWidth={IW} /> Speichern
                 </button>
@@ -1834,9 +1836,10 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   onClick={() => handleSave("ready")}
                   style={{
                     flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                    padding: "7px 0", borderRadius: 7, border: "none",
-                    background: C.accent, color: "#fff", fontFamily: FONT,
+                    padding: "7px 0", borderRadius: T.rMd, border: `1px solid ${T.brand600}`,
+                    background: T.brand600, color: T.white, fontFamily: FONT,
                     fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "filter .12s",
+                    boxShadow: T.shadowXs,
                   }}
                   onMouseEnter={e => { e.currentTarget.style.filter = "brightness(.9)"; }}
                   onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
@@ -1847,10 +1850,10 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
               {/* Website-Bereich — nur wenn Kanal aktiv oder bereits veröffentlicht */}
               {(form.targetChannels?.includes("website") || form.webSlug) && (
-                <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ borderTop: `1px solid ${T.gray100}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
 
                   {/* Section label */}
-                  <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
                     <Globe size={9} strokeWidth={2} /> Website · ppi n3xt
                   </div>
 
@@ -1858,21 +1861,18 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   <button
                     onClick={handlePublishToWeb}
                     disabled={webPublishing || !form.title}
-                    title={!form.title ? "Zuerst einen Titel eingeben"
-                      : webPublished && !webPublished.error ? "Änderungen auf Website übertragen"
-                      : "Story auf ppi n3xt veröffentlichen"}
                     style={{
                       width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      padding: "8px 0", borderRadius: 7, boxSizing: "border-box",
-                      border: `1px solid ${webPublished && !webPublished.error ? "#6941C644" : "#6941C6"}`,
-                      background: webPublishing ? "#6941C610"
-                        : webPublished && !webPublished.error ? "#f0ebfd" : "#6941C6",
-                      color: webPublishing || (webPublished && !webPublished.error) ? "#6941C6" : "#fff",
+                      padding: "7px 0", borderRadius: T.rMd, boxSizing: "border-box",
+                      border: `1px solid ${webPublished && !webPublished.error ? T.brand200 : T.brand600}`,
+                      background: webPublishing ? T.brand50
+                        : webPublished && !webPublished.error ? T.brand50 : T.brand600,
+                      color: webPublishing || (webPublished && !webPublished.error) ? T.brand600 : T.white,
                       fontFamily: FONT, fontSize: 12, fontWeight: 600,
                       cursor: webPublishing || !form.title ? "default" : "pointer",
-                      opacity: !form.title ? 0.5 : 1, transition: "all .15s",
+                      opacity: !form.title ? 0.5 : 1, transition: "all .15s", boxShadow: T.shadowXs,
                     }}
-                    onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.filter = "brightness(.95)"; }}
+                    onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.filter = "brightness(.93)"; }}
                     onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
                   >
                     {webPublishing
@@ -1891,13 +1891,13 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                       rel="noopener noreferrer"
                       style={{
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                        padding: "6px 0", borderRadius: 7, border: `1px solid ${C.border}`,
-                        background: C.bg, color: "#6941C6", fontFamily: FONT,
+                        padding: "6px 0", borderRadius: T.rMd, border: `1px solid ${T.gray200}`,
+                        background: T.white, color: T.brand600, fontFamily: FONT,
                         fontSize: 11.5, fontWeight: 600, textDecoration: "none",
-                        width: "100%", transition: "all .15s", boxSizing: "border-box",
+                        width: "100%", transition: "all .15s", boxSizing: "border-box", boxShadow: T.shadowXs,
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "#6941C610"; e.currentTarget.style.borderColor = "#6941C644"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = C.bg; e.currentTarget.style.borderColor = C.border; }}
+                      onMouseEnter={e => { e.currentTarget.style.background = T.brand25; e.currentTarget.style.borderColor = T.brand200; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = T.white; e.currentTarget.style.borderColor = T.gray200; }}
                     >
                       <ExternalLink size={11} strokeWidth={2} /> Live ansehen
                     </a>
@@ -1906,59 +1906,50 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   {/* Publication metadata card */}
                   {(form.webSlug || (webPublished && !webPublished.error)) && (
                     <div style={{
-                      background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
-                      padding: "9px 11px", display: "flex", flexDirection: "column", gap: 6,
+                      background: T.gray50, borderRadius: T.rMd, border: `1px solid ${T.gray100}`,
+                      padding: "9px 11px", display: "flex", flexDirection: "column", gap: 7,
                     }}>
-                      {/* URL / Slug */}
+                      {/* URL row */}
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
-                        <Globe size={11} strokeWidth={2} color={C.textMute} style={{ marginTop: 1, flexShrink: 0 }} />
+                        <Globe size={11} strokeWidth={2} color={T.gray400} style={{ marginTop: 2, flexShrink: 0 }} />
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 1 }}>URL</div>
-                          <div style={{ fontSize: 10.5, color: C.textMid, fontFamily: FONT, wordBreak: "break-all", lineHeight: 1.4 }}>
-                            ppi-n3xt-website.pages.dev/blog/
-                            <span style={{ color: C.accent, fontWeight: 600 }}>{form.webSlug || (webPublished?.slug)}</span>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 2 }}>URL</div>
+                          <div style={{ fontSize: 10, color: T.gray500, fontFamily: FONT, lineHeight: 1.5 }}>
+                            /blog/<span style={{ color: T.brand600, fontWeight: 600, wordBreak: "break-all" }}>{form.webSlug || webPublished?.slug}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Divider */}
-                      <div style={{ height: 1, background: C.borderLight }} />
+                      <div style={{ height: 1, background: T.gray100 }} />
 
-                      {/* Dates row */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {/* Dates */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                         {form.webPublishedAt && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#10B981", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <Check size={7} strokeWidth={3} color="#fff" />
+                          <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
+                            <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.successBg, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                              <Check size={8} strokeWidth={3} color={T.success500} />
                             </div>
-                            <div style={{ minWidth: 0 }}>
-                              <span style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em" }}>Erstveröffentlichung</span>
-                              <div style={{ fontSize: 10.5, color: C.textMid, fontFamily: FONT }}>
-                                {new Date(form.webPublishedAt).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })}
-                                {" · "}
-                                {new Date(form.webPublishedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                            <div>
+                              <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em" }}>Erstveröffentlichung</div>
+                              <div style={{ fontSize: 10.5, color: T.gray700, fontFamily: FONT, marginTop: 1 }}>
+                                {new Date(form.webPublishedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })}
+                                {" · "}{new Date(form.webPublishedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
                               </div>
                             </div>
                           </div>
                         )}
                         {form.webUpdatedAt && form.webUpdatedAt !== form.webPublishedAt && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#6941C6", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <RefreshCw size={7} strokeWidth={2.5} color="#fff" />
+                          <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
+                            <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.brand100, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                              <RefreshCw size={7} strokeWidth={2.5} color={T.brand600} />
                             </div>
-                            <div style={{ minWidth: 0 }}>
-                              <span style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em" }}>Letztes Update</span>
-                              <div style={{ fontSize: 10.5, color: C.textMid, fontFamily: FONT }}>
-                                {new Date(form.webUpdatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })}
-                                {" · "}
-                                {new Date(form.webUpdatedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                            <div>
+                              <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em" }}>Letztes Update</div>
+                              <div style={{ fontSize: 10.5, color: T.gray700, fontFamily: FONT, marginTop: 1 }}>
+                                {new Date(form.webUpdatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })}
+                                {" · "}{new Date(form.webUpdatedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
                               </div>
                             </div>
-                          </div>
-                        )}
-                        {!form.webPublishedAt && (
-                          <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT, fontStyle: "italic" }}>
-                            Noch nicht veröffentlicht
                           </div>
                         )}
                       </div>
@@ -1968,117 +1959,91 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   {/* ── Stats card ──────────────────────────────────── */}
                   {(webStats || statsLoading) && (
                     <div style={{
-                      background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
+                      background: T.gray50, borderRadius: T.rMd, border: `1px solid ${T.gray100}`,
                       padding: "10px 11px", display: "flex", flexDirection: "column", gap: 8,
                     }}>
-                      {/* Header row */}
+                      {/* Header */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", display: "flex", alignItems: "center", gap: 4 }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
                           <BarChart2 size={9} strokeWidth={2} /> Statistik
                         </div>
-                        <button
-                          onClick={() => fetchWebStats()}
-                          disabled={statsLoading}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: C.textMute, padding: 2, display: "flex" }}
-                          title="Aktualisieren"
-                        >
+                        <button onClick={() => fetchWebStats()} disabled={statsLoading}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: T.gray400, padding: 2, display: "flex", borderRadius: 4, transition: "color .12s" }}
+                          onMouseEnter={e => e.currentTarget.style.color = T.gray600}
+                          onMouseLeave={e => e.currentTarget.style.color = T.gray400}
+                          title="Neu laden">
                           <RefreshCw size={10} strokeWidth={2} style={{ animation: statsLoading ? "spin 1s linear infinite" : "none" }} />
                         </button>
                       </div>
 
                       {statsLoading && !webStats ? (
-                        <div style={{ fontSize: 10.5, color: C.textMute, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Lade Daten…</div>
+                        <div style={{ fontSize: 10.5, color: T.gray400, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Lade…</div>
                       ) : webStats && (<>
 
-                        {/* KPI row: Views, Verweildauer, Trend */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                          {/* Views */}
-                          <div style={{ background: C.surface, borderRadius: 6, padding: "7px 8px", border: `1px solid ${C.border}` }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>
-                              <Eye size={9} strokeWidth={2} color={C.textMute} />
-                              <span style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em" }}>Aufrufe</span>
-                            </div>
-                            <div style={{ fontSize: 17, fontWeight: 800, color: C.text, fontFamily: FONT, lineHeight: 1 }}>
-                              {webStats.views >= 1000 ? `${(webStats.views / 1000).toFixed(1)}k` : webStats.views}
-                            </div>
-                            <div style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, marginTop: 2 }}>
-                              {webStats.last7 > 0 ? `${webStats.last7} diese Woche` : "noch keine"}
-                            </div>
-                          </div>
-
-                          {/* Verweildauer */}
-                          <div style={{ background: C.surface, borderRadius: 6, padding: "7px 8px", border: `1px solid ${C.border}` }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>
-                              <Clock size={9} strokeWidth={2} color={C.textMute} />
-                              <span style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em" }}>Ø Zeit</span>
-                            </div>
-                            {webStats.avgDuration ? (<>
-                              <div style={{ fontSize: 17, fontWeight: 800, color: C.text, fontFamily: FONT, lineHeight: 1 }}>
-                                {webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration / 60)}m` : `${webStats.avgDuration}s`}
-                              </div>
-                              <div style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, marginTop: 2 }}>
-                                {webStats.avgDuration >= 60
+                        {/* KPI row */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 }}>
+                          {[
+                            {
+                              icon: <Eye size={9} strokeWidth={2} color={T.gray400} />,
+                              label: "Aufrufe",
+                              value: webStats.views >= 1000 ? `${(webStats.views / 1000).toFixed(1)}k` : String(webStats.views),
+                              sub: webStats.last7 > 0 ? `${webStats.last7} / Wo.` : "–",
+                            },
+                            {
+                              icon: <Clock size={9} strokeWidth={2} color={T.gray400} />,
+                              label: "Ø Zeit",
+                              value: webStats.avgDuration
+                                ? webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration / 60)}m` : `${webStats.avgDuration}s`
+                                : "–",
+                              sub: webStats.avgDuration
+                                ? webStats.avgDuration >= 60
                                   ? `${Math.floor(webStats.avgDuration / 60)} Min ${webStats.avgDuration % 60} Sek`
-                                  : `${webStats.avgDuration} Sek`}
+                                  : `${webStats.avgDuration} Sek`
+                                : "keine Daten",
+                            },
+                            {
+                              icon: webStats.trend === "up" ? <TrendingUp size={9} strokeWidth={2} color={T.success500} />
+                                  : webStats.trend === "down" ? <TrendingDown size={9} strokeWidth={2} color={T.error600} />
+                                  : <Minus size={9} strokeWidth={2} color={T.gray400} />,
+                              label: "Trend",
+                              value: webStats.trendPct != null ? `${webStats.trendPct > 0 ? "+" : ""}${webStats.trendPct}%` : "–",
+                              valueColor: webStats.trend === "up" ? T.success500 : webStats.trend === "down" ? T.error600 : T.gray700,
+                              sub: "vs. Vorwoche",
+                            },
+                          ].map(({ icon, label, value, sub, valueColor }) => (
+                            <div key={label} style={{ background: T.white, borderRadius: T.rSm, padding: "6px 7px", border: `1px solid ${T.gray100}` }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>
+                                {icon}
+                                <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>{label}</span>
                               </div>
-                            </>) : (
-                              <div style={{ fontSize: 11, color: C.textMute, fontFamily: FONT, marginTop: 4 }}>–</div>
-                            )}
-                          </div>
-
-                          {/* Trend */}
-                          <div style={{ background: C.surface, borderRadius: 6, padding: "7px 8px", border: `1px solid ${C.border}` }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>
-                              <span style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em" }}>Trend</span>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: valueColor || T.gray900, fontFamily: FONT, lineHeight: 1 }}>{value}</div>
+                              <div style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, marginTop: 2, lineHeight: 1.3 }}>{sub}</div>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                              {webStats.trend === "up"   && <TrendingUp  size={16} strokeWidth={2.5} color="#10B981" />}
-                              {webStats.trend === "down" && <TrendingDown size={16} strokeWidth={2.5} color="#EF4444" />}
-                              {webStats.trend === "neutral" && <Minus size={16} strokeWidth={2.5} color={C.textMute} />}
-                              <div style={{ fontSize: 14, fontWeight: 800, fontFamily: FONT, lineHeight: 1,
-                                color: webStats.trend === "up" ? "#10B981" : webStats.trend === "down" ? "#EF4444" : C.textMute }}>
-                                {webStats.trendPct != null ? `${webStats.trendPct > 0 ? "+" : ""}${webStats.trendPct}%` : "–"}
-                              </div>
-                            </div>
-                            <div style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, marginTop: 2 }}>vs. Vorwoche</div>
-                          </div>
+                          ))}
                         </div>
 
-                        {/* Sparkline — 14-day bar chart */}
+                        {/* Sparkline */}
                         {webStats.sparkline?.length > 0 && (() => {
                           const maxV = Math.max(1, ...webStats.sparkline.map(d => d.views));
-                          const barW = 10;
-                          const gap  = 3;
-                          const h    = 32;
-                          const total = webStats.sparkline.length;
-                          const svgW  = total * barW + (total - 1) * gap;
+                          const barW = 10, gap = 3, h = 32, total = webStats.sparkline.length;
+                          const svgW = total * barW + (total - 1) * gap;
                           return (
                             <div>
-                              <div style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, marginBottom: 4, textTransform: "uppercase", letterSpacing: ".04em" }}>
-                                Letzte 14 Tage
-                              </div>
+                              <div style={{ fontSize: 8.5, color: T.gray400, fontFamily: FONT, marginBottom: 5, textTransform: "uppercase", letterSpacing: ".07em" }}>Letzte 14 Tage</div>
                               <svg width="100%" viewBox={`0 0 ${svgW} ${h}`} preserveAspectRatio="none" style={{ display: "block", height: h }}>
                                 {webStats.sparkline.map((d, i) => {
                                   const barH = Math.max(2, Math.round((d.views / maxV) * h));
-                                  const isToday = i === total - 1;
                                   return (
-                                    <rect
-                                      key={d.date}
-                                      x={i * (barW + gap)}
-                                      y={h - barH}
-                                      width={barW}
-                                      height={barH}
-                                      rx={2}
-                                      fill={isToday ? "#6941C6" : d.views > 0 ? "#6941C644" : C.borderLight}
+                                    <rect key={d.date}
+                                      x={i * (barW + gap)} y={h - barH} width={barW} height={barH} rx={2}
+                                      fill={i === total - 1 ? T.brand600 : d.views > 0 ? T.brand200 : T.gray100}
                                     />
                                   );
                                 })}
                               </svg>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-                                <span style={{ fontSize: 8, color: C.textMute, fontFamily: FONT }}>
-                                  {webStats.sparkline[0]?.date?.slice(5).replace("-", ".")}
-                                </span>
-                                <span style={{ fontSize: 8, color: C.textMute, fontFamily: FONT }}>Heute</span>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                                <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT }}>{webStats.sparkline[0]?.date?.slice(5).replace("-", ".")}</span>
+                                <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT }}>Heute</span>
                               </div>
                             </div>
                           );
@@ -2089,7 +2054,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
                   {/* Fehler */}
                   {webPublished?.error && (
-                    <div style={{ fontSize: 10, color: "#C4511E", fontFamily: FONT, padding: "4px 8px", background: "#FFF0E6", borderRadius: 6 }}>
+                    <div style={{ fontSize: 10, color: T.error600, fontFamily: FONT, padding: "5px 9px", background: T.errorBg, borderRadius: T.rSm, border: `1px solid ${T.error600}22` }}>
                       ✕ {webPublished.error}
                     </div>
                   )}
@@ -2098,10 +2063,10 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             </div>
 
             {/* ── Metadata: Status, Kategorie, Kanäle, Tags ────────────── */}
-            <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, background: C.bg }}>
+            <div style={{ padding: "12px 14px", borderBottom: `1px solid ${T.gray100}`, display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, background: T.white }}>
               {/* Status */}
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Status</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Status</div>
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                   {STATUSES.map(s => {
                     const on = form.status === s.id;
@@ -2109,9 +2074,9 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                       <button key={s.id} onClick={() => setForm(f => ({ ...f, status: s.id }))}
                         style={{
                           display: "flex", alignItems: "center", gap: 4, padding: "3px 8px",
-                          borderRadius: 5, border: `1px solid ${on ? s.color + "55" : C.border}`,
+                          borderRadius: 5, border: `1px solid ${on ? s.color + "55" : T.gray200}`,
                           background: on ? s.color + "12" : "transparent",
-                          color: on ? s.color : C.textSoft, fontFamily: FONT,
+                          color: on ? s.color : T.gray500, fontFamily: FONT,
                           fontSize: 10.5, fontWeight: on ? 700 : 500, cursor: "pointer", transition: "all .1s",
                         }}>
                         <span style={{ width: 5, height: 5, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
@@ -2121,19 +2086,17 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   })}
                 </div>
               </div>
-              {/* Kategorie + Tags in one row */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Kategorie</div>
-                  <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                    style={{ width: "100%", padding: "4px 6px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: form.category ? C.text : C.textMute, fontSize: 11, fontFamily: FONT, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
-                    {CATS.map(c => <option key={c} value={c}>{c || "Keine Kategorie"}</option>)}
-                  </select>
-                </div>
+              {/* Kategorie */}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Kategorie</div>
+                <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                  style={{ width: "100%", padding: "4px 6px", borderRadius: 6, border: `1px solid ${T.gray200}`, background: T.white, color: form.category ? T.gray700 : T.gray400, fontSize: 11, fontFamily: FONT, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
+                  {CATS.map(c => <option key={c} value={c}>{c || "Keine Kategorie"}</option>)}
+                </select>
               </div>
               {/* Ziel-Kanäle */}
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Ziel-Kanäle</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Ziel-Kanäle</div>
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                   {STORY_CHANNELS.map(ch => {
                     const active = form.targetChannels.includes(ch.id);
@@ -2141,11 +2104,11 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                       <button key={ch.id} onClick={() => toggleChannel(ch.id)} title={ch.label}
                         style={{
                           width: 26, height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
-                          border: `1.5px solid ${active ? ch.color + "66" : C.border}`,
+                          border: `1.5px solid ${active ? ch.color + "66" : T.gray200}`,
                           background: active ? ch.color + "14" : "transparent",
                           cursor: "pointer", transition: "all .12s",
                         }}>
-                        <ChIco id={ch.id} size={13} color={active ? ch.color : C.textMute} />
+                        <ChIco id={ch.id} size={13} color={active ? ch.color : T.gray400} />
                       </button>
                     );
                   })}
@@ -2153,15 +2116,15 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               </div>
               {/* Tags */}
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Tags</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Tags</div>
                 <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
                   placeholder="tag1, tag2, tag3…"
-                  style={{ width: "100%", padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 11, fontFamily: FONT, outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "4px 8px", borderRadius: 6, border: `1px solid ${T.gray200}`, background: T.white, color: T.gray700, fontSize: 11, fontFamily: FONT, outline: "none", boxSizing: "border-box" }}
                 />
               </div>
             </div>
             {/* Tab bar */}
-            <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <div style={{ display: "flex", borderBottom: `1px solid ${T.gray100}`, flexShrink: 0, background: T.white }}>
               {[
                 ["materials",   "Material",   form.materials.length],
                 ["derivatives", "Ableit.",    form.derivatives.length],
@@ -2172,9 +2135,9 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 <button key={id} onClick={() => setRightTab(id)}
                   style={{
                     flex: 1, padding: "10px 2px", border: "none", cursor: "pointer",
-                    background: rightTab === id ? C.bg : "transparent",
-                    borderBottom: rightTab === id ? `2px solid ${C.accent}` : "2px solid transparent",
-                    color: rightTab === id ? C.accent : C.textMute,
+                    background: rightTab === id ? T.gray50 : "transparent",
+                    borderBottom: rightTab === id ? `2px solid ${T.brand600}` : "2px solid transparent",
+                    color: rightTab === id ? T.brand600 : T.gray400,
                     fontFamily: FONT, fontSize: 10.5, fontWeight: rightTab === id ? 700 : 500,
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
                     transition: "color .12s",
@@ -2182,8 +2145,10 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   {label}
                   {count && count !== 0 && (
                     <span style={{
-                      background: id === "seo" ? (rightTab === id ? C.accent : "#EF4444") : (rightTab === id ? C.accent : C.borderLight),
-                      color: rightTab === id || id === "seo" ? "#fff" : C.textMute,
+                      background: id === "seo"
+                        ? (rightTab === id ? T.brand600 : T.error600)
+                        : (rightTab === id ? T.brand600 : T.gray200),
+                      color: rightTab === id || id === "seo" ? T.white : T.gray500,
                       borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px",
                     }}>{count}</span>
                   )}
