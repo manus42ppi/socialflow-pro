@@ -2003,7 +2003,8 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
                     {/* Stats card */}
                     {(webStats || statsLoading) && (
-                      <div style={{ background: T.gray50, borderRadius: T.rMd, border: `1px solid ${T.gray100}`, padding: "10px 11px", display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ background: T.gray50, borderRadius: T.rMd, border: `1px solid ${T.gray100}`, padding: "10px 11px", display: "flex", flexDirection: "column", gap: 10 }}>
+                        {/* Header */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
                             <BarChart2 size={9} strokeWidth={2} /> Statistik
@@ -2016,9 +2017,34 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                             <RefreshCw size={10} strokeWidth={2} style={{ animation: statsLoading ? "spin 1s linear infinite" : "none" }} />
                           </button>
                         </div>
+
                         {statsLoading && !webStats ? (
                           <div style={{ fontSize: 10.5, color: T.gray400, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Lade…</div>
                         ) : webStats && (<>
+
+                          {/* ── Engagement-Score ── */}
+                          {(() => {
+                            const s = webStats.engagementScore ?? 0;
+                            const col = s >= 70 ? T.success500 : s >= 40 ? T.brand600 : T.warning500;
+                            const label = s >= 70 ? "Stark" : s >= 40 ? "Gut" : s > 0 ? "Aufbau" : "–";
+                            return (
+                              <div style={{ background: T.white, borderRadius: T.rSm, border: `1px solid ${T.gray100}`, padding: "8px 10px", display: "flex", alignItems: "center", gap: 10 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 8, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 4 }}>Engagement-Score</div>
+                                  <div style={{ height: 6, background: T.gray100, borderRadius: 4, overflow: "hidden" }}>
+                                    <div style={{ width: `${s}%`, height: "100%", background: col, borderRadius: 4, transition: "width .4s" }} />
+                                  </div>
+                                  <div style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, marginTop: 3 }}>Scroll ×  Verweildauer</div>
+                                </div>
+                                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                  <div style={{ fontSize: 22, fontWeight: 800, color: col, fontFamily: FONT, lineHeight: 1 }}>{s > 0 ? s : "–"}</div>
+                                  <div style={{ fontSize: 8, fontWeight: 700, color: col, fontFamily: FONT }}>{s > 0 ? label : "Keine Daten"}</div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* ── 3-Spalten: Aufrufe / Ø Zeit / Trend ── */}
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 }}>
                             {[
                               { icon: <Eye size={9} strokeWidth={2} color={T.gray400} />, label: "Aufrufe",
@@ -2026,7 +2052,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                                 sub: webStats.last7 > 0 ? `${webStats.last7} / Wo.` : "–" },
                               { icon: <Clock size={9} strokeWidth={2} color={T.gray400} />, label: "Ø Zeit",
                                 value: webStats.avgDuration ? (webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration/60)}m` : `${webStats.avgDuration}s`) : "–",
-                                sub: webStats.avgDuration ? (webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration/60)} Min ${webStats.avgDuration%60} Sek` : `${webStats.avgDuration} Sek`) : "keine Daten" },
+                                sub: webStats.avgDuration ? (webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration/60)}m ${webStats.avgDuration%60}s` : `${webStats.avgDuration}s`) : "keine Daten" },
                               { icon: webStats.trend === "up" ? <TrendingUp size={9} strokeWidth={2} color={T.success500} />
                                     : webStats.trend === "down" ? <TrendingDown size={9} strokeWidth={2} color={T.error600} />
                                     : <Minus size={9} strokeWidth={2} color={T.gray400} />,
@@ -2044,6 +2070,26 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                               </div>
                             ))}
                           </div>
+
+                          {/* ── Rückkehr-Quote + Klick-Rate ── */}
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+                            {[
+                              { label: "Rückkehr", value: webStats.returnRate > 0 ? `${webStats.returnRate}%` : "–",
+                                sub: webStats.returnVisits > 0 ? `${webStats.returnVisits} Wiederk.` : "Keine Daten",
+                                color: webStats.returnRate >= 20 ? T.success500 : T.gray700 },
+                              { label: "Link-Klicks", value: webStats.linkClickRate > 0 ? `${webStats.linkClickRate}%` : "–",
+                                sub: webStats.linkClicks > 0 ? `${webStats.linkClicks} Klicks` : "Keine Daten",
+                                color: T.gray700 },
+                            ].map(({ label, value, sub, color }) => (
+                              <div key={label} style={{ background: T.white, borderRadius: T.rSm, padding: "6px 7px", border: `1px solid ${T.gray100}` }}>
+                                <div style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 3 }}>{label}</div>
+                                <div style={{ fontSize: 16, fontWeight: 800, color, fontFamily: FONT, lineHeight: 1 }}>{value}</div>
+                                <div style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, marginTop: 2 }}>{sub}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* ── Sparkline ── */}
                           {webStats.sparkline?.length > 0 && (() => {
                             const maxV = Math.max(1, ...webStats.sparkline.map(d => d.views));
                             const barW = 10, gap = 3, h = 32, total = webStats.sparkline.length;
@@ -2064,8 +2110,9 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                               </div>
                             );
                           })()}
-                          {/* Scroll-Tiefe */}
-                          {webStats.scrollStats && webStats.scrollStats.pct25 > 0 && (
+
+                          {/* ── Scroll-Tiefe ── */}
+                          {webStats.scrollStats?.pct25 > 0 && (
                             <div>
                               <div style={{ fontSize: 8.5, color: T.gray400, fontFamily: FONT, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".07em" }}>Scroll-Tiefe</div>
                               {[
@@ -2084,6 +2131,38 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                               ))}
                             </div>
                           )}
+
+                          {/* ── Referrer-Quelle ── */}
+                          {webStats.referrerBreakdown && webStats.views > 0 && (() => {
+                            const ref = webStats.referrerBreakdown;
+                            const entries = [
+                              { key: "direct",     label: "Direkt",      color: T.gray500 },
+                              { key: "organic",    label: "Suche",       color: T.brand600 },
+                              { key: "social",     label: "Social",      color: "#E1306C" },
+                              { key: "newsletter", label: "Newsletter",  color: T.success500 },
+                              { key: "other",      label: "Andere",      color: T.gray400 },
+                            ].filter(e => ref[e.key]?.count > 0);
+                            if (!entries.length) return null;
+                            return (
+                              <div>
+                                <div style={{ fontSize: 8.5, color: T.gray400, fontFamily: FONT, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".07em" }}>Traffic-Quelle</div>
+                                <div style={{ display: "flex", gap: 2, height: 6, borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
+                                  {entries.map(e => ref[e.key].pct > 0 && (
+                                    <div key={e.key} style={{ width: `${ref[e.key].pct}%`, background: e.color, transition: "width .3s" }} title={`${e.label}: ${ref[e.key].pct}%`} />
+                                  ))}
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 8px" }}>
+                                  {entries.map(e => (
+                                    <div key={e.key} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: e.color, flexShrink: 0 }} />
+                                      <span style={{ fontSize: 8, color: T.gray500, fontFamily: FONT }}>{e.label} {ref[e.key].pct}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                         </>)}
                       </div>
                     )}
