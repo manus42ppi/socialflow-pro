@@ -1061,6 +1061,8 @@ export default function StoryEditorModal() {
     metaDesc: story.metaDesc || "",
     seoKeyword: story.seoKeyword || "",
     hashtags: story.hashtags || "",
+    webPublishedAt: story.webPublishedAt || null,
+    webUpdatedAt: story.webUpdatedAt || null,
   });
 
   const [rightTab, setRightTab] = useState("materials");
@@ -1210,7 +1212,10 @@ export default function StoryEditorModal() {
 
     // If story was already published → silently re-sync to website in background
     if (f.webSlug && f.title) {
-      pushToWebsite(f).catch(() => {}); // fire-and-forget, no UI change
+      const syncNow = new Date().toISOString();
+      pushToWebsite(f).then(() => {
+        setForm(prev => ({ ...prev, webUpdatedAt: syncNow }));
+      }).catch(() => {}); // fire-and-forget
     }
 
     onSave({
@@ -1231,11 +1236,17 @@ export default function StoryEditorModal() {
     try {
       const f = formRef.current;
       const { slug, url } = await pushToWebsite(f);
+      const now = new Date().toISOString();
+      // Keep original publishedAt on updates, only set it once
+      const webPublishedAt = f.webPublishedAt || now;
+      const webUpdatedAt   = now;
       setWebPublished({ slug, url });
-      // Persist slug WITHOUT closing the editor (updateStory, not saveStory)
-      const updated = { ...formRef.current, webSlug: slug, status: "published", blocks: editor.document };
+      const updated = {
+        ...formRef.current, webSlug: slug, status: "published",
+        blocks: editor.document, webPublishedAt, webUpdatedAt,
+      };
       updateStory(updated);
-      setForm(prev => ({ ...prev, webSlug: slug, status: "published" }));
+      setForm(prev => ({ ...prev, webSlug: slug, status: "published", webPublishedAt, webUpdatedAt }));
     } catch (e) {
       console.error("[PublishToWeb]", e);
       setWebPublished({ error: e.message });
@@ -1812,11 +1823,13 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               {/* Website-Bereich — nur wenn Kanal aktiv oder bereits veröffentlicht */}
               {(form.targetChannels?.includes("website") || form.webSlug) && (
                 <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+
+                  {/* Section label */}
                   <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
-                    <Globe size={9} strokeWidth={2} /> Website
+                    <Globe size={9} strokeWidth={2} /> Website · ppi n3xt
                   </div>
 
-                  {/* Publish / Update */}
+                  {/* Publish / Update button */}
                   <button
                     onClick={handlePublishToWeb}
                     disabled={webPublishing || !form.title}
@@ -1863,6 +1876,68 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                     >
                       <ExternalLink size={11} strokeWidth={2} /> Live ansehen
                     </a>
+                  )}
+
+                  {/* Publication metadata card */}
+                  {(form.webSlug || (webPublished && !webPublished.error)) && (
+                    <div style={{
+                      background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
+                      padding: "9px 11px", display: "flex", flexDirection: "column", gap: 6,
+                    }}>
+                      {/* URL / Slug */}
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
+                        <Globe size={11} strokeWidth={2} color={C.textMute} style={{ marginTop: 1, flexShrink: 0 }} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 1 }}>URL</div>
+                          <div style={{ fontSize: 10.5, color: C.textMid, fontFamily: FONT, wordBreak: "break-all", lineHeight: 1.4 }}>
+                            ppi-n3xt-website.pages.dev/blog/
+                            <span style={{ color: C.accent, fontWeight: 600 }}>{form.webSlug || (webPublished?.slug)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ height: 1, background: C.borderLight }} />
+
+                      {/* Dates row */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {form.webPublishedAt && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#10B981", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Check size={7} strokeWidth={3} color="#fff" />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em" }}>Erstveröffentlichung</span>
+                              <div style={{ fontSize: 10.5, color: C.textMid, fontFamily: FONT }}>
+                                {new Date(form.webPublishedAt).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })}
+                                {" · "}
+                                {new Date(form.webPublishedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {form.webUpdatedAt && form.webUpdatedAt !== form.webPublishedAt && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#6941C6", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <RefreshCw size={7} strokeWidth={2.5} color="#fff" />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em" }}>Letztes Update</span>
+                              <div style={{ fontSize: 10.5, color: C.textMid, fontFamily: FONT }}>
+                                {new Date(form.webUpdatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })}
+                                {" · "}
+                                {new Date(form.webUpdatedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {!form.webPublishedAt && (
+                          <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT, fontStyle: "italic" }}>
+                            Noch nicht veröffentlicht
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
 
                   {/* Fehler */}
