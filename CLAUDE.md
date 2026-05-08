@@ -126,26 +126,66 @@ preview_eval({ serverId, expression: `(() => {
 })()` })
 ```
 
-### BlockNote Editor testen (AddBlockButton / Slash-Menü)
+### ⚠️ Goldene Regel: NIEMALS React-Fiber-Props direkt aufrufen
 
 ```js
-// Editor-Instanz via React Fiber holen
-preview_eval({ serverId, expression: `(() => {
-  const editorEl = document.querySelector('.bn-editor');
-  const fiberKey = Object.keys(editorEl).find(k => k.startsWith('__reactFiber'));
-  let fiber = editorEl[fiberKey], editor = null, depth = 0;
-  while (fiber && depth < 30) {
-    if (fiber.memoizedProps?.editor?.insertBlocks) { editor = fiber.memoizedProps.editor; break; }
-    fiber = fiber.return; depth++;
-  }
-  // Paragraph einfügen + Slash-Menü öffnen (wie AddBlockButton):
-  const lastBlock = editor.document[editor.document.length - 1];
-  const [nb] = editor.insertBlocks([{ type: 'paragraph' }], lastBlock, 'after');
-  editor.setTextCursorPosition(nb, 'end');
-  editor.focus();
-  document.execCommand('insertText', false, '/');  // ← triggert Suggestion-Plugin
-  return 'done';
-})()` })
+// ❌ FALSCH – NIEMALS SO TESTEN:
+const propsKey = Object.keys(btn).find(k => k.startsWith('__reactProps'));
+btn[propsKey].onMouseDown({ preventDefault: ()=>{}, stopPropagation: ()=>{} });
+// Grund: Umgeht das Browser-Event-System. Side effects (z.B. BlockNote
+// re-rendert → SideMenu unmountet → State verloren) werden NICHT reproduziert.
+// Test besteht, aber Live-Site bricht. Das ist WERTLOSER Test.
+
+// ✅ RICHTIG – Echte Browser-Events dispatchen:
+const btn = [...document.querySelectorAll('button')].find(b => b.title === 'Block einfügen');
+const r = btn.getBoundingClientRect();
+btn.dispatchEvent(new MouseEvent('mousedown', {
+  bubbles: true, cancelable: true,
+  clientX: r.left + r.width/2,
+  clientY: r.top + r.height/2
+}));
+// Dann 400–500ms warten damit React re-renders sich setzen:
+await new Promise(r => setTimeout(r, 500));
+// Dann DOM-State prüfen (nicht Fiber-State):
+const pickerVisible = document.body.innerHTML.includes('Block-Typ');
+const blockCount = document.querySelectorAll('[data-node-type="blockContainer"]').length;
+```
+
+### BlockNote AddBlockButton – vollständiger Test
+
+```js
+// Schritt 1: Block hovern → SideMenu erscheint
+const block = document.querySelector('[data-node-type="blockContainer"]');
+const r0 = block.getBoundingClientRect();
+block.dispatchEvent(new MouseEvent('mouseover', { bubbles:true, clientX:r0.left+20, clientY:r0.top+10 }));
+block.dispatchEvent(new MouseEvent('mousemove', { bubbles:true, clientX:r0.left+20, clientY:r0.top+10 }));
+
+// Schritt 2: 400ms warten → + Button suchen → echtes mousedown dispatchen
+await new Promise(r => setTimeout(r, 400));
+const addBtn = [...document.querySelectorAll('button')].find(b => b.title === 'Block einfügen');
+const r1 = addBtn.getBoundingClientRect();
+addBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles:true, cancelable:true,
+  clientX: r1.left + r1.width/2, clientY: r1.top + r1.height/2 }));
+
+// Schritt 3: 500ms warten → Picker prüfen (muss im DOM sein, auch wenn SideMenu umgehängt wurde)
+await new Promise(r => setTimeout(r, 500));
+const pickerOK = document.body.innerHTML.includes('Block-Typ') &&
+  document.body.innerHTML.includes('Aufzählung');
+
+// Schritt 4: Item im Picker anklicken (echtes mousedown)
+const menu = [...document.querySelectorAll('div')].find(d =>
+  d.textContent.includes('Block-Typ') && d.textContent.includes('Aufzählung'));
+const h2Row = [...menu.querySelectorAll('div')].find(d => d.textContent.trim() === 'H2Überschrift 2');
+const r2 = h2Row.getBoundingClientRect();
+h2Row.dispatchEvent(new MouseEvent('mousedown', { bubbles:true, cancelable:true,
+  clientX: r2.left + r2.width/2, clientY: r2.top + r2.height/2 }));
+
+// Schritt 5: 400ms warten → Block-Typ prüfen
+await new Promise(r => setTimeout(r, 400));
+const blocks = [...document.querySelectorAll('[data-node-type="blockContainer"]')]
+  .map(b => ({ type: b.querySelector('[data-content-type]')?.getAttribute('data-content-type'),
+               tag: b.querySelector('h1,h2,h3')?.tagName }));
+// Erwartung: [ {type:'paragraph', tag:null}, {type:'heading', tag:'H2'} ]
 ```
 
 ---
