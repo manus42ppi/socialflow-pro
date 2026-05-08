@@ -1041,29 +1041,30 @@ function AccSection({ label, badge, badgeWarn, isOpen, onToggle, children }) {
         onClick={onToggle}
         style={{
           width: "100%", display: "flex", alignItems: "center",
-          padding: "9px 14px", border: "none", cursor: "pointer",
-          background: "transparent", gap: 6, fontFamily: FONT, boxSizing: "border-box",
+          padding: "8px 14px", border: "none", cursor: "pointer",
+          background: T.gray50, gap: 6, fontFamily: FONT, boxSizing: "border-box",
+          borderBottom: isOpen ? `1px solid ${T.gray100}` : "none",
         }}
-        onMouseEnter={e => e.currentTarget.style.background = T.gray50}
-        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        onMouseEnter={e => e.currentTarget.style.background = T.gray100}
+        onMouseLeave={e => e.currentTarget.style.background = T.gray50}
       >
-        <span style={{ flex: 1, fontSize: 9.5, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", textAlign: "left" }}>
+        <ChevronDown
+          size={12} strokeWidth={2.5} color={T.gray400}
+          style={{ transition: "transform .18s", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}
+        />
+        <span style={{ flex: 1, fontSize: 10, fontWeight: 700, color: T.gray500, textTransform: "uppercase", letterSpacing: ".07em", textAlign: "left" }}>
           {label}
         </span>
         {badge != null && (
           <span style={{
-            background: badgeWarn ? T.error600 : T.gray200,
-            color: badgeWarn ? T.white : T.gray500,
-            borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px", flexShrink: 0,
+            background: badgeWarn ? T.error600 : T.brand100,
+            color: badgeWarn ? T.white : T.brand600,
+            borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 6px", flexShrink: 0,
           }}>{badge}</span>
         )}
-        <ChevronDown
-          size={11} strokeWidth={2.5} color={T.gray400}
-          style={{ transition: "transform .18s", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}
-        />
       </button>
       {isOpen && (
-        <div style={{ padding: "0 14px 12px" }}>
+        <div style={{ padding: "10px 14px 12px" }}>
           {children}
         </div>
       )}
