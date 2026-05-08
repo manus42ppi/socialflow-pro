@@ -492,140 +492,36 @@ const SLASH_ORDER = [
   "Quote","Divider","Table","Code Block",
 ];
 
-// ── ADD BLOCK BUTTON — "+" in the side menu for mouse-first users ─────────
-// ── ADD-BLOCK MENU ─────────────────────────────────────────────────────────────
-// Architecture (learned from BlockNote's own AddBlockButton source):
-//
-//  • The insert operation MUST happen inside AddBlockButton's scope because
-//    that's where useBlockNoteEditor() returns a valid editor context.
-//  • GlobalAddBlockMenu is pure UI — it only calls the onInsert callback
-//    provided by AddBlockButton. It never touches the editor directly.
-//  • The callback is a JS closure that captures editor + block at click time.
-//    Even after SideMenu unmounts AddBlockButton, the closure stays alive as
-//    long as onInsertRef holds a reference to it.
-//  • insertBlocks() returns the newly created blocks; we use
-//    setTextCursorPosition() to move the cursor into the new block.
-
-const ADD_BLOCK_BUS = { open: null, close: null };
-
-const ADD_BLOCK_QUICK = [
-  { type:"paragraph",        props:null,        icon:"¶",  label:"Text"          },
-  { type:"heading",          props:{level:1},   icon:"H1", label:"Überschrift 1" },
-  { type:"heading",          props:{level:2},   icon:"H2", label:"Überschrift 2" },
-  { type:"heading",          props:{level:3},   icon:"H3", label:"Überschrift 3" },
-  { type:"bulletListItem",   props:null,        icon:"•",  label:"Aufzählung"    },
-  { type:"numberedListItem", props:null,        icon:"1.", label:"Nummeriert"    },
-  { type:"checkListItem",    props:null,        icon:"☐",  label:"Aufgabe"       },
-  { type:"image",            props:null,        icon:"🖼", label:"Bild"          },
-];
-
-// Mounted once at StoryEditorModal root — outlives BlockNote's SideMenu.
-// Pure UI: shows the dropdown, calls onInsert callback on selection.
-function GlobalAddBlockMenu() {
-  const [pos, setPos]   = useState(null); // null | { top, left }
-  const onInsertRef     = useRef(null);   // (type, props) => void
-
-  useEffect(() => {
-    ADD_BLOCK_BUS.open = ({ top, left, onInsert }) => {
-      onInsertRef.current = onInsert;
-      setPos({ top, left });
-    };
-    ADD_BLOCK_BUS.close = () => setPos(null);
-    return () => { ADD_BLOCK_BUS.open = null; ADD_BLOCK_BUS.close = null; };
-  }, []);
-
-  useEffect(() => {
-    if (!pos) return;
-    const onKey = (e) => { if (e.key === "Escape") setPos(null); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [!!pos]);
-
-  if (!pos) return null;
-
-  const handleSelect = (type, props) => {
-    // Insert FIRST (synchronous, before any React re-render),
-    // then close the menu.
-    if (onInsertRef.current) onInsertRef.current(type, props);
-    setPos(null);
-  };
-
-  return createPortal(
-    <>
-      {/* Transparent backdrop — mousedown outside closes the menu */}
-      <div style={{ position:"fixed", inset:0, zIndex:99998 }}
-           onMouseDown={() => setPos(null)} />
-      {/* Dropdown */}
-      <div style={{
-        position:"fixed", top:pos.top, left:pos.left,
-        transform:"translateY(-50%)", zIndex:99999,
-        background:"#fff", border:"1px solid #e5e7eb", borderRadius:10,
-        boxShadow:"0 4px 24px rgba(0,0,0,.14)", padding:5,
-        minWidth:178, fontFamily:FONT,
-      }}>
-        {ADD_BLOCK_QUICK.map((q, i) => (
-          <button key={i}
-            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); handleSelect(q.type, q.props); }}
-            style={{
-              width:"100%", display:"flex", alignItems:"center", gap:8,
-              padding:"5px 8px", borderRadius:6, border:"none",
-              background:"transparent", cursor:"pointer", textAlign:"left", fontFamily:FONT,
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          >
-            <div style={{
-              width:26, height:26, borderRadius:6, background:"#f3f4f6", flexShrink:0,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:q.icon.length <= 2 ? 10 : 14, fontWeight:700,
-              color:"#374151", letterSpacing:"-.03em",
-            }}>{q.icon}</div>
-            <span style={{ fontSize:12.5, color:"#374151", fontWeight:500 }}>{q.label}</span>
-          </button>
-        ))}
-      </div>
-    </>,
-    document.body
-  );
-}
-
-// Rendered inside BlockNote's SideMenu — the only place useBlockNoteEditor()
-// is in scope. Creates the insert callback as a closure over editor + block,
-// then hands it to GlobalAddBlockMenu via ADD_BLOCK_BUS.
+// ── ADD BLOCK BUTTON — "+" in the side menu ──────────────────────────────
+// Clicking "+" inserts a new empty paragraph after the current block and
+// then inserts "/" to open BlockNote's native slash menu. This is far more
+// reliable than a custom portal dropdown, because BlockNote's own suggestion
+// system manages the menu lifecycle correctly.
 function AddBlockButton({ block }) {
   const editor = useBlockNoteEditor();
-  const btnRef = useRef(null);
 
   const handleOpen = (e) => {
-    e.preventDefault();
+    e.preventDefault();  // keep editor focus, don't trigger browser defaults
     e.stopPropagation();
-    if (!ADD_BLOCK_BUS.open) return;
-    const rect = btnRef.current.getBoundingClientRect();
-    ADD_BLOCK_BUS.open({
-      top:  rect.top + rect.height / 2,
-      left: rect.right + 10,
-      // Closure captures editor + block — valid even after SideMenu unmounts.
-      // insertBlocks() returns the new block; setTextCursorPosition() moves cursor.
-      onInsert: (type, props) => {
-        try {
-          // Build block spec — only include props when non-null
-          const spec = props ? { type, props } : { type };
-          const inserted = editor.insertBlocks([spec], block.id, "after");
-          const nb = inserted?.[0];
-          // setTextCursorPosition only works on blocks with text content
-          if (nb && nb.content !== undefined) {
-            try { editor.setTextCursorPosition(nb, "end"); } catch {}
-          }
-          editor.focus();
-        } catch (err) {
-          console.error("[AddBlock] insertBlocks error:", err, { type, props, blockId: block.id });
-        }
-      },
-    });
+    try {
+      // 1. Insert an empty paragraph below the current block
+      const inserted = editor.insertBlocks([{ type: "paragraph" }], block, "after");
+      const nb = inserted?.[0];
+      if (!nb) return;
+      // 2. Move the text cursor into the new block
+      editor.setTextCursorPosition(nb, "end");
+      // 3. Focus the editor DOM element
+      editor.focus();
+      // 4. Insert "/" — the SuggestionMenuController picks this up and
+      //    opens the slash-command menu with all available block types.
+      editor.insertInlineContent([{ type: "text", text: "/" }]);
+    } catch (err) {
+      console.error("[AddBlock] error:", err);
+    }
   };
 
   return (
-    <button ref={btnRef} onMouseDown={handleOpen} title="Block einfügen"
+    <button onMouseDown={handleOpen} title="Block einfügen"
       style={{
         width:22, height:22, borderRadius:5, flexShrink:0,
         border:"1px solid #e5e7eb", background:"white", color:"#6b7280",
@@ -1240,8 +1136,6 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-      {/* Global singleton — mounted here so it outlives BlockNote's SideMenu */}
-      <GlobalAddBlockMenu />
       <style>{CSS}</style>
       <style>{`
         /* ── BlockNote base ── */
