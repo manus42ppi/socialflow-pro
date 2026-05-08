@@ -1413,7 +1413,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex", background: C.bg }}>
       <style>{CSS}</style>
       <style>{`
         /* ── BlockNote base ── */

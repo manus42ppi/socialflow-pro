@@ -70,35 +70,33 @@ function AppShell() {
         <TopBar title={TITLE[nav] || "SocialFlow"} />
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
           <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            {edStory
-              ? <StoryEditorModal />
-              : <>
-                  {nav === "dashboard"   && <Dashboard />}
-                  {nav === "publisher"   && <PublisherPage />}
-                  {nav === "trash"       && <TrashPage />}
-                  {nav === "campaigns"   && <CampaignsPage />}
-                  {nav === "media"       && <MediaPage />}
-                  {nav === "calendar"    && <CalendarPage />}
-                  {nav === "planner"     && <PlannerPage />}
-                  {nav === "performance"     && <PerformancePage />}
-                  {nav === "monitoring"     && <MonitoringPage />}
-                  {nav === "trends"         && <TrendsPage />}
-                  {nav === "domain-analyse" && <DomainAnalysePage />}
-                  {nav === "wettbewerber"   && <WettbewerberPage />}
-                  {nav === "content-audit"  && <ContentAuditPage />}
-                  {nav === "structure-audit"&& <StructureAuditPage />}
-                  {nav === "social-intel"   && <SocialIntelligencePage />}
-                  {nav === "stories"     && <StoriesPage />}
-                  {nav === "admin"       && <AdminPage />}
-                  {nav === "ugc"         && <UGCPortalPage />}
-                </>
-            }
+            {nav === "dashboard"   && <Dashboard />}
+            {nav === "publisher"   && <PublisherPage />}
+            {nav === "trash"       && <TrashPage />}
+            {nav === "campaigns"   && <CampaignsPage />}
+            {nav === "media"       && <MediaPage />}
+            {nav === "calendar"    && <CalendarPage />}
+            {nav === "planner"     && <PlannerPage />}
+            {nav === "performance"     && <PerformancePage />}
+            {nav === "monitoring"     && <MonitoringPage />}
+            {nav === "trends"         && <TrendsPage />}
+            {nav === "domain-analyse" && <DomainAnalysePage />}
+            {nav === "wettbewerber"   && <WettbewerberPage />}
+            {nav === "content-audit"  && <ContentAuditPage />}
+            {nav === "structure-audit"&& <StructureAuditPage />}
+            {nav === "social-intel"   && <SocialIntelligencePage />}
+            {nav === "stories"     && <StoriesPage />}
+            {nav === "admin"       && <AdminPage />}
+            {nav === "ugc"         && <UGCPortalPage />}
           </div>
-          {!edStory && <GlobalRightSidebar />}
+          <GlobalRightSidebar />
         </div>
       </div>
-      {edPost  && <Editor />}
-      {schPost && <SchedModal />}
+
+      {/* Full-screen overlays — rendered on top of everything */}
+      {edStory    && <StoryEditorModal />}
+      {edPost     && <Editor />}
+      {schPost    && <SchedModal />}
       {detailPost && <PostDetailDrawer />}
     </div>
   );
