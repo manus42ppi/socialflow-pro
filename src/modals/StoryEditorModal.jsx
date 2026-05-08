@@ -510,14 +510,31 @@ const SLASH_ORDER = [
 // to reproduce actual browser behavior, and verify state AFTER the editor
 // re-render settles (300–500ms timeout).
 
+// All 14 BlockNote block types (confirmed from editor.schema.blockSpecs):
+// audio, bulletListItem, checkListItem, codeBlock, divider, file, heading,
+// image, numberedListItem, paragraph, quote, table, toggleListItem, video
+// Note: "Gallery" is not a native BlockNote block type.
 const ADD_BLOCK_TYPES = [
-  { type:"paragraph",        label:"Text",          icon:"¶"  },
-  { type:"heading", lv:1,    label:"Überschrift 1", icon:"H1" },
-  { type:"heading", lv:2,    label:"Überschrift 2", icon:"H2" },
-  { type:"heading", lv:3,    label:"Überschrift 3", icon:"H3" },
-  { type:"bulletListItem",   label:"Aufzählung",    icon:"•"  },
-  { type:"numberedListItem", label:"Nummeriert",    icon:"1." },
-  { type:"checkListItem",    label:"Aufgabe",       icon:"☐"  },
+  // Text
+  { type:"paragraph",        label:"Text",          icon:"¶",   group:"Text"  },
+  { type:"heading", lv:1,    label:"Überschrift 1", icon:"H1",  group:"Text"  },
+  { type:"heading", lv:2,    label:"Überschrift 2", icon:"H2",  group:"Text"  },
+  { type:"heading", lv:3,    label:"Überschrift 3", icon:"H3",  group:"Text"  },
+  { type:"quote",            label:"Zitat",         icon:"❝",   group:"Text"  },
+  // Listen
+  { type:"bulletListItem",   label:"Aufzählung",    icon:"•",   group:"Liste" },
+  { type:"numberedListItem", label:"Nummeriert",    icon:"1.",  group:"Liste" },
+  { type:"checkListItem",    label:"Aufgabe",       icon:"☐",   group:"Liste" },
+  { type:"toggleListItem",   label:"Aufklapper",    icon:"▸",   group:"Liste" },
+  // Medien
+  { type:"image",            label:"Bild",          icon:"🖼",  group:"Medien"},
+  { type:"video",            label:"Video",         icon:"▶",   group:"Medien"},
+  { type:"audio",            label:"Audio",         icon:"♪",   group:"Medien"},
+  { type:"file",             label:"Datei",         icon:"📎",  group:"Medien"},
+  // Sonstiges
+  { type:"table",            label:"Tabelle",       icon:"⊞",   group:"Extra" },
+  { type:"codeBlock",        label:"Code",          icon:"</>", group:"Extra" },
+  { type:"divider",          label:"Trennlinie",    icon:"—",   group:"Extra" },
 ];
 
 // Module-level ref: set by BlockPickerPortal on mount so AddBlockButton can
@@ -602,35 +619,52 @@ function BlockPickerPortal({ editor }) {
 
   if (!state) return null;
 
+  // Group items for display
+  const groups = [...new Set(ADD_BLOCK_TYPES.map(bt => bt.group))];
+
+  // Ensure picker stays within viewport vertically
+  const viewH = window.innerHeight;
+  const estH = 420; // approx picker height
+  const top = state.pos.top + estH > viewH ? Math.max(8, viewH - estH - 8) : state.pos.top;
+
   return createPortal(
     <div ref={menuRef} style={{
-      position:"fixed", top:state.pos.top, left:state.pos.left,
+      position:"fixed", top, left: state.pos.left,
       zIndex:99999, background:"#fff",
-      border:"1px solid #e5e7eb", borderRadius:10,
-      boxShadow:"0 4px 24px rgba(0,0,0,.14)",
-      padding:"5px", minWidth:220, fontFamily:FONT,
+      border:"1px solid #e5e7eb", borderRadius:12,
+      boxShadow:"0 8px 32px rgba(0,0,0,.16)",
+      padding:"6px", minWidth:230, fontFamily:FONT,
+      maxHeight: "min(480px, 85vh)", overflowY:"auto",
     }}>
-      <div style={{fontSize:10.5, color:"#9ca3af", padding:"5px 10px 7px",
-        fontWeight:600, textTransform:"uppercase", letterSpacing:".05em"}}>
+      <div style={{fontSize:10, color:"#9ca3af", padding:"5px 10px 6px",
+        fontWeight:700, textTransform:"uppercase", letterSpacing:".06em"}}>
         Block-Typ wählen
       </div>
-      {ADD_BLOCK_TYPES.map(bt => (
-        <div key={`${bt.type}-${bt.lv||""}`}
-          onMouseDown={(e) => handleItemMouseDown(e, bt)}
-          style={{
-            display:"flex", alignItems:"center", gap:10,
-            padding:"8px 10px", borderRadius:7,
-            cursor:"pointer", fontSize:13, color:"#374151", userSelect:"none",
-          }}
-          onMouseEnter={e => e.currentTarget.style.background="#f3f4f6"}
-          onMouseLeave={e => e.currentTarget.style.background="transparent"}
-        >
-          <span style={{
-            width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center",
-            background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:6,
-            fontSize:11, fontWeight:700, color:"#6b7280", flexShrink:0,
-          }}>{bt.icon}</span>
-          {bt.label}
+      {groups.map(group => (
+        <div key={group}>
+          <div style={{fontSize:9.5, color:"#c4c9d4", padding:"6px 10px 3px",
+            fontWeight:700, textTransform:"uppercase", letterSpacing:".06em"}}>
+            {group}
+          </div>
+          {ADD_BLOCK_TYPES.filter(bt => bt.group === group).map(bt => (
+            <div key={`${bt.type}-${bt.lv||""}`}
+              onMouseDown={(e) => handleItemMouseDown(e, bt)}
+              style={{
+                display:"flex", alignItems:"center", gap:10,
+                padding:"7px 10px", borderRadius:7,
+                cursor:"pointer", fontSize:13, color:"#374151", userSelect:"none",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background="#f3f4f6"}
+              onMouseLeave={e => e.currentTarget.style.background="transparent"}
+            >
+              <span style={{
+                width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center",
+                background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:6,
+                fontSize:11, fontWeight:700, color:"#6b7280", flexShrink:0,
+              }}>{bt.icon}</span>
+              {bt.label}
+            </div>
+          ))}
         </div>
       ))}
     </div>,
