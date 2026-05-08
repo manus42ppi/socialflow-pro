@@ -1038,7 +1038,7 @@ export default function StoryEditorModal() {
   // Website publish state
   const [webPublishing, setWebPublishing] = useState(false);
   const [webPublished, setWebPublished] = useState(
-    story.webSlug ? { slug: story.webSlug, url: `https://ppi-n3xt.pages.dev/blog/post.html?slug=${story.webSlug}` } : null
+    story.webSlug ? { slug: story.webSlug, url: `https://ppi-n3xt-website.pages.dev/blog/post.html?slug=${story.webSlug}` } : null
   );
   const [tagsLoading, setTagsLoading] = useState(false);
   const [hashtagLoading, setHashtagLoading] = useState(false);

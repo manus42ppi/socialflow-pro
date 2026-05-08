@@ -157,7 +157,7 @@ export async function onRequest({ request, env }) {
       return json({
         ok: true,
         slug,
-        url: `https://ppi-n3xt.pages.dev/blog/post.html?slug=${slug}`,
+        url: `https://ppi-n3xt-website.pages.dev/blog/post.html?slug=${slug}`,
       }, 201);
     } catch (e) {
       const isAuthErr = ["token", "JWK", "signature", "Unauthorized", "expired", "Invalid"].some(w => e.message.includes(w));
