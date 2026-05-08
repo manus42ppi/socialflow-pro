@@ -2064,6 +2064,26 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                               </div>
                             );
                           })()}
+                          {/* Scroll-Tiefe */}
+                          {webStats.scrollStats && webStats.scrollStats.pct25 > 0 && (
+                            <div>
+                              <div style={{ fontSize: 8.5, color: T.gray400, fontFamily: FONT, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".07em" }}>Scroll-Tiefe</div>
+                              {[
+                                { label: "25%", val: webStats.scrollStats.pct25 },
+                                { label: "50%", val: webStats.scrollStats.pct50 },
+                                { label: "75%", val: webStats.scrollStats.pct75 },
+                                { label: "100%", val: webStats.scrollStats.pct100 },
+                              ].map(({ label, val }) => (
+                                <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                                  <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, width: 26, flexShrink: 0 }}>{label}</span>
+                                  <div style={{ flex: 1, height: 5, background: T.gray100, borderRadius: 3, overflow: "hidden" }}>
+                                    <div style={{ width: `${val}%`, height: "100%", background: val >= 75 ? T.success500 : val >= 50 ? T.brand600 : T.brand200, borderRadius: 3, transition: "width .3s" }} />
+                                  </div>
+                                  <span style={{ fontSize: 8, color: T.gray500, fontFamily: FONT, width: 26, textAlign: "right", flexShrink: 0 }}>{val}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </>)}
                       </div>
                     )}

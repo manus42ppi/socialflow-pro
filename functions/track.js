@@ -2,7 +2,8 @@
 // Route: /track
 // KV binding: SOCIALFLOW_KV
 // Key schema:  stats:blog:{slug}
-// Value:       { views, dailyViews: {"YYYY-MM-DD": N}, durations: [seconds…] }
+// Value:       { views, dailyViews: {"YYYY-MM-DD": N}, durations: [seconds…],
+//               scrollDepths: { "25": N, "50": N, "75": N, "100": N } }
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -46,7 +47,7 @@ export async function onRequest({ request, env }) {
     if (!slug) return json({ error: "slug required" }, 400);
 
     const stats = (await kv.get(`stats:blog:${slug}`, "json").catch(() => null))
-      ?? { views: 0, dailyViews: {}, durations: [] };
+      ?? { views: 0, dailyViews: {}, durations: [], scrollDepths: {} };
 
     // Trend: last 7 days vs previous 7 days
     let last7 = 0, prev7 = 0;
@@ -72,18 +73,32 @@ export async function onRequest({ request, env }) {
       sparkline.push({ date: d, views: stats.dailyViews?.[d] || 0 });
     }
 
-    return json({ views: stats.views || 0, avgDuration, trend, trendPct, last7, prev7, sparkline });
+    // Scroll-depth / completion rate
+    const sd = stats.scrollDepths || {};
+    const totalViews = stats.views || 1;
+    const scrollStats = {
+      pct25:  Math.round(((sd["25"]  || 0) / totalViews) * 100),
+      pct50:  Math.round(((sd["50"]  || 0) / totalViews) * 100),
+      pct75:  Math.round(((sd["75"]  || 0) / totalViews) * 100),
+      pct100: Math.round(((sd["100"] || 0) / totalViews) * 100),
+    };
+
+    return json({
+      views: stats.views || 0,
+      avgDuration, trend, trendPct, last7, prev7, sparkline,
+      scrollStats,
+    });
   }
 
-  // ── POST /track — record view or duration event ──────────────────────────
+  // ── POST /track — record view, duration, or scroll event ─────────────────
   if (method === "POST") {
     const body = await request.json().catch(() => ({}));
-    const { slug, event, duration } = body;
+    const { slug, event, duration, depth } = body;
     if (!slug) return json({ error: "slug required" }, 400);
 
     const key   = `stats:blog:${slug}`;
     const stats = (await kv.get(key, "json").catch(() => null))
-      ?? { views: 0, dailyViews: {}, durations: [] };
+      ?? { views: 0, dailyViews: {}, durations: [], scrollDepths: {} };
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -107,6 +122,11 @@ export async function onRequest({ request, env }) {
       stats.durations.push(Math.round(duration));
       // Keep last 200 samples
       if (stats.durations.length > 200) stats.durations = stats.durations.slice(-200);
+    }
+
+    if (event === "scroll" && [25, 50, 75, 100].includes(depth)) {
+      stats.scrollDepths = stats.scrollDepths || {};
+      stats.scrollDepths[String(depth)] = (stats.scrollDepths[String(depth)] || 0) + 1;
     }
 
     await kv.put(key, JSON.stringify(stats));
