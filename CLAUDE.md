@@ -1,85 +1,165 @@
 # SocialFlow Pro – Claude Projektkontext
 
 > **Dieses Dokument ist die einzige Quelle der Wahrheit für Claude Code.**
-> Es wird bei jeder Session gelesen. Bitte vollständig aktuell halten.
+> Es wird bei jeder Session automatisch geladen. Vollständig aktuell halten.
 
 ---
 
-## Stack & Infrastruktur
+## 1. Infrastruktur & Branches
 
-| Layer | Technologie | Details |
+| Layer | Technologie | URL / Details |
 |---|---|---|
 | Frontend | React 18 + Vite | Single-Page-App, Inline-Styles, kein CSS/Tailwind |
 | Auth | Clerk (Dev-Key) | Demo-Login via `DEMO_USERS` in `constants/demo.js` |
-| AI-Proxy | Cloudflare Function | `/ai` → Anthropic API (NIEMALS direkt `api.anthropic.com`) |
-| KV-Store | Cloudflare KV | `/store` → Clerk-JWT geschützt, Demo-User: kein KV |
-| Backend-Fns | `functions/` | Cloudflare Pages Functions (ig-monitor, instagram, store, ai, rss) |
-| Live | https://socialflow-pro.pages.dev | Cloudflare Pages, auto-deploy bei Push auf `main` |
-| Preview | https://develop.socialflow-pro.pages.dev | Auto-deploy bei Push auf `develop` |
-| Repo | https://github.com/manus42ppi/socialflow-pro | Arbeits-Branch: `develop` |
+| AI-Proxy | Cloudflare Function | `POST /ai` → Anthropic API (NIEMALS direkt!) |
+| KV-Store | Cloudflare KV | `POST /store` → Clerk-JWT geschützt, Demo-User: kein KV |
+| Backend | `functions/` | Cloudflare Pages Functions (ai, store, instagram, ig-monitor, rss) |
+| Produktion | https://socialflow-pro.pages.dev | Auto-deploy: `main` Branch |
+| Dev-Preview | https://develop.socialflow-pro.pages.dev | Auto-deploy: `develop` Branch |
+| Repo | https://github.com/manus42ppi/socialflow-pro | |
 
-### Branch-Strategie (WICHTIG — Cloudflare Build-Quota schonen)
+### Branch-Strategie ⚠️ WICHTIG
+
 ```
-develop  →  Preview-URL (develop.socialflow-pro.pages.dev)  – hier wird gearbeitet
-main     →  Produktion  (socialflow-pro.pages.dev)          – nur bei bewusstem Release
+develop  →  Preview-URL  – hier wird IMMER gearbeitet
+main     →  Produktion   – NUR bei explizitem "jetzt deployen" / "release"
 ```
 
-**Claude Code arbeitet IMMER auf `develop`, NIEMALS direkt auf `main`.**
-Merge zu `main` nur wenn der User explizit "jetzt deployen" oder "release" sagt.
+**Claude Code arbeitet AUSSCHLIESSLICH auf `develop`.**  
+Merge zu `main` nur wenn der User explizit "deployen" oder "release" sagt.  
+Jeder Push = 1 Cloudflare Build (500 Min/Monat Quota auf Free Plan).
 
-### Dev-Workflow
+Commits die KEINEN Build brauchen:
+```bash
+git commit -m "refactor: ... [skip ci]"
+```
+
+---
+
+## 2. Entwicklungs-Workflow
+
 ```bash
 # Aktuellen Branch prüfen — muss immer "develop" sein
 git branch --show-current
 
-# Dev-Server starten (npm nicht im PATH → direkt node)
-/usr/local/bin/node node_modules/vite/bin/vite.js
-
-# Build prüfen
-/usr/local/bin/node node_modules/vite/bin/vite.js build
-
-# Tests ausführen
+# Tests ausführen (141 Tests, müssen alle grün sein vor jedem Push)
 node node_modules/.bin/vitest run
 
-# Normale Arbeit: auf develop pushen → Preview-URL
+# Build prüfen
+node node_modules/.bin/vite build
+
+# Auf develop pushen → Preview-URL baut
 git push origin develop
 
-# Release auf Produktion: develop → main mergen (nur auf explizite Anfrage!)
+# Release (NUR auf explizite Anfrage):
 git checkout main && git merge develop && git push origin main && git checkout develop
-```
-
-### Commit-Strategie
-- WIP-Commits die KEINEN Cloudflare-Build brauchen: `[skip ci]` ans Ende der Message
-- Normale Feature-Commits auf develop: bauen die Preview-URL (1 Build)
-- Release auf main: 1 weiterer Build für Produktion
-
-### Demo-Login im Preview (React Events funktionieren nicht nativ)
-```js
-// 1. Accordion öffnen
-const btn = Array.from(document.querySelectorAll('button')).find(el => el.textContent.includes('DEMO-ZUGÄNGE'));
-['mousedown','mouseup','click'].forEach(t => btn.dispatchEvent(new MouseEvent(t, {bubbles:true,cancelable:true,view:window})));
-
-// 2. Admin einloggen via React Props
-const span = Array.from(document.querySelectorAll('span')).find(el => el.textContent.trim() === 'admin@demo.com');
-const el = span.parentElement;
-el[Object.keys(el).find(k => k.startsWith('__reactProps'))].onClick?.({});
 ```
 
 ---
 
-## Architektur-Übersicht
+## 3. Testing-Workflow (Claude Preview Tools)
 
-### Dateistruktur `src/`
+### Warum nicht Chrome?
+
+Die Claude-in-Chrome Extension hat ein eigenes Domain-Allowlist-System.
+Sie blockiert **alle** Domains die wir nutzen:
+- `*.pages.dev` (Cloudflare Pages — Preview und Produktion)
+- `localhost` / `127.0.0.1`
+- `*.loca.lt` (Localtunnel)
+
+**Chrome-Extension ist für dieses Projekt nicht nutzbar.** Nicht weiter versuchen.
+
+### Was wir stattdessen nutzen: Claude Preview Tools
+
+Konfiguriert in `.claude/launch.json` → startet `.claude/start-dev.sh` auf Port 5173.
+
+```js
+// Verfügbare Tools (Schema via ToolSearch laden):
+mcp__Claude_Preview__preview_start       // Dev-Server starten
+mcp__Claude_Preview__preview_screenshot  // Screenshot
+mcp__Claude_Preview__preview_snapshot    // Accessibility-Tree (für Selektoren)
+mcp__Claude_Preview__preview_click       // Element klicken
+mcp__Claude_Preview__preview_fill        // Input befüllen
+mcp__Claude_Preview__preview_eval        // JavaScript ausführen
+mcp__Claude_Preview__preview_resize      // Viewport setzen (preset: "desktop")
+```
+
+### Test-Session starten
+
+```js
+// 1. Server starten
+preview_start({ name: "dev" })
+// → serverId merken für alle weiteren Calls
+
+// 2. Viewport auf Desktop setzen
+preview_resize({ serverId, preset: "desktop" })
+
+// 3. Screenshot zur Orientierung
+preview_screenshot({ serverId })
+```
+
+### Demo-Login via eval (React Events funktionieren nicht direkt)
+
+```js
+preview_eval({ serverId, expression: `(() => {
+  // Demo-Zugänge Accordion öffnen
+  const btn = Array.from(document.querySelectorAll('button'))
+    .find(b => b.textContent.includes('Demo-Zugänge'));
+  btn?.click();
+})()` })
+
+// Kurz warten, dann Admin einloggen:
+preview_eval({ serverId, expression: `(() => {
+  const divs = Array.from(document.querySelectorAll('[style*="cursor: pointer"]'));
+  const admin = divs.find(d => d.textContent.includes('admin@'));
+  admin?.click();
+})()` })
+```
+
+### Navigation
+
+```js
+preview_eval({ serverId, expression: `(() => {
+  const clickable = Array.from(document.querySelectorAll('[style*="cursor"]'));
+  const target = clickable.find(el => el.textContent.trim() === 'Storys');
+  target?.click();
+})()` })
+```
+
+### BlockNote Editor testen (AddBlockButton / Slash-Menü)
+
+```js
+// Editor-Instanz via React Fiber holen
+preview_eval({ serverId, expression: `(() => {
+  const editorEl = document.querySelector('.bn-editor');
+  const fiberKey = Object.keys(editorEl).find(k => k.startsWith('__reactFiber'));
+  let fiber = editorEl[fiberKey], editor = null, depth = 0;
+  while (fiber && depth < 30) {
+    if (fiber.memoizedProps?.editor?.insertBlocks) { editor = fiber.memoizedProps.editor; break; }
+    fiber = fiber.return; depth++;
+  }
+  // Paragraph einfügen + Slash-Menü öffnen (wie AddBlockButton):
+  const lastBlock = editor.document[editor.document.length - 1];
+  const [nb] = editor.insertBlocks([{ type: 'paragraph' }], lastBlock, 'after');
+  editor.setTextCursorPosition(nb, 'end');
+  editor.focus();
+  document.execCommand('insertText', false, '/');  // ← triggert Suggestion-Plugin
+  return 'done';
+})()` })
+```
+
+---
+
+## 4. Dateistruktur `src/`
 
 ```
 src/
-├── App.jsx                    # Root-Komponente, Routing (State-based, kein Router)
+├── App.jsx                    # Root-Komponente, State-basiertes Routing
 ├── main.jsx                   # Vite Entry, ClerkProvider
 │
 ├── constants/
-│   ├── colors.js              # C (Farb-Tokens), T (erweitert), FONT, FONT_DISPLAY, IW, CSS
+│   ├── colors.js              # C, T (Farb-Tokens), FONT, FONT_DISPLAY, IW, CSS
 │   ├── demo.js                # CHANNELS, STORY_CHANNELS, ROLES, DEMO_USERS,
-│   │                          # STAGES, CAMP_COLORS, CAMP_ICONS,
 │   │                          # DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS,
 │   │                          # DEMO_CAMPAIGNS, DEMO_POSTS, DEMO_STORIES, DEMO_MEDIA
 │   └── nav.js                 # NAV_GROUPS, NAV_UTILITY, TITLE-Map
@@ -115,13 +195,13 @@ src/
 │   ├── PlannerPage.jsx
 │   ├── CampaignsPage.jsx
 │   ├── StoriesPage.jsx
-│   ├── MediaPage.jsx          # Workspace-aware (filtert nach Mandant)
+│   ├── MediaPage.jsx
 │   ├── PerformancePage.jsx
 │   ├── MonitoringPage.jsx
-│   ├── AdminPage.jsx          # inkl. Mandanten-Tab
+│   ├── AdminPage.jsx
 │   ├── TrashPage.jsx
 │   ├── ResearchPage.jsx
-│   └── UGCPortalPage.jsx      # UGC-Einreichungsportal (neu)
+│   └── UGCPortalPage.jsx
 │
 ├── modals/
 │   ├── Editor.jsx
@@ -134,26 +214,30 @@ src/
     ├── utils.test.js
     ├── demo.test.js
     ├── campaigns.test.js
+    ├── story.test.js
     └── components/
         ├── ui.test.jsx
         └── postcard.test.jsx
 
 functions/
-├── ai.js                      # POST /ai → Anthropic API Proxy (claude-sonnet-4-6)
-├── store.js                   # POST /store → Cloudflare KV (Clerk-JWT required)
-├── instagram.js               # POST /instagram
-├── ig-monitor.js              # POST /ig-monitor → Business Discovery API
-└── rss.js                     # GET /rss → RSS-Feed Proxy
+├── ai.js          # POST /ai → Anthropic API Proxy (claude-sonnet-4-6)
+├── store.js       # POST /store → Cloudflare KV (Clerk-JWT required)
+├── instagram.js   # POST /instagram
+├── ig-monitor.js  # POST /ig-monitor → Business Discovery API
+└── rss.js         # GET /rss → RSS-Feed Proxy
 ```
 
 ---
 
-## Design-System
+## 5. Design-System
 
 ### Farb-Tokens – `src/constants/colors.js`
+
 ```js
-const C = { bg, surface, border, borderLight, text, textMid, textSoft, textMute,
-            accent, accentHov, accentLight, success, warning, info, gradient, gradientHov }
+const C = { bg, surface, border, borderLight,
+            text, textMid, textSoft, textMute,
+            accent, accentHov, accentLight,
+            success, warning, info, gradient, gradientHov }
 
 const T = { gray50…gray900, white, brand25…brand200,
             warning500, warningBg, warningText,
@@ -161,10 +245,11 @@ const T = { gray50…gray900, white, brand25…brand200,
             error600, errorBg,
             rSm, rMd, rLg, shadowXs, shadowLg }
 ```
-⚠️ `C` und `T` sind Modul-Level. NIEMALS in Komponenten-Body definieren!
+
+⚠️ `C` und `T` sind **Modul-Level-Konstanten**. NIEMALS in Komponenten-Body definieren!
 
 ### Konstanten
-- `FONT = "Inter, system-ui, sans-serif"` – Body
+- `FONT = "Inter, system-ui, sans-serif"` – Body-Text überall
 - `FONT_DISPLAY = "'Clash Display', 'Plus Jakarta Sans', Inter, sans-serif"` – Headlines
 - `IW = 1.7` – Standard `strokeWidth` für alle Lucide-Icons
 - `CSS` – Keyframes-String (spin, fadeUp, fadeIn, shimmer, pulse, glow)
@@ -174,9 +259,9 @@ const T = { gray50…gray900, white, brand25…brand200,
 
 ---
 
-## State-Architektur (`AppContext.jsx`)
+## 6. State-Architektur (`AppContext.jsx`)
 
-### Vollständige Context-Value-Felder
+### Context-Value-Felder
 ```
 // Auth
 isLoaded, user, demoUser, setDemoUser, handleLogout, handleUpdateMe
@@ -205,24 +290,12 @@ lockStory, unlockStory, delStory, newStory
 detailPost, setDetailPost
 
 // Workspace / Multi-Tenant
-workspaces,             // alle DEMO_WORKSPACES
-userWorkspaces,         // gefiltert nach Demo-User-Mitgliedschaft
-currentWorkspaceId,     // null = Alle Mandanten
-setCurrentWorkspaceId,  // persistiert in localStorage("sf_workspace")
-currentWorkspace,       // Workspace-Objekt oder null
-```
-
-### Multi-Tenant-Filterung
-```js
-// In AppContext: gefilterte Collections für die UI
-const filteredPosts = useMemo(() =>
-  currentWorkspaceId ? posts.filter(p => p.workspaceId === currentWorkspaceId) : posts
-, [posts, currentWorkspaceId]);
-
-// context value.posts = filteredPosts (Mutations laufen über raw setPosts)
+workspaces, userWorkspaces,
+currentWorkspaceId, setCurrentWorkspaceId, currentWorkspace
 ```
 
 ### KV-Persistenz-Pattern (Load-Guard)
+
 ```js
 // Laden beim Start (re-runs bei Login/Logout)
 useEffect(() => {
@@ -236,13 +309,14 @@ useEffect(() => {
 // Speichern (Guard: nicht überschreiben vor dem Laden)
 useEffect(() => {
   if (!postsLoaded.current) return;
-  storeSet("posts", posts);
-}, [posts]); // ← raw posts, nicht filteredPosts!
+  storeSet("posts", posts); // ← raw posts, NICHT filteredPosts!
+}, [posts]);
 ```
 
 Demo-User → kein KV → localStorage-Fallback für Media (`"demo_media"`).
 
 ### Auto-Save-Pattern (Editor & StoryEditorModal)
+
 ```js
 const formRef = useRef(form);
 formRef.current = form; // immer aktuell, kein stale closure
@@ -260,20 +334,14 @@ useEffect(() => {
 ### Routing
 Rein State-basiert via `nav`-String. Kein React Router. Browser-Back funktioniert nicht.
 
-```
-dashboard | publisher | trash | stories | ugc | campaigns |
-media | calendar | planner | performance | research | monitoring | admin
-```
-
 ---
 
-## Feature: Multi-Tenant / Mandanten-System
+## 7. Multi-Tenant / Mandanten-System
 
 ### Konzept
 Marketing-Agentur betreut mehrere Mandanten. Jeder User hat Zugang zu 1..n Mandanten.
-Beim Wechsel des Mandanten ändern sich Posts, Kampagnen, Storys, Medien und UGC-Einreichungen.
 
-### Demo-Mandanten (`DEMO_WORKSPACES`)
+### Demo-Mandanten
 | ID | Name | Farbe |
 |---|---|---|
 | `ws-ppi-media` | ppi Media | #0077B5 |
@@ -281,136 +349,132 @@ Beim Wechsel des Mandanten ändern sich Posts, Kampagnen, Storys, Medien und UGC
 | `ws-ppi-talk` | ppi Talk | #027A48 |
 | `ws-alphabeta` | alphabeta neo | #E1306C |
 
-### Demo-Berechtigungen (`DEMO_WORKSPACE_MEMBERS`)
+### Berechtigungen
 - Admin (id:"1") → alle 4 Mandanten
 - Editor (id:"2") → ppi Media + ppi n3xt
 - Viewer (id:"3") → ppi Talk
 
 ### Datenmodell-Erweiterung
-Alle Entitäten haben jetzt `workspaceId`:
 ```js
-// Post, Kampagne, Story, Media-Item:
+// Alle Entitäten haben workspaceId:
 { id, workspaceId: "ws-ppi-media", ... }
 ```
 
-### Sidebar-Switcher
-- Farbige Initialen-Avatare (gleiche Sprache wie User-Avatar)
-- Dropdown mit `onMouseDown`-Außenklick-Schließung (nicht `onClick`!)
-- `null` = "Alle Mandanten" (Gesamtübersicht, nur wenn >1 Workspace)
+### Sidebar-Switcher (kritisches Pattern)
+```js
+// Außenklick: mousedown verwenden, NICHT click!
+document.addEventListener("mousedown", close);
+// Container stoppt Propagation:
+<div onMouseDown={e => e.stopPropagation()}>
+```
+
+`currentWorkspace` gibt `null` zurück wenn kein Mandant — NICHT `DEMO_WORKSPACES[0]`.
 
 ---
 
-## Feature: Story-Workflow (BlockNote)
+## 8. Story-Workflow (BlockNote v0.47.3)
 
-### StoriesPage
-Grid, Status-Filter, SEO-Score-Badge auf Story-Karten.
+### Import-Pflicht
 
-### StoryEditorModal – 3-Spalten Vollbild
-**Links (230px):** Status, Kategorie, STORY_CHANNELS, Tags, Kommentare, History
-
-**Mitte:** Titel (FONT_DISPLAY, 32px) + Subtitle + BlockNote-Editor
-
-**Rechts (300px):** Tabs
-- "Info": Materialien (Links, Notizen), Ableitungen per KI
-- "SEO": Score (0-100), Keyword-Dichte, Lesbarkeit (Flesch-Kincaid DE),
-  Auto-Tags, Hashtag-Generator, Meta-Titel + Meta-Description, Google-Vorschau
-
-### Unified Formatting Toolbar
-BlockNote `FormattingToolbarController` mit 4 Modi:
-- `format` – Standard-Formatierung (Bold, Italic, Link, etc.)
-- `ai` – 6 KI-Aktionen (Verbessern, Kürzen, etc.)
-- `loading` – Spinner während KI-Call
-- `result` – Kompakter Indikator + Portal-Panel (400px, fixed, unterhalb Selection)
-
-### BlockNote – korrekte API
-```jsx
+```js
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/react/style.css";
-import "@blocknote/ariakit/style.css";          // ← PFLICHT für Slash-Menü-Icons
-import { useCreateBlockNote, FilePanelController,
-         FormattingToolbarController, FormattingToolbar } from "@blocknote/react";
-import { BlockNoteView } from "@blocknote/ariakit"; // ← NICHT aus @blocknote/react!
-import { createPortal } from "react-dom";
+import "@blocknote/ariakit/style.css";     // ← PFLICHT für Slash-Menü-Icons
 
-<BlockNoteView editor={editor} theme="light" filePanel={false} formattingToolbar={false}>
+import { BlockNoteView } from "@blocknote/ariakit"; // ← NICHT aus @blocknote/react!
+import {
+  useCreateBlockNote, useBlockNoteEditor,
+  FormattingToolbarController, FormattingToolbar,
+  BlockTypeSelect, BasicTextStyleButton, CreateLinkButton,
+  SideMenuController, SideMenu, DragHandleButton, DeleteButton,
+  SuggestionMenuController, getDefaultReactSlashMenuItems,
+} from "@blocknote/react";
+```
+
+### BlockNoteView Setup
+
+```jsx
+<BlockNoteView editor={editor} theme="light" filePanel={false} formattingToolbar={false} slashMenu={false}>
   <FormattingToolbarController formattingToolbar={UnifiedFormattingToolbar} />
   <FilePanelController filePanel={MediaLibraryFilePanel} />
+  <SideMenuController sideMenu={props => (
+    <SideMenu {...props}>
+      <AddBlockButton block={props.block} />
+      <DragHandleButton {...props} />
+      <DeleteButton {...props} />
+    </SideMenu>
+  )} />
+  <SuggestionMenuController triggerCharacter="/" getItems={...} />
 </BlockNoteView>
 ```
 
-### STORY_CHANNELS (erweitert CHANNELS)
+### AddBlockButton — Slash-Menü via execCommand
+
 ```js
-export const STORY_CHANNELS = [
-  ...CHANNELS, // instagram, twitter, linkedin, facebook, whatsapp
-  { id:"website", label:"Website / Blog",  color:"#0EA5E9", ... },
-  { id:"print",   label:"Print / Zeitung", color:"#64748B", ... },
-];
-// CHANNELS (ohne website/print) für Publisher, Admin, Editor verwenden!
-```
-
----
-
-## Feature: UGC Portal (`src/pages/UGCPortalPage.jsx`)
-
-Einreichungsportal für externe Inhalte (Vereine, Schulen, Organisationen).
-Inspiriert von StoryBox (Schwäbische Zeitung).
-
-### Workflow
-1. Externe Einreichung über öffentliches Formular (Preview-Modal)
-2. Redaktion sieht alle Einreichungen gefiltert nach Mandant
-3. Genehmigen → optional direkt als Story importieren (öffnet StoryEditorModal)
-4. Ablehnen mit interner Notiz
-
-### Datenmodell
-```js
-{
-  id, workspaceId, submittedAt,
-  name, email, title, articleLength:"short"|"medium"|"long",
-  text, imageCount, category, rightsConfirmed:bool,
-  status:"pending"|"approved"|"rejected",
-  storyId:null|string, notes:string
+// Korrekte Implementierung (StoryEditorModal.jsx):
+function AddBlockButton({ block }) {
+  const editor = useBlockNoteEditor();
+  const handleOpen = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const [nb] = editor.insertBlocks([{ type: "paragraph" }], block, "after");
+    if (!nb) return;
+    editor.setTextCursorPosition(nb, "end");
+    editor.focus();
+    // execCommand geht durch ProseMirror's nativen Input-Handler → triggert Suggestion-Plugin
+    // editor.insertInlineContent() würde das Plugin bypassen — deshalb execCommand!
+    document.execCommand("insertText", false, "/");
+  };
+  return <button onMouseDown={handleOpen}>+</button>;
 }
 ```
 
----
-
-## Feature: Instagram Monitoring
-
-**MonitoringPage** – Account per @Username hinzufügen, Profil-Stats, Post-Grid.
-**ig-monitor.js** – `POST /ig-monitor` → Facebook Business Discovery API.
-⚠️ Benötigt echten Clerk-Account + Instagram Business Token.
+### StoryEditorModal – 3-Spalten Vollbild
+- **Links (230px):** Status, Kategorie, STORY_CHANNELS, Tags, Kommentare, History
+- **Mitte:** Titel (FONT_DISPLAY, 32px) + Subtitle + BlockNote-Editor
+- **Rechts (300px):** Tabs "Info" (Materialien, Ableitungen) + "SEO" (Score, Lesbarkeit, Meta)
 
 ---
 
-## Datenmodelle
+## 9. Tests
+
+```bash
+# Alle Tests ausführen (141 Tests, alle müssen grün sein)
+node node_modules/.bin/vitest run
+
+# E2E Tests (Playwright, Chromium)
+node node_modules/.bin/playwright test
+```
+
+| Datei | Inhalt |
+|---|---|
+| `utils.test.js` | uid, getMediaType, fmtDate, fpos, parseJSON |
+| `demo.test.js` | CHANNELS, STORY_CHANNELS, ROLES, DEMO_CAMPAIGNS, DEMO_POSTS |
+| `campaigns.test.js` | dateProg, fmtBudget |
+| `story.test.js` | blocksToText, sectionsToBlocks, computeReadability |
+| `ui.test.jsx` | Btn, Badge, Avatar |
+| `postcard.test.jsx` | PostCard-Rendering |
+
+---
+
+## 10. Datenmodelle
 
 ### Post
 ```js
 { id, workspaceId, title, content, channels:[],
   status:"draft"|"pending"|"scheduled"|"published",
-  scheduledDate, scheduledTime, mediaId, campaignId, storyId, deleted:false,
-  updatedAt }
+  scheduledDate, scheduledTime, mediaId, campaignId, storyId, deleted:false, updatedAt }
 ```
 
 ### Story
 ```js
-{ id, workspaceId, title, subtitle,
-  blocks:[],          // BlockNote JSON
+{ id, workspaceId, title, subtitle, blocks:[],
   materials:[{id, type:"link"|"note"|"image", url, title, addedAt}],
   derivatives:[{id, channel, postId, createdAt}],
   targetChannels:[], status:"idea"|"draft"|"ready"|"published",
   category, tags, seoKeyword, metaTitle, metaDesc, hashtags,
   comments:[{id, text, authorId, authorName, createdAt, resolved}],
   history:[{id, savedAt, savedBy, wordCount, title}],
-  lockedBy:null|{userId, name, since},
-  createdAt, updatedAt }
-```
-
-### Kampagne
-```js
-{ id, workspaceId, name, icon, color, description, goal, status,
-  startDate, endDate, channels:[], budget:{total, spent, currency},
-  kpis:{impressions, reach, engagementRate, clicks} }
+  lockedBy:null|{userId, name, since}, createdAt, updatedAt }
 ```
 
 ### Media-Item
@@ -422,90 +486,51 @@ Inspiriert von StoryBox (Schwäbische Zeitung).
   source:"upload"|"unsplash"|"pexels"|"pixabay" }
 ```
 
-### Workspace
-```js
-{ id, name, color, emoji, description }
-```
-
-### WorkspaceMember
-```js
-{ workspaceId, userId, role:"admin"|"editor"|"viewer" }
-```
-
 ---
 
-## Tests (116 Tests, alle grün)
-
-```bash
-node node_modules/.bin/vitest run
-```
-
-```
-src/__tests__/
-├── utils.test.js       – uid, getMediaType, fmtDate, fpos, parseJSON
-├── demo.test.js        – CHANNELS, STORY_CHANNELS, ROLES, DEMO_CAMPAIGNS, DEMO_POSTS, STAGES
-├── campaigns.test.js   – dateProg, fmtBudget
-└── components/
-    ├── ui.test.jsx     – Btn, Badge, Avatar
-    └── postcard.test.jsx – PostCard-Rendering
-```
-
----
-
-## Kritische Regeln (niemals brechen)
+## 11. Kritische Regeln
 
 | ❌ Verboten | ✅ Korrekt |
 |---|---|
-| `C` oder `T` in Komponente definieren | Aus `constants/colors.js` importieren |
+| `C` / `T` in Komponente definieren | Aus `constants/colors.js` importieren |
 | `useMemo`/`useCallback` entfernen | Bestehende Memoization erhalten |
 | `api.anthropic.com` direkt aufrufen | Immer über `/ai` Cloudflare Function |
-| `.env` committen | Nur in Cloudflare Dashboard setzen |
+| `.env` committen | Nur im Cloudflare Dashboard setzen |
 | `console.log` stehen lassen | Nur `console.error` in catch-Blöcken |
-| `CHANNELS` im Story-Editor nutzen | `STORY_CHANNELS` verwenden |
+| `CHANNELS` im Story-Editor | `STORY_CHANNELS` verwenden |
 | `BlockNoteView` aus `@blocknote/react` | Aus `@blocknote/ariakit` |
 | `@blocknote/ariakit/style.css` weglassen | Immer importieren |
-| `filePanel` direkt auf `BlockNoteView` | `<FilePanelController filePanel={...} />` |
-| `formattingToolbar` direkt auf `BlockNoteView` | `<FormattingToolbarController ... />` |
+| `editor.insertInlineContent("/")` für Slash-Menü | `document.execCommand("insertText", false, "/")` |
 | `loadedRef`-Guard weglassen | Immer `if(!loadedRef.current) return` |
-| Dropdown mit `onClick` außen schließen | `mousedown` verwenden (feuert vor `click`) |
-| `currentWorkspace: ... \|\| DEMO_WORKSPACES[0]` | `null` zurückgeben wenn kein Mandant |
+| Direkt auf `main` pushen | Immer auf `develop`, release nur auf Anfrage |
+| Chrome Extension für Browser-Tests | Claude Preview Tools (`mcp__Claude_Preview__*`) |
 
 ---
 
-## Entwicklungsstand (Stand: 10. April 2026)
-
-### ✅ Fertig & Live
-- Dashboard (Widgets, Timeline, Stats, Right Sidebar mit drag-barer Widget-Reihenfolge)
-- Publisher (Kanban-Board mit Drag & Drop, Status- + Kampagnen-Modus)
-- Kalender (Monats- + Agenda-Ansicht)
-- Planner (Gantt-Timeline)
-- Kampagnen-Verwaltung
-- Medienbibliothek (Upload, KI-Analyse, Fokuspunkt, Workspace-Filterung)
-- Performance (Mock-Analytics)
-- Admin (Kanal-Setup, Team, Mandanten-Tab, Instagram Token Guide)
-- Post-Editor (mit KI-Panel: Optimize, Hashtags, Varianten, Score, Hook, Ideas)
-- **Story-Workflow** (BlockNote-Editor, SEO-Panel, Unified Toolbar, KI-Ableitungen)
-- **Instagram Monitoring** (Business Discovery API)
-- **Multi-Tenant / Mandanten-System** (4 Demo-Mandanten, Sidebar-Switcher, Workspace-Filterung)
-- **UGC Portal** (Einreichungen, Genehmigungs-Workflow, Story-Import)
-- Papierkorb, Recherche-Seite
-
-### 🔄 Ideen / Nächste Schritte
-- Workspace-Zugriffsrechte per Klick änderbar (aktuell read-only Demo)
-- KV-Persistenz pro Workspace (aktuell flat keys)
-- Instagram Monitoring Demo-Mode ohne Clerk
-- Story-Ableitungen: Preview vor dem Erstellen
-- Mobile Responsive (aktuell Desktop-optimiert)
-- Echter Publish-Endpunkt
-
----
-
-## Secrets & Umgebungsvariablen
+## 12. Secrets & Umgebungsvariablen
 
 Niemals committen. In Cloudflare Pages Dashboard setzen:
 - `ANTHROPIC_API_KEY` – für `/ai` Function
-- `CF_KV_NAMESPACE` – für `/store` Function
-- Clerk Publishable/Secret Key – in `main.jsx` (Dev-Key für lokale Arbeit)
+- Clerk Keys – in `main.jsx` (Dev-Key für lokale Arbeit, nie committen)
 
 API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
-→ User gibt sie im Admin-Bereich ein → werden in `localStorage` gespeichert.
+→ User gibt sie im Admin-Bereich ein → `localStorage`
+
+---
+
+## 13. Entwicklungsstand (Mai 2026)
+
+### ✅ Fertig
+- Dashboard, Publisher (Kanban), Kalender, Planner (Gantt), Kampagnen
+- Medienbibliothek (Upload, KI-Analyse, Fokuspunkt)
+- Performance (Mock-Analytics), Instagram Monitoring
+- Post-Editor (KI-Panel), Story-Workflow (BlockNote, SEO, Ableitungen)
+- Multi-Tenant / Mandanten-System (4 Demo-Mandanten)
+- UGC Portal (Einreichungen, Genehmigungs-Workflow)
+- Build-Metadaten: `v1.0.{BUILD_NUMBER}` in Sidebar + Login
+
+### 🔄 Geplant / Nächste Schritte
+- Medienbibliothek: KI-Analyse-Persistenz, Overlay-Fixes, Datei-Typ/Auflösung (Plan existiert)
+- Workspace-Zugriffsrechte änderbar machen
+- Mobile Responsive
+- Echter Publish-Endpunkt
