@@ -6,3 +6,4 @@ dist
 
 # Cloudflare
 .wrangler
+.claude/worktrees/

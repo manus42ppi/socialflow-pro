@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SocialFlow Pro — Design Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #F7F7F5;
+    --surface:  #FFFFFF;
+    --border:   #E8E8E4;
+    --border-soft: #F0F0EC;
+    --text:     #111110;
+    --text-mid: #3D3D3A;
+    --text-soft:#787873;
+    --text-mute:#AEAEA8;
+    --accent:   #1A1A1A;
+    --indigo:   #5B5BD6;
+    --indigo-light: #EDEDFF;
+    --green:    #30A46C;
+    --green-light: #E5F7EF;
+    --amber:    #E07B39;
+    --amber-light: #FFF0E6;
+    --red:      #E5484D;
+    --red-light: #FFECEC;
+    --sidebar:  #111110;
+    --sidebar-text: #A8A8A0;
+    --sidebar-active: #FFFFFF;
+    --radius:   12px;
+    --radius-sm: 8px;
+    --shadow:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:0 4px 16px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  }
+
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; font-size: 13px; -webkit-font-smoothing: antialiased; }
+
+  /* ── SIDEBAR ─────────────────────────────── */
+  .sidebar {
+    width: 220px; min-width: 220px;
+    background: var(--sidebar);
+    display: flex; flex-direction: column;
+    padding: 0;
+    border-right: 1px solid #1F1F1E;
+  }
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid #1F1F1E;
+  }
+  .logo-mark {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, #5B5BD6, #7C7CE8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; color: #fff; letter-spacing: -.3px; }
+  .logo-badge { font-size: 9px; font-weight: 700; background: #5B5BD6; color: #fff; padding: 1px 5px; border-radius: 4px; margin-left: 2px; letter-spacing: .3px; }
+
+  .sidebar-section { padding: 16px 12px 8px; }
+  .sidebar-label { font-size: 10px; font-weight: 600; color: #555550; text-transform: uppercase; letter-spacing: .8px; padding: 0 8px; margin-bottom: 4px; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    color: var(--sidebar-text); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all .15s; margin-bottom: 1px;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: #1C1C1A; color: #D4D4CE; }
+  .nav-item.active { background: #1F1F1E; color: var(--sidebar-active); }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; opacity: .8; }
+  .nav-badge { margin-left: auto; background: #E5484D; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
+
+  .sidebar-spacer { flex: 1; }
+  .sidebar-footer { padding: 12px; border-top: 1px solid #1F1F1E; }
+  .user-chip {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    transition: background .15s;
+  }
+  .user-chip:hover { background: #1C1C1A; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #5B5BD6, #30A46C); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 12px; font-weight: 600; color: #D4D4CE; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 10px; color: #555550; margin-top: 1px; }
+
+  /* ── MAIN ────────────────────────────────── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── TOPBAR ──────────────────────────────── */
+  .topbar {
+    height: 52px; min-height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 16px;
+  }
+  .topbar-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: var(--text); }
+  .topbar-spacer { flex: 1; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px;
+    font-size: 12px; color: var(--text-soft); width: 200px;
+    cursor: text;
+  }
+  .topbar-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; transition: all .15s;
+  }
+  .btn-primary { background: var(--text); color: #fff; }
+  .btn-primary:hover { background: #333; }
+  .btn-ghost { background: none; color: var(--text-soft); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+  /* ── CONTENT ─────────────────────────────── */
+  .content { flex: 1; overflow: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── HERO BANNER ─────────────────────────── */
+  .hero {
+    background: var(--text);
+    border-radius: 16px;
+    padding: 28px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 70% 50%, #2A2860 0%, transparent 60%),
+                radial-gradient(ellipse at 30% 80%, #1A3830 0%, transparent 50%);
+    opacity: .8;
+  }
+  .hero-content { position: relative; z-index: 1; }
+  .hero-greeting { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+  .hero-name { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: #fff; line-height: 1.1; }
+  .hero-sub { font-size: 13px; color: #666; margin-top: 6px; }
+  .hero-stats { position: relative; z-index: 1; display: flex; gap: 20px; }
+  .hero-stat { text-align: right; }
+  .hero-stat-val { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: #fff; line-height: 1; }
+  .hero-stat-label { font-size: 11px; color: #555; margin-top: 3px; }
+  .hero-stat-delta { font-size: 11px; color: #30A46C; margin-top: 2px; font-weight: 600; }
+
+  /* ── STATS ROW ───────────────────────────── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .stat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .stat-delta { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+  .delta-up { background: var(--green-light); color: var(--green); }
+  .delta-down { background: var(--red-light); color: var(--red); }
+  .stat-val { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
+  .stat-label { font-size: 12px; color: var(--text-soft); margin-top: 4px; }
+  .stat-line { height: 3px; border-radius: 99px; margin-top: 14px; background: var(--border); overflow: hidden; }
+  .stat-fill { height: 100%; border-radius: 99px; }
+
+  /* ── TWO COL ─────────────────────────────── */
+  .two-col { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+
+  /* ── CARD ────────────────────────────────── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border-soft);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title { font-weight: 700; font-size: 13px; color: var(--text); }
+  .card-link { font-size: 12px; color: var(--indigo); font-weight: 500; cursor: pointer; }
+
+  /* ── POST LIST ───────────────────────────── */
+  .post-item {
+    padding: 13px 20px; border-bottom: 1px solid var(--border-soft);
+    display: flex; align-items: center; gap: 14px;
+    transition: background .1s; cursor: pointer;
+  }
+  .post-item:last-child { border-bottom: none; }
+  .post-item:hover { background: #FAFAFF; }
+  .post-thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: var(--bg); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 1px solid var(--border); }
+  .post-info { flex: 1; min-width: 0; }
+  .post-title { font-weight: 600; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .post-meta { font-size: 11px; color: var(--text-soft); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+  .ch-dot { width: 12px; height: 12px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; }
+  .status-pill { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+  .s-draft { background: #F3F4F6; color: #6B7280; }
+  .s-sched { background: var(--indigo-light); color: var(--indigo); }
+  .s-review { background: var(--amber-light); color: var(--amber); }
+  .s-live { background: var(--green-light); color: var(--green); }
+
+  /* ── ACTIVITY ────────────────────────────── */
+  .activity-item {
+    padding: 12px 20px; border-bottom: 1px solid var(--border-soft);
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .act-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .act-text { font-size: 12px; color: var(--text-mid); line-height: 1.5; }
+  .act-time { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+
+  /* ── CHANNELS MINI ───────────────────────── */
+  .channel-row {
+    padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .channel-row:last-child { border-bottom: none; }
+  .ch-name { font-size: 12px; font-weight: 600; color: var(--text-mid); width: 80px; display: flex; align-items: center; gap: 6px; }
+  .ch-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .ch-bar { height: 100%; border-radius: 99px; }
+  .ch-count { font-size: 11px; font-weight: 600; color: var(--text-soft); width: 24px; text-align: right; }
+
+  /* ── QUICK ACTIONS ───────────────────────── */
+  .quick-actions { display: flex; gap: 10px; }
+  .qa-btn {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; transition: all .15s; box-shadow: var(--shadow);
+    text-decoration: none;
+  }
+  .qa-btn:hover { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-light); transform: translateY(-1px); }
+  .qa-icon { font-size: 20px; }
+  .qa-label { font-size: 11px; font-weight: 600; color: var(--text-mid); }
+
+  /* ── MEDIA GRID ──────────────────────────── */
+  .media-section { display: none; }
+  .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 16px; }
+  .media-item { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--surface); cursor: pointer; transition: all .15s; }
+  .media-item:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .media-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .media-info { padding: 8px 10px; }
+  .media-name { font-size: 11px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .media-tags { font-size: 10px; color: var(--indigo); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── TABS ────────────────────────────────── */
+  .tabs { display: flex; gap: 2px; padding: 4px; background: var(--bg); border-radius: 9px; }
+  .tab { padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-soft); transition: all .12s; }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+  /* ── DEMO SWITCHER ───────────────────────── */
+  .demo-bar {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--text); border-radius: 12px; padding: 8px 12px;
+    display: flex; gap: 8px; align-items: center; z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,.3);
+  }
+  .demo-bar-label { font-size: 11px; color: #666; font-weight: 500; padding-right: 8px; border-right: 1px solid #333; }
+  .demo-btn { font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 8px; cursor: pointer; border: none; background: #222; color: #888; transition: all .15s; }
+  .demo-btn.active { background: var(--indigo); color: #fff; }
+  .demo-btn:hover { color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">⚡</div>
+    <div>
+      <span class="logo-text">SocialFlow</span>
+      <span class="logo-badge">PRO</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Workspace</div>
+    <a class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">⊞</span> Dashboard
+    </a>
+    <a class="nav-item" onclick="showPage('publisher')">
+      <span class="nav-icon">✦</span> Publisher
+      <span class="nav-badge">3</span>
+    </a>
+    <a class="nav-item" onclick="showPage('media')">
+      <span class="nav-icon">◧</span> Medienbibliothek
+    </a>
+    <a class="nav-item" onclick="showPage('calendar')">
+      <span class="nav-icon">◫</span> Kalender
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Analyse</div>
+    <a class="nav-item" onclick="showPage('performance')">
+      <span class="nav-icon">↗</span> Performance
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">⬡</span> Kampagnen
+    </a>
+  </div>
+
+  <div class="sidebar-spacer"></div>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="avatar">DS</div>
+      <div class="user-info">
+        <div class="user-name">Dietmar S.</div>
+        <div class="user-role">Admin · ppi Media</div>
+      </div>
+      <span style="color:#444;font-size:14px">⋯</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Dashboard</div>
+    <div class="topbar-spacer"></div>
+    <div class="search-box">🔍 &nbsp;Suchen… <span style="margin-left:auto;font-size:10px;opacity:.4">⌘K</span></div>
+    <button class="topbar-btn btn-ghost">🔔</button>
+    <button class="topbar-btn btn-primary">+ Neuer Post</button>
+  </div>
+
+  <!-- DASHBOARD PAGE -->
+  <div class="content" id="page-dashboard">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <div class="hero-greeting">Donnerstag, 26. März 2026</div>
+        <div class="hero-name">Guten Abend,<br>Dietmar 👋</div>
+        <div class="hero-sub">Du hast 3 Posts zur Freigabe · 2 heute geplant</div>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-val">44.3K</div>
+          <div class="hero-stat-label">Reichweite</div>
+          <div class="hero-stat-delta">↑ 18% diese Woche</div>
+        </div>
+        <div style="width:1px;background:#222;height:48px;align-self:center"></div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">5.7%</div>
+          <div class="hero-stat-label">Ø Engagement</div>
+          <div class="hero-stat-delta">↑ 2%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <a class="qa-btn"><div class="qa-icon">✏️</div><div class="qa-label">Post erstellen</div></a>
+      <a class="qa-btn"><div class="qa-icon">🗓️</div><div class="qa-label">Kalender</div></a>
+      <a class="qa-btn"><div class="qa-icon">🖼️</div><div class="qa-label">Medien hochladen</div></a>
+      <a class="qa-btn"><div class="qa-icon">📊</div><div class="qa-label">Performance</div></a>
+      <a class="qa-btn"><div class="qa-icon">🚀</div><div class="qa-label">Kampagne starten</div></a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:#EDEDFF">🚀</div>
+          <span class="stat-delta delta-up">+12%</span>
+        </div>
+        <div class="stat-val">2</div>
+        <div class="stat-label">Geplante Posts</div>
+        <div class="stat-line"><div class="stat-fill" style="width:35%;background:#5B5BD6"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:#FFF0E6">📝</div>
+          <span class="stat-delta delta-down">−3%</span>
+        </div>
+        <div class="stat-val">2</div>
+        <div class="stat-label">Entwürfe</div>
+        <div class="stat-line"><div class="stat-fill" style="width:20%;background:#E07B39"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:#FFECEC">⏳</div>
+          <span class="stat-delta delta-up">+0%</span>
+        </div>
+        <div class="stat-val">1</div>
+        <div class="stat-label">Zur Freigabe</div>
+        <div class="stat-line"><div class="stat-fill" style="width:10%;background:#E5484D"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:#E5F7EF">📈</div>
+          <span class="stat-delta delta-up">+2%</span>
+        </div>
+        <div class="stat-val">5.7%</div>
+        <div class="stat-label">Ø Engagement</div>
+        <div class="stat-line"><div class="stat-fill" style="width:57%;background:#30A46C"></div></div>
+      </div>
+    </div>
+
+    <!-- Two col -->
+    <div class="two-col">
+
+      <!-- Posts -->
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="card-title">Letzte Posts</div>
+            <div class="tabs">
+              <div class="tab active">Alle</div>
+              <div class="tab">Geplant</div>
+              <div class="tab">Entwürfe</div>
+            </div>
+          </div>
+          <span class="card-link">Alle anzeigen →</span>
+        </div>
+        <div class="post-item">
+          <div class="post-thumb">🌅</div>
+          <div class="post-info">
+            <div class="post-title">Sommer Sale — Jetzt bis zu 40% sparen!</div>
+            <div class="post-meta">
+              <span class="ch-dot" style="background:#E1306C;color:#fff">▲</span>
+              <span class="ch-dot" style="background:#0A66C2;color:#fff">in</span>
+              <span style="color:#AEA">·</span>
+              2026-06-01
+            </div>
+          </div>
+          <span class="status-pill s-draft">Entwurf</span>
+        </div>
+        <div class="post-item">
+          <div class="post-thumb">⭐</div>
+          <div class="post-info">
+            <div class="post-title">Kundenreview — Was unsere Kunden sagen</div>
+            <div class="post-meta">
+              <span class="ch-dot" style="background:#0A66C2;color:#fff">in</span>
+              · Zur Freigabe
+            </div>
+          </div>
+          <span class="status-pill s-review">Review</span>
+        </div>
+        <div class="post-item">
+          <div class="post-thumb">🎬</div>
+          <div class="post-info">
+            <div class="post-title">Behind the Scenes — So arbeiten wir</div>
+            <div class="post-meta">
+              <span class="ch-dot" style="background:#E1306C;color:#fff">▲</span>
+              <span class="ch-dot" style="background:#000;color:#fff">𝕏</span>
+              · 2026-03-20
+            </div>
+          </div>
+          <span class="status-pill s-sched">Geplant</span>
+        </div>
+        <div class="post-item">
+          <div class="post-thumb">💡</div>
+          <div class="post-info">
+            <div class="post-title">Tipp der Woche — Social Media Strategie</div>
+            <div class="post-meta">
+              <span class="ch-dot" style="background:#000;color:#fff">𝕏</span>
+              <span class="ch-dot" style="background:#25D366;color:#fff">●</span>
+              · Entwurf
+            </div>
+          </div>
+          <span class="status-pill s-draft">Entwurf</span>
+        </div>
+        <div class="post-item">
+          <div class="post-thumb">🚀</div>
+          <div class="post-info">
+            <div class="post-title">Produktlaunch Q2 — Jetzt vorbestellen</div>
+            <div class="post-meta">
+              <span class="ch-dot" style="background:#0A66C2;color:#fff">in</span>
+              · 2026-03-15
+            </div>
+          </div>
+          <span class="status-pill s-sched">Geplant</span>
+        </div>
+      </div>
+
+      <!-- Right col -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- Channels -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Posts je Kanal</div>
+          </div>
+          <div class="channel-row">
+            <div class="ch-name"><span style="color:#E1306C">◉</span> Instagram</div>
+            <div class="ch-bar-wrap"><div class="ch-bar" style="width:80%;background:#E1306C"></div></div>
+            <div class="ch-count">4</div>
+          </div>
+          <div class="channel-row">
+            <div class="ch-name"><span style="color:#000">◉</span> X/Twitter</div>
+            <div class="ch-bar-wrap"><div class="ch-bar" style="width:20%;background:#000"></div></div>
+            <div class="ch-count">1</div>
+          </div>
+          <div class="channel-row">
+            <div class="ch-name"><span style="color:#0A66C2">◉</span> LinkedIn</div>
+            <div class="ch-bar-wrap"><div class="ch-bar" style="width:40%;background:#0A66C2"></div></div>
+            <div class="ch-count">2</div>
+          </div>
+          <div class="channel-row">
+            <div class="ch-name"><span style="color:#1877F2">◉</span> Facebook</div>
+            <div class="ch-bar-wrap"><div class="ch-bar" style="width:40%;background:#1877F2"></div></div>
+            <div class="ch-count">2</div>
+          </div>
+          <div class="channel-row">
+            <div class="ch-name"><span style="color:#25D366">◉</span> WhatsApp</div>
+            <div class="ch-bar-wrap"><div class="ch-bar" style="width:20%;background:#25D366"></div></div>
+            <div class="ch-count">1</div>
+          </div>
+        </div>
+
+        <!-- Campaigns -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Kampagnen</div>
+            <span class="card-link">Alle →</span>
+          </div>
+          <div class="activity-item">
+            <div class="act-dot" style="background:#F59E0B;margin-top:5px"></div>
+            <div>
+              <div class="act-text" style="font-weight:600">Sommer-Sale</div>
+              <div class="act-time">1 Post · aktiv</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="act-dot" style="background:#5B5BD6;margin-top:5px"></div>
+            <div>
+              <div class="act-text" style="font-weight:600">Produktlaunch</div>
+              <div class="act-time">1 Post · aktiv</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+
+  <!-- MEDIA PAGE -->
+  <div class="content" id="page-media" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div style="display:flex;gap:8px">
+        <div class="tabs">
+          <div class="tab active">Alle</div>
+          <div class="tab">Bilder</div>
+          <div class="tab">Videos</div>
+          <div class="tab">Logos</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="search-box" style="width:180px">🔍 &nbsp;Name, Tags…</div>
+        <button class="topbar-btn btn-primary">↑ Hochladen</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="media-grid">
+        <div class="media-item">
+          <div class="media-thumb" style="background:linear-gradient(135deg,#667eea,#764ba2);font-size:32px">🏖️</div>
+          <div class="media-info">
+            <div class="media-name">sommer-kampagne.jpg</div>
+            <div class="media-tags">🏷 Sommer, Strand, Urlaub</div>
+          </div>
+        </div>
+        <div class="media-item">
+          <div class="media-thumb" style="background:linear-gradient(135deg,#f093fb,#f5576c);font-size:32px">👔</div>
+          <div class="media-info">
+            <div class="media-name">buero-team.jpg</div>
+            <div class="media-tags">🏷 Team, Büro, Menschen</div>
+          </div>
+        </div>
+        <div class="media-item">
+          <div class="media-thumb" style="background:linear-gradient(135deg,#4facfe,#00f2fe);font-size:32px">📦</div>
+          <div class="media-info">
+            <div class="media-name">produkt-2026.png</div>
+            <div class="media-tags">🏷 Produkt, Launch</div>
+          </div>
+        </div>
+        <div class="media-item" style="border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:120px;cursor:pointer;opacity:.5">
+          <div style="text-align:center;color:var(--text-soft)">
+            <div style="font-size:24px;margin-bottom:6px">+</div>
+            <div style="font-size:11px;font-weight:600">Hochladen</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Demo bar -->
+<div class="demo-bar">
+  <span class="demo-bar-label">Vorschau</span>
+  <button class="demo-btn active" onclick="showPage('dashboard')">Dashboard</button>
+  <button class="demo-btn" onclick="showPage('media')">Medienbibliothek</button>
+  <button class="demo-btn" onclick="showPage('publisher')">Publisher</button>
+</div>
+
+<script>
+function showPage(page) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.demo-btn').forEach(el => el.classList.remove('active'));
+
+  const titles = { dashboard: 'Dashboard', media: 'Medienbibliothek', publisher: 'Publisher', calendar: 'Kalender', performance: 'Performance' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+
+  const el = document.getElementById('page-' + page);
+  if (el) el.style.display = 'flex';
+
+  // highlight nav
+  const navMap = { dashboard: 0, publisher: 1, media: 2, calendar: 3, performance: 4 };
+  const navItems = document.querySelectorAll('.nav-item');
+  if (navMap[page] !== undefined && navItems[navMap[page]]) navItems[navMap[page]].classList.add('active');
+
+  // highlight demo btn
+  document.querySelectorAll('.demo-btn').forEach(btn => {
+    if (btn.textContent.toLowerCase().includes(page) || (page === 'dashboard' && btn.textContent === 'Dashboard') || (page === 'media' && btn.textContent === 'Medienbibliothek')) btn.classList.add('active');
+  });
+}
+</script>
+</body>
+</html>
