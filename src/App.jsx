@@ -66,35 +66,38 @@ function AppShell() {
     <div style={{ display: "flex", height: "100vh", fontFamily: FONT, background: C.bg, overflow: "hidden" }}>
       <style>{CSS}</style>
       <Sidebar />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <TopBar title={TITLE[nav] || "SocialFlow"} />
-        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-          <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            {nav === "dashboard"   && <Dashboard />}
-            {nav === "publisher"   && <PublisherPage />}
-            {nav === "trash"       && <TrashPage />}
-            {nav === "campaigns"   && <CampaignsPage />}
-            {nav === "media"       && <MediaPage />}
-            {nav === "calendar"    && <CalendarPage />}
-            {nav === "planner"     && <PlannerPage />}
-            {nav === "performance"     && <PerformancePage />}
-            {nav === "monitoring"     && <MonitoringPage />}
-            {nav === "trends"         && <TrendsPage />}
-            {nav === "domain-analyse" && <DomainAnalysePage />}
-            {nav === "wettbewerber"   && <WettbewerberPage />}
-            {nav === "content-audit"  && <ContentAuditPage />}
-            {nav === "structure-audit"&& <StructureAuditPage />}
-            {nav === "social-intel"   && <SocialIntelligencePage />}
-            {nav === "stories"     && <StoriesPage />}
-            {nav === "admin"       && <AdminPage />}
-            {nav === "ugc"         && <UGCPortalPage />}
-          </div>
-          <GlobalRightSidebar />
-        </div>
-      </div>
 
-      {/* Full-screen overlays — rendered on top of everything */}
-      {edStory    && <StoryEditorModal />}
+      {/* Story editor fills the content area (sidebar stays visible) */}
+      {edStory ? <StoryEditorModal /> : (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <TopBar title={TITLE[nav] || "SocialFlow"} />
+          <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+            <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              {nav === "dashboard"      && <Dashboard />}
+              {nav === "publisher"      && <PublisherPage />}
+              {nav === "trash"          && <TrashPage />}
+              {nav === "campaigns"      && <CampaignsPage />}
+              {nav === "media"          && <MediaPage />}
+              {nav === "calendar"       && <CalendarPage />}
+              {nav === "planner"        && <PlannerPage />}
+              {nav === "performance"    && <PerformancePage />}
+              {nav === "monitoring"     && <MonitoringPage />}
+              {nav === "trends"         && <TrendsPage />}
+              {nav === "domain-analyse" && <DomainAnalysePage />}
+              {nav === "wettbewerber"   && <WettbewerberPage />}
+              {nav === "content-audit"  && <ContentAuditPage />}
+              {nav === "structure-audit"&& <StructureAuditPage />}
+              {nav === "social-intel"   && <SocialIntelligencePage />}
+              {nav === "stories"        && <StoriesPage />}
+              {nav === "admin"          && <AdminPage />}
+              {nav === "ugc"            && <UGCPortalPage />}
+            </div>
+            <GlobalRightSidebar />
+          </div>
+        </div>
+      )}
+
+      {/* Remaining overlays (post editor, schedule, detail drawer) */}
       {edPost     && <Editor />}
       {schPost    && <SchedModal />}
       {detailPost && <PostDetailDrawer />}
