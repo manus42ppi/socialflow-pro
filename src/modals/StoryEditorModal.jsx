@@ -1574,90 +1574,10 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             {form.title || "Unbenannte Story"}
           </span>
 
-          {/* Auto-save status */}
-          {lastSaved ? (
-            <span style={{ fontSize: 10, color: C.success, fontFamily: FONT, display: "flex", alignItems: "center", gap: 3 }}>
-              <Check size={9} strokeWidth={3}/> Gespeichert {lastSaved.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}
-            </span>
-          ) : saveStatusLabel?.text ? (
-            <span style={{ fontSize: 11, fontFamily: FONT, color: saveStatusLabel.color, flexShrink: 0, marginRight: 12 }}>
-              {saveStatusLabel.text}
-            </span>
-          ) : null}
-
-
-          {/* Publish to website — shown when website channel active OR story already published */}
-          {(form.targetChannels?.includes("website") || form.webSlug) && (
-            <>
-              {/* "Live ansehen" link — shown whenever post is published */}
-              {webPublished && !webPublished.error && (
-                <a
-                  href={webPublished.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Artikel auf ppi n3xt ansehen"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "0 12px", height: 32, borderRadius: 8,
-                    background: "#6941C612", border: "1px solid #6941C644",
-                    color: "#6941C6", fontFamily: FONT, fontSize: 12, fontWeight: 600,
-                    textDecoration: "none", flexShrink: 0, transition: "all .15s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#6941C620"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "#6941C612"; }}
-                >
-                  <Globe size={13} strokeWidth={2} />
-                  Live ansehen
-                  <ExternalLink size={11} strokeWidth={2} />
-                </a>
-              )}
-              {/* Publish / Update button — always shown */}
-              <button
-                onClick={handlePublishToWeb}
-                disabled={webPublishing || !form.title}
-                title={!form.title ? "Zuerst einen Titel eingeben"
-                  : webPublished && !webPublished.error ? "Änderungen auf Website übertragen"
-                  : "Story auf ppi n3xt veröffentlichen"}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "0 12px", height: 32, borderRadius: 8,
-                  background: webPublishing ? "#6941C620"
-                    : webPublished && !webPublished.error ? "#f0ebfd"
-                    : "#6941C6",
-                  border: `1px solid ${webPublished && !webPublished.error ? "#6941C644" : "#6941C6"}`,
-                  color: webPublishing || (webPublished && !webPublished.error) ? "#6941C6" : "#fff",
-                  fontFamily: FONT, fontSize: 12, fontWeight: 600,
-                  cursor: webPublishing || !form.title ? "default" : "pointer",
-                  opacity: !form.title ? 0.5 : 1,
-                  flexShrink: 0, transition: "all .15s",
-                }}
-                onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.filter = "brightness(.95)"; }}
-                onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
-              >
-                {webPublishing
-                  ? <><Loader size={12} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} /> Wird aktualisiert…</>
-                  : webPublished && !webPublished.error
-                    ? <><RefreshCw size={12} strokeWidth={2} /> Aktualisieren</>
-                    : <><Globe size={13} strokeWidth={2} /> Auf Website veröffentlichen</>
-                }
-              </button>
-              {webPublished?.error && (
-                <span style={{ fontSize: 10, color: "#C4511E", fontFamily: FONT }}>
-                  ✕ {webPublished.error}
-                </span>
-              )}
-              <div style={{ width: 4 }} />
-            </>
-          )}
-
-          {/* Save + Ready buttons */}
-          <Btn variant="secondary" onClick={() => handleSave()} style={{ fontSize: 12, height: 32, padding: "0 12px" }}>
-            <Save size={13} strokeWidth={IW} /> Speichern
-          </Btn>
-          <div style={{ width: 6 }} />
-          <Btn onClick={() => handleSave("ready")} style={{ fontSize: 12, height: 32, padding: "0 12px" }}>
-            <Check size={13} strokeWidth={2.5} /> Bereit
-          </Btn>
+          {/* word + reading time — lightweight top bar info */}
+          <span style={{ fontSize: 10.5, color: C.textMute, fontFamily: FONT, flexShrink: 0 }}>
+            {wordCount} Wörter · {readingTime} Min.
+          </span>
         </div>
 
         {/* ── LOCK WARNING BANNER ───────────────────────────────────────── */}
@@ -1846,7 +1766,115 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           <div style={{
             width: 290, borderLeft: `1px solid ${C.border}`,
             background: C.surface, display: "flex", flexDirection: "column", flexShrink: 0,
+            overflow: "hidden",
           }}>
+
+            {/* ── AKTIONEN ─────────────────────────────────────────────── */}
+            <div style={{ padding: "13px 14px 12px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+
+              {/* Save-status */}
+              {saveStatusLabel?.text && (
+                <div style={{ fontSize: 9.5, fontFamily: FONT, color: saveStatusLabel.color, marginBottom: 8, display: "flex", alignItems: "center", gap: 3 }}>
+                  {saveStatusLabel.text}
+                </div>
+              )}
+
+              {/* Speichern + Bereit */}
+              <div style={{ display: "flex", gap: 6, marginBottom: (form.targetChannels?.includes("website") || form.webSlug) ? 10 : 0 }}>
+                <button
+                  onClick={() => handleSave()}
+                  style={{
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                    padding: "7px 0", borderRadius: 7, border: `1px solid ${C.border}`,
+                    background: C.surface, color: C.textMid, fontFamily: FONT,
+                    fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .12s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "66"; e.currentTarget.style.color = C.accent; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textMid; }}
+                >
+                  <Save size={13} strokeWidth={IW} /> Speichern
+                </button>
+                <button
+                  onClick={() => handleSave("ready")}
+                  style={{
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                    padding: "7px 0", borderRadius: 7, border: "none",
+                    background: C.accent, color: "#fff", fontFamily: FONT,
+                    fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "filter .12s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.filter = "brightness(.9)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
+                >
+                  <Check size={13} strokeWidth={2.5} /> Bereit
+                </button>
+              </div>
+
+              {/* Website-Bereich — nur wenn Kanal aktiv oder bereits veröffentlicht */}
+              {(form.targetChannels?.includes("website") || form.webSlug) && (
+                <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
+                    <Globe size={9} strokeWidth={2} /> Website
+                  </div>
+
+                  {/* Publish / Update */}
+                  <button
+                    onClick={handlePublishToWeb}
+                    disabled={webPublishing || !form.title}
+                    title={!form.title ? "Zuerst einen Titel eingeben"
+                      : webPublished && !webPublished.error ? "Änderungen auf Website übertragen"
+                      : "Story auf ppi n3xt veröffentlichen"}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      padding: "8px 0", borderRadius: 7, boxSizing: "border-box",
+                      border: `1px solid ${webPublished && !webPublished.error ? "#6941C644" : "#6941C6"}`,
+                      background: webPublishing ? "#6941C610"
+                        : webPublished && !webPublished.error ? "#f0ebfd" : "#6941C6",
+                      color: webPublishing || (webPublished && !webPublished.error) ? "#6941C6" : "#fff",
+                      fontFamily: FONT, fontSize: 12, fontWeight: 600,
+                      cursor: webPublishing || !form.title ? "default" : "pointer",
+                      opacity: !form.title ? 0.5 : 1, transition: "all .15s",
+                    }}
+                    onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.filter = "brightness(.95)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
+                  >
+                    {webPublishing
+                      ? <><Loader size={12} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} /> Wird aktualisiert…</>
+                      : webPublished && !webPublished.error
+                        ? <><RefreshCw size={12} strokeWidth={2} /> Aktualisieren</>
+                        : <><Globe size={13} strokeWidth={2} /> Auf Website veröffentlichen</>
+                    }
+                  </button>
+
+                  {/* Live ansehen */}
+                  {webPublished && !webPublished.error && (
+                    <a
+                      href={webPublished.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                        padding: "6px 0", borderRadius: 7, border: `1px solid ${C.border}`,
+                        background: C.bg, color: "#6941C6", fontFamily: FONT,
+                        fontSize: 11.5, fontWeight: 600, textDecoration: "none",
+                        width: "100%", transition: "all .15s", boxSizing: "border-box",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "#6941C610"; e.currentTarget.style.borderColor = "#6941C644"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = C.bg; e.currentTarget.style.borderColor = C.border; }}
+                    >
+                      <ExternalLink size={11} strokeWidth={2} /> Live ansehen
+                    </a>
+                  )}
+
+                  {/* Fehler */}
+                  {webPublished?.error && (
+                    <div style={{ fontSize: 10, color: "#C4511E", fontFamily: FONT, padding: "4px 8px", background: "#FFF0E6", borderRadius: 6 }}>
+                      ✕ {webPublished.error}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* ── Metadata: Status, Kategorie, Kanäle, Tags ────────────── */}
             <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, background: C.bg }}>
               {/* Status */}
