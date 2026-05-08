@@ -1867,7 +1867,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               )}
 
               {/* Speichern + Bereit */}
-              <div style={{ display: "flex", gap: 6, marginBottom: (form.targetChannels?.includes("website") || form.webSlug) ? 10 : 0 }}>
+              <div style={{ display: "flex", gap: 6 }}>
                 <button
                   onClick={() => handleSave()}
                   style={{
@@ -1898,222 +1898,184 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 </button>
               </div>
 
-              {/* Website-Bereich — nur wenn Kanal aktiv oder bereits veröffentlicht */}
-              {(form.targetChannels?.includes("website") || form.webSlug) && (
-                <div style={{ borderTop: `1px solid ${T.gray100}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-
-                  {/* Section label */}
-                  <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
-                    <Globe size={9} strokeWidth={2} /> Website · ppi n3xt
-                  </div>
-
-                  {/* Publish / Update button */}
-                  <button
-                    onClick={handlePublishToWeb}
-                    disabled={webPublishing || !form.title}
-                    style={{
-                      width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      padding: "7px 0", borderRadius: T.rMd, boxSizing: "border-box",
-                      border: `1px solid ${webPublished && !webPublished.error ? T.brand200 : T.brand600}`,
-                      background: webPublishing ? T.brand50
-                        : webPublished && !webPublished.error ? T.brand50 : T.brand600,
-                      color: webPublishing || (webPublished && !webPublished.error) ? T.brand600 : T.white,
-                      fontFamily: FONT, fontSize: 12, fontWeight: 600,
-                      cursor: webPublishing || !form.title ? "default" : "pointer",
-                      opacity: !form.title ? 0.5 : 1, transition: "all .15s", boxShadow: T.shadowXs,
-                    }}
-                    onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.filter = "brightness(.93)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
-                  >
-                    {webPublishing
-                      ? <><Loader size={12} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} /> Wird aktualisiert…</>
-                      : webPublished && !webPublished.error
-                        ? <><RefreshCw size={12} strokeWidth={2} /> Aktualisieren</>
-                        : <><Globe size={13} strokeWidth={2} /> Auf Website veröffentlichen</>
-                    }
-                  </button>
-
-                  {/* Live ansehen */}
-                  {webPublished && !webPublished.error && (
-                    <a
-                      href={webPublished.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                        padding: "6px 0", borderRadius: T.rMd, border: `1px solid ${T.gray200}`,
-                        background: T.white, color: T.brand600, fontFamily: FONT,
-                        fontSize: 11.5, fontWeight: 600, textDecoration: "none",
-                        width: "100%", transition: "all .15s", boxSizing: "border-box", boxShadow: T.shadowXs,
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = T.brand25; e.currentTarget.style.borderColor = T.brand200; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = T.white; e.currentTarget.style.borderColor = T.gray200; }}
-                    >
-                      <ExternalLink size={11} strokeWidth={2} /> Live ansehen
-                    </a>
-                  )}
-
-                  {/* Publication metadata card */}
-                  {(form.webSlug || (webPublished && !webPublished.error)) && (
-                    <div style={{
-                      background: T.gray50, borderRadius: T.rMd, border: `1px solid ${T.gray100}`,
-                      padding: "9px 11px", display: "flex", flexDirection: "column", gap: 7,
-                    }}>
-                      {/* URL row */}
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
-                        <Globe size={11} strokeWidth={2} color={T.gray400} style={{ marginTop: 2, flexShrink: 0 }} />
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 2 }}>URL</div>
-                          <div style={{ fontSize: 10, color: T.gray500, fontFamily: FONT, lineHeight: 1.5 }}>
-                            /blog/<span style={{ color: T.brand600, fontWeight: 600, wordBreak: "break-all" }}>{form.webSlug || webPublished?.slug}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ height: 1, background: T.gray100 }} />
-
-                      {/* Dates */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                        {form.webPublishedAt && (
-                          <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
-                            <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.successBg, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
-                              <Check size={8} strokeWidth={3} color={T.success500} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em" }}>Erstveröffentlichung</div>
-                              <div style={{ fontSize: 10.5, color: T.gray700, fontFamily: FONT, marginTop: 1 }}>
-                                {new Date(form.webPublishedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })}
-                                {" · "}{new Date(form.webPublishedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {form.webUpdatedAt && form.webUpdatedAt !== form.webPublishedAt && (
-                          <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
-                            <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.brand100, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
-                              <RefreshCw size={7} strokeWidth={2.5} color={T.brand600} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em" }}>Letztes Update</div>
-                              <div style={{ fontSize: 10.5, color: T.gray700, fontFamily: FONT, marginTop: 1 }}>
-                                {new Date(form.webUpdatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })}
-                                {" · "}{new Date(form.webUpdatedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── Stats card ──────────────────────────────────── */}
-                  {(webStats || statsLoading) && (
-                    <div style={{
-                      background: T.gray50, borderRadius: T.rMd, border: `1px solid ${T.gray100}`,
-                      padding: "10px 11px", display: "flex", flexDirection: "column", gap: 8,
-                    }}>
-                      {/* Header */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
-                          <BarChart2 size={9} strokeWidth={2} /> Statistik
-                        </div>
-                        <button onClick={() => fetchWebStats()} disabled={statsLoading}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: T.gray400, padding: 2, display: "flex", borderRadius: 4, transition: "color .12s" }}
-                          onMouseEnter={e => e.currentTarget.style.color = T.gray600}
-                          onMouseLeave={e => e.currentTarget.style.color = T.gray400}
-                          title="Neu laden">
-                          <RefreshCw size={10} strokeWidth={2} style={{ animation: statsLoading ? "spin 1s linear infinite" : "none" }} />
-                        </button>
-                      </div>
-
-                      {statsLoading && !webStats ? (
-                        <div style={{ fontSize: 10.5, color: T.gray400, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Lade…</div>
-                      ) : webStats && (<>
-
-                        {/* KPI row */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 }}>
-                          {[
-                            {
-                              icon: <Eye size={9} strokeWidth={2} color={T.gray400} />,
-                              label: "Aufrufe",
-                              value: webStats.views >= 1000 ? `${(webStats.views / 1000).toFixed(1)}k` : String(webStats.views),
-                              sub: webStats.last7 > 0 ? `${webStats.last7} / Wo.` : "–",
-                            },
-                            {
-                              icon: <Clock size={9} strokeWidth={2} color={T.gray400} />,
-                              label: "Ø Zeit",
-                              value: webStats.avgDuration
-                                ? webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration / 60)}m` : `${webStats.avgDuration}s`
-                                : "–",
-                              sub: webStats.avgDuration
-                                ? webStats.avgDuration >= 60
-                                  ? `${Math.floor(webStats.avgDuration / 60)} Min ${webStats.avgDuration % 60} Sek`
-                                  : `${webStats.avgDuration} Sek`
-                                : "keine Daten",
-                            },
-                            {
-                              icon: webStats.trend === "up" ? <TrendingUp size={9} strokeWidth={2} color={T.success500} />
-                                  : webStats.trend === "down" ? <TrendingDown size={9} strokeWidth={2} color={T.error600} />
-                                  : <Minus size={9} strokeWidth={2} color={T.gray400} />,
-                              label: "Trend",
-                              value: webStats.trendPct != null ? `${webStats.trendPct > 0 ? "+" : ""}${webStats.trendPct}%` : "–",
-                              valueColor: webStats.trend === "up" ? T.success500 : webStats.trend === "down" ? T.error600 : T.gray700,
-                              sub: "vs. Vorwoche",
-                            },
-                          ].map(({ icon, label, value, sub, valueColor }) => (
-                            <div key={label} style={{ background: T.white, borderRadius: T.rSm, padding: "6px 7px", border: `1px solid ${T.gray100}` }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>
-                                {icon}
-                                <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>{label}</span>
-                              </div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: valueColor || T.gray900, fontFamily: FONT, lineHeight: 1 }}>{value}</div>
-                              <div style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, marginTop: 2, lineHeight: 1.3 }}>{sub}</div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Sparkline */}
-                        {webStats.sparkline?.length > 0 && (() => {
-                          const maxV = Math.max(1, ...webStats.sparkline.map(d => d.views));
-                          const barW = 10, gap = 3, h = 32, total = webStats.sparkline.length;
-                          const svgW = total * barW + (total - 1) * gap;
-                          return (
-                            <div>
-                              <div style={{ fontSize: 8.5, color: T.gray400, fontFamily: FONT, marginBottom: 5, textTransform: "uppercase", letterSpacing: ".07em" }}>Letzte 14 Tage</div>
-                              <svg width="100%" viewBox={`0 0 ${svgW} ${h}`} preserveAspectRatio="none" style={{ display: "block", height: h }}>
-                                {webStats.sparkline.map((d, i) => {
-                                  const barH = Math.max(2, Math.round((d.views / maxV) * h));
-                                  return (
-                                    <rect key={d.date}
-                                      x={i * (barW + gap)} y={h - barH} width={barW} height={barH} rx={2}
-                                      fill={i === total - 1 ? T.brand600 : d.views > 0 ? T.brand200 : T.gray100}
-                                    />
-                                  );
-                                })}
-                              </svg>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                                <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT }}>{webStats.sparkline[0]?.date?.slice(5).replace("-", ".")}</span>
-                                <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT }}>Heute</span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </>)}
-                    </div>
-                  )}
-
-                  {/* Fehler */}
-                  {webPublished?.error && (
-                    <div style={{ fontSize: 10, color: T.error600, fontFamily: FONT, padding: "5px 9px", background: T.errorBg, borderRadius: T.rSm, border: `1px solid ${T.error600}22` }}>
-                      ✕ {webPublished.error}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* ── Scrollable accordion sections ─────────────────────────── */}
             <div style={{ flex: 1, overflowY: "auto" }}>
+
+              {/* WEBSITE */}
+              {(form.targetChannels?.includes("website") || form.webSlug) && (
+                <AccSection
+                  label="Website · ppi n3xt"
+                  badge={webPublished && !webPublished.error ? "Live" : null}
+                  isOpen={sOpen("website")}
+                  onToggle={() => toggleSection("website")}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {/* Publish / Update button */}
+                    <button
+                      onClick={handlePublishToWeb}
+                      disabled={webPublishing || !form.title}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        padding: "7px 0", borderRadius: T.rMd, boxSizing: "border-box",
+                        border: `1px solid ${webPublished && !webPublished.error ? T.brand200 : T.brand600}`,
+                        background: webPublishing ? T.brand50 : webPublished && !webPublished.error ? T.brand50 : T.brand600,
+                        color: webPublishing || (webPublished && !webPublished.error) ? T.brand600 : T.white,
+                        fontFamily: FONT, fontSize: 12, fontWeight: 600,
+                        cursor: webPublishing || !form.title ? "default" : "pointer",
+                        opacity: !form.title ? 0.5 : 1, transition: "all .15s", boxShadow: T.shadowXs,
+                      }}
+                      onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.filter = "brightness(.93)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
+                    >
+                      {webPublishing
+                        ? <><Loader size={12} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} /> Wird aktualisiert…</>
+                        : webPublished && !webPublished.error
+                          ? <><RefreshCw size={12} strokeWidth={2} /> Aktualisieren</>
+                          : <><Globe size={13} strokeWidth={2} /> Auf Website veröffentlichen</>
+                      }
+                    </button>
+
+                    {/* Live ansehen */}
+                    {webPublished && !webPublished.error && (
+                      <a href={webPublished.url} target="_blank" rel="noopener noreferrer"
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                          padding: "6px 0", borderRadius: T.rMd, border: `1px solid ${T.gray200}`,
+                          background: T.white, color: T.brand600, fontFamily: FONT,
+                          fontSize: 11.5, fontWeight: 600, textDecoration: "none",
+                          width: "100%", transition: "all .15s", boxSizing: "border-box", boxShadow: T.shadowXs,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = T.brand25; e.currentTarget.style.borderColor = T.brand200; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = T.white; e.currentTarget.style.borderColor = T.gray200; }}
+                      >
+                        <ExternalLink size={11} strokeWidth={2} /> Live ansehen
+                      </a>
+                    )}
+
+                    {/* Publication metadata card */}
+                    {(form.webSlug || (webPublished && !webPublished.error)) && (
+                      <div style={{ background: T.gray50, borderRadius: T.rMd, border: `1px solid ${T.gray100}`, padding: "9px 11px", display: "flex", flexDirection: "column", gap: 7 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
+                          <Globe size={11} strokeWidth={2} color={T.gray400} style={{ marginTop: 2, flexShrink: 0 }} />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 2 }}>URL</div>
+                            <div style={{ fontSize: 10, color: T.gray500, fontFamily: FONT, lineHeight: 1.5 }}>
+                              /blog/<span style={{ color: T.brand600, fontWeight: 600, wordBreak: "break-all" }}>{form.webSlug || webPublished?.slug}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ height: 1, background: T.gray100 }} />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                          {form.webPublishedAt && (
+                            <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
+                              <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.successBg, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                                <Check size={8} strokeWidth={3} color={T.success500} />
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em" }}>Erstveröffentlichung</div>
+                                <div style={{ fontSize: 10.5, color: T.gray700, fontFamily: FONT, marginTop: 1 }}>
+                                  {new Date(form.webPublishedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })}
+                                  {" · "}{new Date(form.webPublishedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {form.webUpdatedAt && form.webUpdatedAt !== form.webPublishedAt && (
+                            <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
+                              <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.brand100, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                                <RefreshCw size={7} strokeWidth={2.5} color={T.brand600} />
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em" }}>Letztes Update</div>
+                                <div style={{ fontSize: 10.5, color: T.gray700, fontFamily: FONT, marginTop: 1 }}>
+                                  {new Date(form.webUpdatedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })}
+                                  {" · "}{new Date(form.webUpdatedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Stats card */}
+                    {(webStats || statsLoading) && (
+                      <div style={{ background: T.gray50, borderRadius: T.rMd, border: `1px solid ${T.gray100}`, padding: "10px 11px", display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: T.gray400, textTransform: "uppercase", letterSpacing: ".07em", display: "flex", alignItems: "center", gap: 4 }}>
+                            <BarChart2 size={9} strokeWidth={2} /> Statistik
+                          </div>
+                          <button onClick={() => fetchWebStats()} disabled={statsLoading}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: T.gray400, padding: 2, display: "flex", borderRadius: 4, transition: "color .12s" }}
+                            onMouseEnter={e => e.currentTarget.style.color = T.gray600}
+                            onMouseLeave={e => e.currentTarget.style.color = T.gray400}
+                            title="Neu laden">
+                            <RefreshCw size={10} strokeWidth={2} style={{ animation: statsLoading ? "spin 1s linear infinite" : "none" }} />
+                          </button>
+                        </div>
+                        {statsLoading && !webStats ? (
+                          <div style={{ fontSize: 10.5, color: T.gray400, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Lade…</div>
+                        ) : webStats && (<>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 }}>
+                            {[
+                              { icon: <Eye size={9} strokeWidth={2} color={T.gray400} />, label: "Aufrufe",
+                                value: webStats.views >= 1000 ? `${(webStats.views/1000).toFixed(1)}k` : String(webStats.views),
+                                sub: webStats.last7 > 0 ? `${webStats.last7} / Wo.` : "–" },
+                              { icon: <Clock size={9} strokeWidth={2} color={T.gray400} />, label: "Ø Zeit",
+                                value: webStats.avgDuration ? (webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration/60)}m` : `${webStats.avgDuration}s`) : "–",
+                                sub: webStats.avgDuration ? (webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration/60)} Min ${webStats.avgDuration%60} Sek` : `${webStats.avgDuration} Sek`) : "keine Daten" },
+                              { icon: webStats.trend === "up" ? <TrendingUp size={9} strokeWidth={2} color={T.success500} />
+                                    : webStats.trend === "down" ? <TrendingDown size={9} strokeWidth={2} color={T.error600} />
+                                    : <Minus size={9} strokeWidth={2} color={T.gray400} />,
+                                label: "Trend",
+                                value: webStats.trendPct != null ? `${webStats.trendPct > 0 ? "+" : ""}${webStats.trendPct}%` : "–",
+                                valueColor: webStats.trend === "up" ? T.success500 : webStats.trend === "down" ? T.error600 : T.gray700,
+                                sub: "vs. Vorwoche" },
+                            ].map(({ icon, label, value, sub, valueColor }) => (
+                              <div key={label} style={{ background: T.white, borderRadius: T.rSm, padding: "6px 7px", border: `1px solid ${T.gray100}` }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>{icon}
+                                  <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>{label}</span>
+                                </div>
+                                <div style={{ fontSize: 16, fontWeight: 800, color: valueColor || T.gray900, fontFamily: FONT, lineHeight: 1 }}>{value}</div>
+                                <div style={{ fontSize: 8, color: T.gray400, fontFamily: FONT, marginTop: 2, lineHeight: 1.3 }}>{sub}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {webStats.sparkline?.length > 0 && (() => {
+                            const maxV = Math.max(1, ...webStats.sparkline.map(d => d.views));
+                            const barW = 10, gap = 3, h = 32, total = webStats.sparkline.length;
+                            const svgW = total * barW + (total - 1) * gap;
+                            return (
+                              <div>
+                                <div style={{ fontSize: 8.5, color: T.gray400, fontFamily: FONT, marginBottom: 5, textTransform: "uppercase", letterSpacing: ".07em" }}>Letzte 14 Tage</div>
+                                <svg width="100%" viewBox={`0 0 ${svgW} ${h}`} preserveAspectRatio="none" style={{ display: "block", height: h }}>
+                                  {webStats.sparkline.map((d, i) => {
+                                    const barH = Math.max(2, Math.round((d.views / maxV) * h));
+                                    return <rect key={d.date} x={i*(barW+gap)} y={h-barH} width={barW} height={barH} rx={2} fill={i===total-1?T.brand600:d.views>0?T.brand200:T.gray100} />;
+                                  })}
+                                </svg>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                                  <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT }}>{webStats.sparkline[0]?.date?.slice(5).replace("-",".")}</span>
+                                  <span style={{ fontSize: 8, color: T.gray400, fontFamily: FONT }}>Heute</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </>)}
+                      </div>
+                    )}
+
+                    {/* Fehler */}
+                    {webPublished?.error && (
+                      <div style={{ fontSize: 10, color: T.error600, fontFamily: FONT, padding: "5px 9px", background: T.errorBg, borderRadius: T.rSm, border: `1px solid ${T.error600}22` }}>
+                        ✕ {webPublished.error}
+                      </div>
+                    )}
+                  </div>
+                </AccSection>
+              )}
 
               {/* STATUS */}
               <AccSection label="Status" isOpen={sOpen("status")} onToggle={() => toggleSection("status")}>
