@@ -1108,9 +1108,12 @@ export default function StoryEditorModal() {
     setStatsLoading(false);
   }, []);
 
-  // Auto-fetch on mount if story is already published
+  // Auto-fetch on mount + refresh every hour while editor is open
   useEffect(() => {
-    if (story.webSlug) fetchWebStats(story.webSlug);
+    if (!story.webSlug) return;
+    fetchWebStats(story.webSlug);
+    const interval = setInterval(() => fetchWebStats(), 60 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []); // eslint-disable-line
 
   // ── BlockNote editor ──────────────────────────────────────────────────────
