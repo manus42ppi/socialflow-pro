@@ -1169,6 +1169,31 @@ export default function StoryEditorModal() {
     });
   }, []); // eslint-disable-line
 
+  // ── Shared: send story content to ppi n3xt website ───────────────────────
+  // Returns { slug, url } on success, throws on error.
+  const pushToWebsite = async (f) => {
+    const text = blocksToMarkdown(editor.document || []);
+    const plainText = blocksToText(editor.document || []);
+    const excerpt = f.subtitle || plainText.split(/\n+/).find(l => l.trim().length > 30)?.trim()?.slice(0, 160) || "";
+    let token = null;
+    try { const clerk = window.Clerk; if (clerk?.session) token = await clerk.session.getToken(); } catch {}
+    const res = await fetch("https://develop.socialflow-pro.pages.dev/blog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({
+        title: f.title || "Unbenannte Story",
+        content: text, excerpt,
+        category: f.category || "Allgemein",
+        tags: f.tags || "",
+        author: user?.name || "ppi n3xt Redaktion",
+        workspaceId: "ws-ppi-n3xt",
+        slug: f.webSlug || undefined, // keep URL stable on updates
+      }),
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `HTTP ${res.status}`); }
+    return res.json();
+  };
+
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleSave = (status) => {
     const f = formRef.current;
@@ -1182,6 +1207,12 @@ export default function StoryEditorModal() {
     const newHistory = [...(f.history || []), historyEntry].slice(-20);
     setForm(prev => ({ ...prev, history: newHistory }));
     setLastSaved(new Date());
+
+    // If story was already published → silently re-sync to website in background
+    if (f.webSlug && f.title) {
+      pushToWebsite(f).catch(() => {}); // fire-and-forget, no UI change
+    }
+
     onSave({
       ...f,
       id: f.id || uid(),
@@ -1194,57 +1225,19 @@ export default function StoryEditorModal() {
     setHasUnsaved(false);
   };
 
-  // ── Publish to ppi n3xt website ──────────────────────────────────────────
+  // ── Publish to ppi n3xt website (interactive button) ─────────────────────
   const handlePublishToWeb = async () => {
     setWebPublishing(true);
     try {
       const f = formRef.current;
-      const text = blocksToMarkdown(editor.document || []); // rich markdown incl. images
-      const plainText = blocksToText(editor.document || []);
-      const excerpt = f.subtitle || plainText.split(/\n+/).find(l => l.trim().length > 30)?.trim()?.slice(0, 160) || "";
-
-      // Get Clerk session token (if available) or use demo fallback
-      let token = null;
-      try {
-        const clerk = window.Clerk;
-        if (clerk?.session) token = await clerk.session.getToken();
-      } catch {}
-
-      const res = await fetch("https://develop.socialflow-pro.pages.dev/blog", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          title: f.title || "Unbenannte Story",
-          content: text,
-          excerpt,
-          category: f.category || "Allgemein",
-          tags: f.tags || "",
-          author: user?.name || "ppi n3xt Redaktion",
-          workspaceId: "ws-ppi-n3xt",
-          // If already published, keep the same slug so the URL doesn't change
-          slug: f.webSlug || undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
-      }
-
-      const { slug, url } = await res.json();
-      const published = { slug, url };
-      setWebPublished(published);
-
-      // Persist slug on the story WITHOUT closing the editor (updateStory, not onSave/saveStory)
+      const { slug, url } = await pushToWebsite(f);
+      setWebPublished({ slug, url });
+      // Persist slug WITHOUT closing the editor (updateStory, not saveStory)
       const updated = { ...formRef.current, webSlug: slug, status: "published", blocks: editor.document };
       updateStory(updated);
       setForm(prev => ({ ...prev, webSlug: slug, status: "published" }));
     } catch (e) {
       console.error("[PublishToWeb]", e);
-      // Show error inline
       setWebPublished({ error: e.message });
     } finally {
       setWebPublishing(false);
@@ -1632,8 +1625,8 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
           <div style={{ width: 8 }} />
 
-          {/* Publish to website button — only when website channel is active */}
-          {form.targetChannels?.includes("website") && (
+          {/* Publish to website — shown when website channel active OR story already published */}
+          {(form.targetChannels?.includes("website") || form.webSlug) && (
             <>
               {/* "Live ansehen" link — shown whenever post is published */}
               {webPublished && !webPublished.error && (
