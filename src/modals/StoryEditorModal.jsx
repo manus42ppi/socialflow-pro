@@ -10,6 +10,8 @@ import {
   SuggestionMenuController, getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/ariakit";
+import { SideMenuExtension } from "@blocknote/core/extensions";
+import { useStore } from "@tanstack/react-store";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom"; // still used by MediaLibraryFilePanel + DerivativePreviewModal
 import {
@@ -493,46 +495,134 @@ const SLASH_ORDER = [
 ];
 
 // ── ADD BLOCK BUTTON — "+" in the side menu ──────────────────────────────
-// Clicking "+" inserts a new empty paragraph after the current block and
-// then inserts "/" to open BlockNote's native slash menu. This is far more
-// reliable than a custom portal dropdown, because BlockNote's own suggestion
-// system manages the menu lifecycle correctly.
-function AddBlockButton({ block }) {
-  const editor = useBlockNoteEditor();
+// Strategy: insert an empty paragraph immediately, then show a custom
+// dropdown so the user can pick the block type. updateBlock() converts it.
+// All mousedown handlers call e.preventDefault() so the editor never blurs.
+const ADD_BLOCK_TYPES = [
+  { type:"paragraph",        label:"Text",          icon:"¶"  },
+  { type:"heading", lv:1,    label:"Überschrift 1", icon:"H1" },
+  { type:"heading", lv:2,    label:"Überschrift 2", icon:"H2" },
+  { type:"heading", lv:3,    label:"Überschrift 3", icon:"H3" },
+  { type:"bulletListItem",   label:"Aufzählung",    icon:"•"  },
+  { type:"numberedListItem", label:"Nummeriert",    icon:"1." },
+  { type:"checkListItem",    label:"Aufgabe",       icon:"☐"  },
+];
 
-  const handleOpen = (e) => {
-    e.preventDefault();  // keep editor focus, don't trigger browser defaults
+function AddBlockButton() {
+  const editor = useBlockNoteEditor();
+  // Read the current hovered block from the SideMenuExtension store
+  // (SideMenuController passes no props to the sideMenu render fn — block lives in the store)
+  const ext = editor.getExtension(SideMenuExtension);
+  const block = useStore(ext.store, (s) => s?.block);
+
+  const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top:0, left:0 });
+  const [insertedBlock, setInsertedBlock] = useState(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+
+  // Open / toggle the picker
+  const handleBtnMouseDown = (e) => {
+    e.preventDefault(); // keep editor focused
     e.stopPropagation();
+    if (!block) return; // extension store not ready yet
+    if (open) { setOpen(false); return; }
     try {
-      // 1. Insert an empty paragraph below the current block
-      const inserted = editor.insertBlocks([{ type: "paragraph" }], block, "after");
-      const nb = inserted?.[0];
+      const [nb] = editor.insertBlocks([{ type:"paragraph" }], block, "after");
       if (!nb) return;
-      // 2. Move the text cursor into the new block
+      setInsertedBlock(nb);
       editor.setTextCursorPosition(nb, "end");
-      // 3. Focus the editor DOM element
       editor.focus();
-      // 4. Insert "/" via execCommand — this goes through ProseMirror's native
-      //    input handler and correctly triggers the SuggestionMenuController.
-      //    editor.insertInlineContent() bypasses the suggestion plugin; execCommand does not.
-      document.execCommand("insertText", false, "/");
+      const rect = btnRef.current?.getBoundingClientRect();
+      if (rect) setMenuPos({ top: rect.bottom + 6, left: rect.left });
+      setOpen(true);
     } catch (err) {
-      console.error("[AddBlock] error:", err);
+      console.error("[AddBlock]", err);
     }
   };
 
+  // Select a block type from the picker
+  const handleItemMouseDown = (e, bt) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (insertedBlock) {
+      try {
+        const upd = { type: bt.type };
+        if (bt.lv) upd.props = { level: bt.lv };
+        editor.updateBlock(insertedBlock, upd);
+        editor.setTextCursorPosition(insertedBlock, "end");
+        editor.focus();
+      } catch (err) {
+        console.error("[AddBlock] update:", err);
+      }
+    }
+    setOpen(false);
+    setInsertedBlock(null);
+  };
+
+  // Close when clicking outside the menu
+  useEffect(() => {
+    if (!open) return;
+    const handleOut = (e) => {
+      if (menuRef.current?.contains(e.target)) return;
+      if (btnRef.current?.contains(e.target)) return;
+      setOpen(false);
+      setInsertedBlock(null);
+    };
+    document.addEventListener("mousedown", handleOut, true);
+    return () => document.removeEventListener("mousedown", handleOut, true);
+  }, [open]);
+
   return (
-    <button onMouseDown={handleOpen} title="Block einfügen"
-      style={{
-        width:22, height:22, borderRadius:5, flexShrink:0,
-        border:"1px solid #e5e7eb", background:"white", color:"#6b7280",
-        fontSize:15, fontWeight:600, lineHeight:"20px", cursor:"pointer",
-        display:"flex", alignItems:"center", justifyContent:"center",
-        transition:"all .12s", fontFamily:FONT,
-      }}
-      onMouseEnter={e => { e.currentTarget.style.background="#f9fafb"; e.currentTarget.style.borderColor="#d1d5db"; e.currentTarget.style.color="#374151"; }}
-      onMouseLeave={e => { e.currentTarget.style.background="white"; e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#6b7280"; }}
-    >+</button>
+    <>
+      <button ref={btnRef} onMouseDown={handleBtnMouseDown} title="Block einfügen"
+        style={{
+          width:22, height:22, borderRadius:5, flexShrink:0,
+          border:"1px solid #e5e7eb", background:"white", color:"#6b7280",
+          fontSize:15, fontWeight:600, lineHeight:"20px", cursor:"pointer",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          transition:"all .12s", fontFamily:FONT,
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background="#f9fafb"; e.currentTarget.style.borderColor="#d1d5db"; e.currentTarget.style.color="#374151"; }}
+        onMouseLeave={e => { e.currentTarget.style.background="white"; e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#6b7280"; }}
+      >+</button>
+
+      {open && createPortal(
+        <div ref={menuRef} style={{
+          position:"fixed", top:menuPos.top, left:menuPos.left,
+          zIndex:99999, background:"#fff",
+          border:"1px solid #e5e7eb", borderRadius:10,
+          boxShadow:"0 4px 24px rgba(0,0,0,.14)",
+          padding:"5px", minWidth:220, fontFamily:FONT,
+        }}>
+          <div style={{fontSize:10.5, color:"#9ca3af", padding:"5px 10px 7px",
+            fontWeight:600, textTransform:"uppercase", letterSpacing:".05em"}}>
+            Block-Typ wählen
+          </div>
+          {ADD_BLOCK_TYPES.map(bt => (
+            <div key={`${bt.type}-${bt.lv||""}`}
+              onMouseDown={(e) => handleItemMouseDown(e, bt)}
+              style={{
+                display:"flex", alignItems:"center", gap:10,
+                padding:"8px 10px", borderRadius:7,
+                cursor:"pointer", fontSize:13, color:"#374151",
+                userSelect:"none",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background="#f3f4f6"}
+              onMouseLeave={e => e.currentTarget.style.background="transparent"}
+            >
+              <span style={{
+                width:26, height:26, display:"flex", alignItems:"center", justifyContent:"center",
+                background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:6,
+                fontSize:11, fontWeight:700, color:"#6b7280", flexShrink:0,
+              }}>{bt.icon}</span>
+              {bt.label}
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -1544,7 +1634,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 <FilePanelController filePanel={MediaLibraryFilePanel} />
                 <SideMenuController sideMenu={props => (
                   <SideMenu {...props}>
-                    <AddBlockButton block={props.block} />
+                    <AddBlockButton />
                     <DragHandleButton {...props} />
                     <DeleteButton {...props} />
                   </SideMenu>
