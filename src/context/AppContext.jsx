@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
-import { storeGet, storeSet } from "../utils/store.js";
+import { uid, storeGet, storeSet } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
 function mapClerkUser(clerkUser) {
@@ -65,6 +65,7 @@ export function AppProvider({ children }) {
   const campsLoaded = useRef(false);
   const storiesLoaded = useRef(false);
   const demoMediaLoaded = useRef(false);
+  const demoStoriesLoaded = useRef(false);
 
   // ── KV Persistence: Load when Clerk signs in, reset when signed out ───────
   //
@@ -191,6 +192,34 @@ export function AppProvider({ children }) {
     catch {}
   }, [items, demoUser]);
 
+  // ── Demo-User: localStorage Fallback für Stories ─────────────────────────
+  // Stories überleben so den Seiten-Reload auch ohne Clerk-Account.
+  useEffect(() => {
+    if (!demoUser) { demoStoriesLoaded.current = false; return; }
+    if (demoStoriesLoaded.current) return;
+    try {
+      const saved = localStorage.getItem("demo_stories");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.length) {
+          setStories(parsed);
+          storiesLoaded.current = true;
+          demoStoriesLoaded.current = true;
+          return;
+        }
+      }
+    } catch {}
+    // No saved stories → keep DEMO_STORIES (already set), just unlock saving
+    storiesLoaded.current = true;
+    demoStoriesLoaded.current = true;
+  }, [demoUser]);
+
+  useEffect(() => {
+    if (!demoUser || !demoStoriesLoaded.current) return;
+    try { localStorage.setItem("demo_stories", JSON.stringify(stories)); }
+    catch {}
+  }, [stories, demoUser]);
+
   // ── Resolved user ─────────────────────────────────────────────────────────
   const user = demoUser || (isSignedIn && clerkUser ? mapClerkUser(clerkUser) : null);
 
@@ -291,7 +320,7 @@ export function AppProvider({ children }) {
   const newStory = () => {
     if (!currentWorkspaceId) return; // guard: must have a workspace selected
     setEdStory({
-      id: null, title: "", subtitle: "", coverMediaId: null,
+      id: uid(), title: "", subtitle: "", coverMediaId: null, // ID sofort vergeben → kein Duplicate-Bug
       category: "", blocks: [], materials: [], derivatives: [],
       targetChannels: [], status: "idea",
       createdAt: new Date().toISOString(),

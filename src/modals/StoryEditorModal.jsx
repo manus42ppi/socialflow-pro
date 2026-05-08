@@ -1193,8 +1193,10 @@ export default function StoryEditorModal() {
       const published = { slug, url };
       setWebPublished(published);
 
-      // Persist slug on the story so the link survives modal close
-      onSave({ ...formRef.current, webSlug: slug, status: "published", blocks: editor.document });
+      // Persist slug on the story WITHOUT closing the editor (updateStory, not onSave/saveStory)
+      const updated = { ...formRef.current, webSlug: slug, status: "published", blocks: editor.document };
+      updateStory(updated);
+      setForm(prev => ({ ...prev, webSlug: slug, status: "published" }));
     } catch (e) {
       console.error("[PublishToWeb]", e);
       // Show error inline
