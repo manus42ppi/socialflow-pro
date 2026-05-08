@@ -537,23 +537,29 @@ const ADD_BLOCK_TYPES = [
   { type:"divider",          label:"Trennlinie",    icon:"—",   group:"Extra" },
 ];
 
-// Module-level ref: set by BlockPickerPortal on mount so AddBlockButton can
-// call it without any shared React state (survives SideMenu unmount/remount).
-let _openBlockPicker = null;
+// Architecture note: instead of a module-level variable (which Vite HMR resets on
+// every file save, breaking the callback), we store the opener on the editor object.
+// The editor instance is created once (stable React state) and survives HMR.
+// mode: "insert" → insertBlocks after current block
+//       "convert" → updateBlock to change type of current block
 
-function AddBlockButton() {
+// Shared hook: reads current hovered block from SideMenuExtension store
+function useSideMenuBlock() {
   const editor = useBlockNoteEditor();
   const ext = editor.getExtension(SideMenuExtension);
-  // Read which block the SideMenu is currently anchored to from the extension store
-  const block = useStore(ext.store, (s) => s?.block);
+  return { editor, block: useStore(ext.store, (s) => s?.block) };
+}
+
+// "+" button — inserts a NEW block after the current one
+function AddBlockButton() {
+  const { editor, block } = useSideMenuBlock();
   const btnRef = useRef(null);
 
   const handleBtnMouseDown = (e) => {
-    e.preventDefault(); // keep editor focused
+    e.preventDefault();
     e.stopPropagation();
-    if (!block || !_openBlockPicker) return;
-    const rect = btnRef.current?.getBoundingClientRect();
-    _openBlockPicker(block, rect); // delegate entirely to BlockPickerPortal
+    if (!block || !editor._blockPicker) return;
+    editor._blockPicker(block, btnRef.current?.getBoundingClientRect(), "insert");
   };
 
   return (
@@ -571,22 +577,60 @@ function AddBlockButton() {
   );
 }
 
+// Block-type badge — shows current block type, click to convert
+function BlockTypeButton() {
+  const { editor, block } = useSideMenuBlock();
+  const btnRef = useRef(null);
+
+  // Derive icon from current block type
+  const typeMatch = ADD_BLOCK_TYPES.find(bt =>
+    bt.type === block?.type && (bt.lv ? bt.lv === block?.props?.level : true)
+  );
+  const icon = typeMatch?.icon ?? "¶";
+
+  const handleBtnMouseDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!block || !editor._blockPicker) return;
+    editor._blockPicker(block, btnRef.current?.getBoundingClientRect(), "convert");
+  };
+
+  return (
+    <button ref={btnRef} onMouseDown={handleBtnMouseDown} title="Block-Typ ändern"
+      style={{
+        width:22, height:22, borderRadius:5, flexShrink:0,
+        border:"1px solid #e5e7eb", background:"white", color:"#6b7280",
+        fontSize:10, fontWeight:700, lineHeight:"20px", cursor:"pointer",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        transition:"all .12s", fontFamily:FONT,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background="#f9fafb"; e.currentTarget.style.borderColor="#d1d5db"; e.currentTarget.style.color="#374151"; }}
+      onMouseLeave={e => { e.currentTarget.style.background="white"; e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#6b7280"; }}
+    >{icon}</button>
+  );
+}
+
 // Rendered at the StoryEditorModal level — never unmounts when SideMenu changes.
 // Block insertion only happens here, AFTER the user picks a type.
 function BlockPickerPortal({ editor }) {
   const [state, setState] = useState(null); // null | { block, pos:{top,left} }
   const menuRef = useRef(null);
 
-  // Register the opener so AddBlockButton can call it
+  // Store opener on the editor object — survives Vite HMR without resetting.
+  // A ref always holds the latest setState, so the useEffect(fn,[]) callback
+  // stays current without needing to re-register after each render.
+  const setStateRef = useRef(setState);
+  setStateRef.current = setState;
   useEffect(() => {
-    _openBlockPicker = (block, rect) => {
-      setState({
-        block,
+    editor._blockPicker = (block, rect, mode = "insert") => {
+      setStateRef.current({
+        block, mode,
         pos: rect ? { top: rect.bottom + 6, left: rect.left } : { top: 200, left: 200 },
       });
     };
-    return () => { _openBlockPicker = null; };
-  }, []);
+    return () => { editor._blockPicker = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount; setStateRef keeps callback fresh across re-renders
 
   // Close when clicking outside the picker
   useEffect(() => {
@@ -602,15 +646,23 @@ function BlockPickerPortal({ editor }) {
   const handleItemMouseDown = (e, bt) => {
     e.preventDefault();
     e.stopPropagation();
-    const { block } = state;
+    const { block, mode } = state;
     setState(null); // close picker immediately
     try {
       const def = { type: bt.type };
       if (bt.lv) def.props = { level: bt.lv };
-      const [nb] = editor.insertBlocks([def], block, "after");
-      if (nb) {
-        editor.setTextCursorPosition(nb, "end");
+      if (mode === "convert") {
+        // Change the type of the existing block in place
+        editor.updateBlock(block, def);
+        editor.setTextCursorPosition(block, "end");
         editor.focus();
+      } else {
+        // Insert a new block after the current one
+        const [nb] = editor.insertBlocks([def], block, "after");
+        if (nb) {
+          editor.setTextCursorPosition(nb, "end");
+          editor.focus();
+        }
       }
     } catch (err) {
       console.error("[BlockPicker]", err);
@@ -638,7 +690,7 @@ function BlockPickerPortal({ editor }) {
     }}>
       <div style={{fontSize:10, color:"#9ca3af", padding:"5px 10px 6px",
         fontWeight:700, textTransform:"uppercase", letterSpacing:".06em"}}>
-        Block-Typ wählen
+        {state.mode === "convert" ? "Typ umwandeln" : "Block einfügen"}
       </div>
       {groups.map(group => (
         <div key={group}>
@@ -1284,9 +1336,9 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           line-height: 1.8 !important;
           color: ${C.text} !important;
         }
-        /* Block layout */
+        /* Block layout — no separator lines between blocks */
         .bn-block-outer { margin: 0 !important; padding: 0 !important; }
-        .bn-block-outer + .bn-block-outer { border-top: 1px solid rgba(0,0,0,0.045) !important; }
+        .bn-block-outer + .bn-block-outer { border-top: none !important; }
         .bn-block { border-radius: 4px !important; transition: background .1s !important; }
         .bn-block:hover { background: rgba(7,93,242,0.03) !important; }
         .bn-block-content { padding: 4px 2px !important; }
@@ -1661,12 +1713,14 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 .bn-ak-suggestion-menu-item-title { color: #1a1a1a !important; }
                 .bn-ak-suggestion-menu-item-subtitle { color: #6b7280 !important; }
                 .bn-ak-suggestion-menu-item-section { color: #9ca3af !important; font-size: 10px !important; }
+
               `}</style>
               <BlockNoteView
                 editor={editor}
                 theme="light"
                 filePanel={false}
                 formattingToolbar={false}
+                sideMenu={false}
                 slashMenu={false}
                 style={{ fontSize: 16, lineHeight: 1.8 }}
                 onChange={() => {
@@ -1680,6 +1734,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 <FilePanelController filePanel={MediaLibraryFilePanel} />
                 <SideMenuController sideMenu={props => (
                   <SideMenu {...props}>
+                    <BlockTypeButton />
                     <AddBlockButton />
                     <DragHandleButton {...props} />
                     <DeleteButton {...props} />
