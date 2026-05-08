@@ -17,7 +17,7 @@ import { createPortal } from "react-dom"; // still used by MediaLibraryFilePanel
 import {
   X, Save, Check, Link as LinkIcon, StickyNote,
   Trash2, Wand2, Loader, Image as ImageIcon,
-  ChevronLeft, Settings2, AlignLeft,
+  ChevronLeft, AlignLeft,
   BarChart2, Hash, Tag, RefreshCw, Globe, ExternalLink,
 } from "lucide-react";
 import { C, FONT, IW, CSS } from "../constants/colors.js";
@@ -1075,7 +1075,7 @@ export default function StoryEditorModal() {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [deriving, setDeriving] = useState({}); // { [chId]: boolean }
   const [derivPreview, setDerivPreview] = useState(null); // { chId, content, channel }
-  const [showSettings, setShowSettings] = useState(false);
+
   const [articleText, setArticleText] = useState(() => blocksToText(story.blocks || []));
   // Website publish state
   const [webPublishing, setWebPublishing] = useState(false);
@@ -1367,15 +1367,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
     setDerivPreview(null);
   }, [setPosts]);
 
-  const currentStatus = STATUSES.find(s => s.id === form.status) || STATUSES[0];
   const catColor = CAT_COLOR[form.category] || C.textMid;
-
-  // Cycle through statuses on click
-  const cycleStatus = () => {
-    const idx = STATUSES.findIndex(s => s.id === form.status);
-    const next = STATUSES[(idx + 1) % STATUSES.length];
-    setForm(f => ({ ...f, status: next.id }));
-  };
 
   // ── SEO + readability memos ───────────────────────────────────────────────
   const readability = useMemo(() => computeReadability(articleText), [articleText]);
@@ -1593,37 +1585,6 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
             </span>
           ) : null}
 
-          {/* Settings gear */}
-          <button
-            onClick={() => setShowSettings(v => !v)}
-            title="Einstellungen"
-            style={{
-              display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 7,
-              border: `1px solid ${showSettings ? C.accent + "55" : "transparent"}`,
-              background: showSettings ? C.accentLight : "none",
-              color: showSettings ? C.accent : C.textMute, cursor: "pointer", marginRight: 4,
-            }}
-            onMouseEnter={e => { if (!showSettings) { e.currentTarget.style.background = C.borderLight; e.currentTarget.style.color = C.textMid; } }}
-            onMouseLeave={e => { if (!showSettings) { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.textMute; } }}>
-            <Settings2 size={15} strokeWidth={IW} />
-          </button>
-
-          {/* Status badge (clickable, cycles) */}
-          <button
-            onClick={cycleStatus}
-            title="Status wechseln"
-            style={{
-              display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
-              borderRadius: 20, border: `1px solid ${currentStatus.color}44`,
-              background: currentStatus.color + "12", color: currentStatus.color,
-              fontFamily: FONT, fontSize: 11, fontWeight: 700, cursor: "pointer",
-              flexShrink: 0,
-            }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: currentStatus.color, flexShrink: 0 }} />
-            {currentStatus.label}
-          </button>
-
-          <div style={{ width: 8 }} />
 
           {/* Publish to website — shown when website channel active OR story already published */}
           {(form.targetChannels?.includes("website") || form.webSlug) && (
@@ -1712,85 +1673,6 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           </div>
         )}
 
-        {/* ── SETTINGS STRIP ────────────────────────────────────────────── */}
-        {showSettings && (
-          <div style={{
-            borderBottom: `1px solid ${C.border}`,
-            background: C.surface,
-            padding: "10px 24px",
-            display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap",
-            flexShrink: 0,
-          }}>
-            {/* Status */}
-            <div>
-              <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>Status</div>
-              <div style={{ display: "flex", gap: 3, background: C.borderLight, borderRadius: 8, padding: 3 }}>
-                {STATUSES.map(s => {
-                  const on = form.status === s.id;
-                  return (
-                    <button key={s.id} onClick={() => setForm(f => ({ ...f, status: s.id }))} style={{
-                      display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
-                      borderRadius: 6, border: "none", cursor: "pointer", fontFamily: FONT,
-                      fontSize: 11.5, fontWeight: on ? 700 : 500,
-                      background: on ? C.surface : "transparent",
-                      color: on ? s.color : C.textSoft,
-                      boxShadow: on ? "0 1px 3px rgba(0,0,0,.07)" : "none",
-                      transition: "all .1s",
-                    }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
-
-            {/* Category */}
-            <div>
-              <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>Kategorie</div>
-              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: form.category ? C.text : C.textMute, fontSize: 12, fontFamily: FONT, outline: "none", cursor: "pointer" }}>
-                {CATS.map(c => <option key={c} value={c}>{c || "Keine Kategorie"}</option>)}
-              </select>
-            </div>
-
-            <div style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
-
-            {/* Target channels */}
-            <div>
-              <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>Ziel-Kanäle</div>
-              <div style={{ display: "flex", gap: 4 }}>
-                {STORY_CHANNELS.map(ch => {
-                  const active = form.targetChannels.includes(ch.id);
-                  return (
-                    <button key={ch.id} onClick={() => toggleChannel(ch.id)} title={ch.label}
-                      style={{
-                        width: 28, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
-                        border: `1.5px solid ${active ? ch.color + "66" : C.border}`,
-                        background: active ? ch.color + "14" : C.bg,
-                        cursor: "pointer", transition: "all .12s",
-                      }}>
-                      <ChIco id={ch.id} size={14} color={active ? ch.color : C.textMute} />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
-
-            {/* Tags */}
-            <div style={{ flex: 1, minWidth: 160 }}>
-              <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>Tags</div>
-              <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                placeholder="tag1, tag2, tag3…"
-                style={{ width: "100%", padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, fontFamily: FONT, outline: "none", boxSizing: "border-box" }}
-              />
-            </div>
-          </div>
-        )}
 
         {/* ── BODY ──────────────────────────────────────────────────────── */}
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
@@ -1805,9 +1687,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
                   {form.category && (
                     <span
-                      onClick={() => setShowSettings(v => !v)}
-                      title="Kategorie ändern (Einstellungen öffnen)"
-                      style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: (CAT_COLOR[form.category] || C.textMid) + "14", color: CAT_COLOR[form.category] || C.textMid, cursor: "pointer", userSelect: "none" }}>
+                      style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: (CAT_COLOR[form.category] || C.textMid) + "14", color: CAT_COLOR[form.category] || C.textMid }}>
                       {form.category}
                     </span>
                   )}
@@ -1951,12 +1831,6 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 </>
               )}
               <div style={{ flex: 1 }} />
-              {/* Hint to open settings if no channels set */}
-              {form.targetChannels.length === 0 && !showSettings && (
-                <button onClick={() => setShowSettings(true)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: C.textMute, fontFamily: FONT, display: "flex", alignItems: "center", gap: 4, padding: 0 }}>
-                  <Settings2 size={11} strokeWidth={IW} /> Ziel-Kanäle festlegen
-                </button>
-              )}
               {form.targetChannels.length > 0 && (
                 <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                   {form.targetChannels.map(chId => {
@@ -1970,9 +1844,72 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
           {/* ── RIGHT PANEL: Materials + Derivatives ──────────────────── */}
           <div style={{
-            width: 272, borderLeft: `1px solid ${C.border}`,
+            width: 290, borderLeft: `1px solid ${C.border}`,
             background: C.surface, display: "flex", flexDirection: "column", flexShrink: 0,
           }}>
+            {/* ── Metadata: Status, Kategorie, Kanäle, Tags ────────────── */}
+            <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, background: C.bg }}>
+              {/* Status */}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Status</div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  {STATUSES.map(s => {
+                    const on = form.status === s.id;
+                    return (
+                      <button key={s.id} onClick={() => setForm(f => ({ ...f, status: s.id }))}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 4, padding: "3px 8px",
+                          borderRadius: 5, border: `1px solid ${on ? s.color + "55" : C.border}`,
+                          background: on ? s.color + "12" : "transparent",
+                          color: on ? s.color : C.textSoft, fontFamily: FONT,
+                          fontSize: 10.5, fontWeight: on ? 700 : 500, cursor: "pointer", transition: "all .1s",
+                        }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Kategorie + Tags in one row */}
+              <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Kategorie</div>
+                  <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                    style={{ width: "100%", padding: "4px 6px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: form.category ? C.text : C.textMute, fontSize: 11, fontFamily: FONT, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
+                    {CATS.map(c => <option key={c} value={c}>{c || "Keine Kategorie"}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Ziel-Kanäle */}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Ziel-Kanäle</div>
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  {STORY_CHANNELS.map(ch => {
+                    const active = form.targetChannels.includes(ch.id);
+                    return (
+                      <button key={ch.id} onClick={() => toggleChannel(ch.id)} title={ch.label}
+                        style={{
+                          width: 26, height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+                          border: `1.5px solid ${active ? ch.color + "66" : C.border}`,
+                          background: active ? ch.color + "14" : "transparent",
+                          cursor: "pointer", transition: "all .12s",
+                        }}>
+                        <ChIco id={ch.id} size={13} color={active ? ch.color : C.textMute} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Tags */}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 5 }}>Tags</div>
+                <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+                  placeholder="tag1, tag2, tag3…"
+                  style={{ width: "100%", padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 11, fontFamily: FONT, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+            </div>
             {/* Tab bar */}
             <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
               {[
