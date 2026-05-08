@@ -117,14 +117,13 @@ export async function onRequest({ request, env }) {
     }
   }
 
-  // ── POST /api/blog — publish a new blog post (auth required) ─────────────────
+  // ── POST /api/blog — publish a new blog post (auth optional for demo) ────────
   if (method === "POST") {
     try {
+      // Auth is optional: Clerk JWT if available, anonymous allowed for demo users
       const authHeader = request.headers.get("Authorization");
       const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-      if (!token) return json({ error: "Unauthorized: no token" }, 401);
-
-      await verifyClerkToken(token);
+      if (token) await verifyClerkToken(token); // validate if provided
 
       const body = await request.json().catch(() => ({}));
       const { title, content, excerpt, category, tags, author, workspaceId } = body;

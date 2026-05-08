@@ -1167,7 +1167,7 @@ export default function StoryEditorModal() {
         if (clerk?.session) token = await clerk.session.getToken();
       } catch {}
 
-      const res = await fetch("https://socialflow-pro.pages.dev/api/blog", {
+      const res = await fetch("https://develop.socialflow-pro.pages.dev/api/blog", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
