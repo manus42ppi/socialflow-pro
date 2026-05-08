@@ -18,7 +18,7 @@ import {
   X, Save, Check, Link as LinkIcon, StickyNote,
   Trash2, Wand2, Loader, Image as ImageIcon,
   ChevronLeft, Settings2, AlignLeft,
-  BarChart2, Hash, Tag, RefreshCw,
+  BarChart2, Hash, Tag, RefreshCw, Globe, ExternalLink,
 } from "lucide-react";
 import { C, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
@@ -1035,6 +1035,11 @@ export default function StoryEditorModal() {
   const [derivPreview, setDerivPreview] = useState(null); // { chId, content, channel }
   const [showSettings, setShowSettings] = useState(false);
   const [articleText, setArticleText] = useState(() => blocksToText(story.blocks || []));
+  // Website publish state
+  const [webPublishing, setWebPublishing] = useState(false);
+  const [webPublished, setWebPublished] = useState(
+    story.webSlug ? { slug: story.webSlug, url: `https://ppi-n3xt.pages.dev/blog/post.html?slug=${story.webSlug}` } : null
+  );
   const [tagsLoading, setTagsLoading] = useState(false);
   const [hashtagLoading, setHashtagLoading] = useState(false);
 
@@ -1145,6 +1150,58 @@ export default function StoryEditorModal() {
     });
     setLastSaved(new Date());
     setHasUnsaved(false);
+  };
+
+  // ── Publish to ppi n3xt website ──────────────────────────────────────────
+  const handlePublishToWeb = async () => {
+    setWebPublishing(true);
+    try {
+      const f = formRef.current;
+      const text = blocksToText(editor.document || []);
+      const excerpt = f.subtitle || text.split(/\n+/).find(l => l.trim().length > 30)?.trim()?.slice(0, 160) || "";
+
+      // Get Clerk session token (if available) or use demo fallback
+      let token = null;
+      try {
+        const clerk = window.Clerk;
+        if (clerk?.session) token = await clerk.session.getToken();
+      } catch {}
+
+      const res = await fetch("https://socialflow-pro.pages.dev/api/blog", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          title: f.title || "Unbenannte Story",
+          content: text,
+          excerpt,
+          category: f.category || "Allgemein",
+          tags: f.tags || "",
+          author: user?.name || "ppi n3xt Redaktion",
+          workspaceId: "ws-ppi-n3xt",
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const { slug, url } = await res.json();
+      const published = { slug, url };
+      setWebPublished(published);
+
+      // Persist slug on the story so the link survives modal close
+      onSave({ ...formRef.current, webSlug: slug, status: "published", blocks: editor.document });
+    } catch (e) {
+      console.error("[PublishToWeb]", e);
+      // Show error inline
+      setWebPublished({ error: e.message });
+    } finally {
+      setWebPublishing(false);
+    }
   };
 
   // ── Comment actions ───────────────────────────────────────────────────────
@@ -1527,6 +1584,63 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           </button>
 
           <div style={{ width: 8 }} />
+
+          {/* Publish to website button — only when website channel is active */}
+          {form.targetChannels?.includes("website") && (
+            <>
+              {webPublished && !webPublished.error ? (
+                <a
+                  href={webPublished.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Artikel auf ppi n3xt ansehen"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "0 12px", height: 32, borderRadius: 8,
+                    background: "#6941C612", border: "1px solid #6941C644",
+                    color: "#6941C6", fontFamily: FONT, fontSize: 12, fontWeight: 600,
+                    textDecoration: "none", flexShrink: 0, transition: "all .15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#6941C620"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "#6941C612"; }}
+                >
+                  <Globe size={13} strokeWidth={2} />
+                  Live ansehen
+                  <ExternalLink size={11} strokeWidth={2} />
+                </a>
+              ) : (
+                <button
+                  onClick={handlePublishToWeb}
+                  disabled={webPublishing || !form.title}
+                  title={!form.title ? "Zuerst einen Titel eingeben" : "Story auf ppi n3xt veröffentlichen"}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "0 12px", height: 32, borderRadius: 8,
+                    background: webPublishing ? "#6941C620" : "#6941C6",
+                    border: "1px solid #6941C6",
+                    color: webPublishing ? "#6941C6" : "#fff",
+                    fontFamily: FONT, fontSize: 12, fontWeight: 600,
+                    cursor: webPublishing || !form.title ? "default" : "pointer",
+                    opacity: !form.title ? 0.5 : 1,
+                    flexShrink: 0, transition: "all .15s",
+                  }}
+                  onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.background = "#5b35b0"; }}
+                  onMouseLeave={e => { if (!webPublishing) e.currentTarget.style.background = webPublishing ? "#6941C620" : "#6941C6"; }}
+                >
+                  {webPublishing
+                    ? <><Loader size={12} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} /> Wird veröffentlicht…</>
+                    : <><Globe size={13} strokeWidth={2} /> Auf Website veröffentlichen</>
+                  }
+                </button>
+              )}
+              {webPublished?.error && (
+                <span style={{ fontSize: 10, color: "#C4511E", fontFamily: FONT }}>
+                  ✕ {webPublished.error}
+                </span>
+              )}
+              <div style={{ width: 4 }} />
+            </>
+          )}
 
           {/* Save + Ready buttons */}
           <Btn variant="secondary" onClick={() => handleSave()} style={{ fontSize: 12, height: 32, padding: "0 12px" }}>
