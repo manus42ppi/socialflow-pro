@@ -167,11 +167,10 @@ export async function onRequest({ request, env }) {
   // ── DELETE /api/blog?slug=xxx — unpublish (auth required) ───────────────────
   if (method === "DELETE") {
     try {
+      // Auth optional for demo (same as POST)
       const authHeader = request.headers.get("Authorization");
       const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-      if (!token) return json({ error: "Unauthorized: no token" }, 401);
-
-      await verifyClerkToken(token);
+      if (token) await verifyClerkToken(token);
 
       const slug = url.searchParams.get("slug");
       if (!slug) return json({ error: "slug query parameter is required" }, 400);
