@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Plus, Search, Trash2, BookOpen, Link as LinkIcon, StickyNote, Layers,
-         Send, Compass, PenLine, Share2, ChevronRight, X, Clock, Edit2 } from "lucide-react";
+         X, Clock, Edit2 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
 import { Btn } from "../components/ui/index.jsx";
@@ -232,48 +232,9 @@ export default function StoriesPage() {
 
       {/* ── Top bar ── */}
       <div style={{ padding: "20px 28px 0", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ margin: 0, fontFamily: FONT, fontWeight: 700, fontSize: 20, color: C.text }}>Storys</h1>
-          <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.textSoft, fontFamily: FONT }}>
-            Inhalte schreiben und für alle Kanäle ableiten
-          </p>
-        </div>
+        <h1 style={{ margin: 0, fontFamily: FONT, fontWeight: 700, fontSize: 20, color: C.text }}>Storys</h1>
         <div style={{ flex: 1 }} />
         <Btn onClick={onNew}><Plus size={14} strokeWidth={IW} /> Neue Story</Btn>
-      </div>
-
-      {/* ── Workflow banner ── */}
-      <div style={{ margin: "14px 28px 0", padding: "11px 16px", borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        {[
-          { Icon: Compass,  label: "Recherche",      sub: "Inspiration" },
-          null,
-          { Icon: PenLine,  label: "Story schreiben", sub: "Artikel / Blog" },
-          null,
-          { Icon: Share2,   label: "Ableiten",        sub: "Alle Kanäle" },
-          null,
-          { Icon: Send,     label: "Publisher",       sub: "Planen & publizieren" },
-        ].map((step, i) => step ? (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <step.Icon size={13} strokeWidth={IW} color={C.textSoft} />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: FONT, lineHeight: 1.2 }}>{step.label}</div>
-              <div style={{ fontSize: 10, color: C.textMute, fontFamily: FONT }}>{step.sub}</div>
-            </div>
-          </div>
-        ) : (
-          <ChevronRight key={i} size={12} strokeWidth={2} color={C.border} style={{ flexShrink: 0 }} />
-        ))}
-        <div style={{ flex: 1 }} />
-        <button
-          onClick={() => goNav("research")}
-          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 6, border: `1px solid ${C.border}`, background: "none", color: C.textSoft, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}
-          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = C.accent + "44"; }}
-          onMouseLeave={e => { e.currentTarget.style.color = C.textSoft; e.currentTarget.style.borderColor = C.border; }}
-        >
-          Zur Recherche <ChevronRight size={11} strokeWidth={2.5} />
-        </button>
       </div>
 
       {/* ── Filter bar ── */}
