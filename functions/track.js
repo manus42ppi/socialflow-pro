@@ -2,13 +2,12 @@
 // Route: /track
 // KV binding: SOCIALFLOW_KV
 // Key schema:  stats:blog:{slug}
-// Value:
-//   { views, dailyViews: {"YYYY-MM-DD": N},
-//     durations: [seconds…],
-//     scrollDepths: { "25":N, "50":N, "75":N, "100":N },
-//     referrers:   { "direct":N, "social":N, "organic":N, "newsletter":N, "other":N },
-//     linkClicks:  N,
-//     returnVisits: N }
+//
+// POST body variants:
+//   { slug, event:"view" }                         — sofortiger View-Event beim Laden
+//   { slug, batch: [{event, ...}, ...] }           — gebündelter Unload-Beacon (1 Write!)
+//
+// Batch events: duration, scroll, referrer, link, return
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -40,6 +39,44 @@ function emptyStats() {
   };
 }
 
+function applyEvent(stats, ev, today) {
+  const { event, duration, depth, source, clicks } = ev;
+
+  if (event === "view") {
+    stats.views = (stats.views || 0) + 1;
+    stats.dailyViews = stats.dailyViews || {};
+    stats.dailyViews[today] = (stats.dailyViews[today] || 0) + 1;
+    const cutoff = dateOffset(60);
+    for (const d of Object.keys(stats.dailyViews)) {
+      if (d < cutoff) delete stats.dailyViews[d];
+    }
+  }
+
+  if (event === "duration" && typeof duration === "number" && duration > 5 && duration < 3600) {
+    stats.durations = stats.durations || [];
+    stats.durations.push(Math.round(duration));
+    if (stats.durations.length > 200) stats.durations = stats.durations.slice(-200);
+  }
+
+  if (event === "scroll" && [25, 50, 75, 100].includes(depth)) {
+    stats.scrollDepths = stats.scrollDepths || {};
+    stats.scrollDepths[String(depth)] = (stats.scrollDepths[String(depth)] || 0) + 1;
+  }
+
+  if (event === "referrer" && ["direct","social","organic","newsletter","other"].includes(source)) {
+    stats.referrers = stats.referrers || {};
+    stats.referrers[source] = (stats.referrers[source] || 0) + 1;
+  }
+
+  if (event === "link") {
+    stats.linkClicks = (stats.linkClicks || 0) + (typeof clicks === "number" ? clicks : 1);
+  }
+
+  if (event === "return") {
+    stats.returnVisits = (stats.returnVisits || 0) + 1;
+  }
+}
+
 export async function onRequest({ request, env }) {
   const url    = new URL(request.url);
   const method = request.method.toUpperCase();
@@ -63,7 +100,7 @@ export async function onRequest({ request, env }) {
 
     const stats = (await kv.get(`stats:blog:${slug}`, "json").catch(() => null)) ?? emptyStats();
 
-    // ── Trend (7d vs prev 7d) ─────────────────────────────────────────────
+    // Trend
     let last7 = 0, prev7 = 0;
     for (let i = 0; i < 14; i++) {
       const v = stats.dailyViews?.[dateOffset(i)] || 0;
@@ -73,20 +110,20 @@ export async function onRequest({ request, env }) {
                    : last7 > prev7 ? "up" : last7 < prev7 ? "down" : "neutral";
     const trendPct = prev7 > 0 ? Math.round(((last7 - prev7) / prev7) * 100) : null;
 
-    // ── Ø Verweildauer ────────────────────────────────────────────────────
+    // Ø Verweildauer
     const durations = stats.durations || [];
     const avgDuration = durations.length > 0
       ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
       : null;
 
-    // ── 14-day sparkline ──────────────────────────────────────────────────
+    // Sparkline
     const sparkline = [];
     for (let i = 13; i >= 0; i--) {
       const d = dateOffset(i);
       sparkline.push({ date: d, views: stats.dailyViews?.[d] || 0 });
     }
 
-    // ── Scroll-Tiefe ──────────────────────────────────────────────────────
+    // Scroll-Tiefe
     const sd = stats.scrollDepths || {};
     const totalViews = Math.max(1, stats.views || 1);
     const scrollStats = {
@@ -96,7 +133,7 @@ export async function onRequest({ request, env }) {
       pct100: Math.round(((sd["100"] || 0) / totalViews) * 100),
     };
 
-    // ── Referrer-Quelle ───────────────────────────────────────────────────
+    // Referrer
     const ref = stats.referrers || {};
     const refTotal = Object.values(ref).reduce((a, b) => a + b, 0) || 1;
     const referrerBreakdown = {
@@ -107,87 +144,47 @@ export async function onRequest({ request, env }) {
       other:      { count: ref.other      || 0, pct: Math.round(((ref.other      || 0) / refTotal) * 100) },
     };
 
-    // ── Klick-Rate auf externe Links ──────────────────────────────────────
-    const linkClicks = stats.linkClicks || 0;
+    // Klick-Rate
+    const linkClicks   = stats.linkClicks || 0;
     const linkClickRate = totalViews > 0 ? Math.round((linkClicks / totalViews) * 100) : 0;
 
-    // ── Rückkehr-Quote ────────────────────────────────────────────────────
+    // Rückkehr-Quote
     const returnVisits = stats.returnVisits || 0;
-    const returnRate = totalViews > 0 ? Math.round((returnVisits / totalViews) * 100) : 0;
+    const returnRate   = totalViews > 0 ? Math.round((returnVisits / totalViews) * 100) : 0;
 
-    // ── Engagement-Score (0–100) ──────────────────────────────────────────
-    // 50% Scroll-Anteil (Ziel: 75% der Seite), 50% Zeit-Anteil (Ziel: 5 Min)
-    const scrollScore = scrollStats.pct75;
-    const timeScore   = Math.min(100, Math.round(((avgDuration || 0) / 300) * 100));
+    // Engagement-Score (0–100): 50% Scroll bis 75%, 50% Zeit bis 5 Min
+    const scrollScore    = scrollStats.pct75;
+    const timeScore      = Math.min(100, Math.round(((avgDuration || 0) / 300) * 100));
     const engagementScore = Math.round((scrollScore + timeScore) / 2);
 
     return json({
       views: stats.views || 0,
       avgDuration,
-      trend, trendPct,
-      last7, prev7,
-      sparkline,
+      trend, trendPct, last7, prev7, sparkline,
       scrollStats,
       referrerBreakdown,
-      linkClicks,
-      linkClickRate,
-      returnVisits,
-      returnRate,
+      linkClicks, linkClickRate,
+      returnVisits, returnRate,
       engagementScore,
     });
   }
 
-  // ── POST /track — record events ───────────────────────────────────────────
+  // ── POST /track ───────────────────────────────────────────────────────────
+  // text/plain Blob von sendBeacon: request.json() parst body-Text als JSON
   if (method === "POST") {
-    // sendBeacon sends Content-Type: text/plain → request.json() still works
-    // (Cloudflare Workers parse body as JSON regardless of Content-Type)
     const body = await request.json().catch(() => ({}));
-    const { slug, event, duration, depth, source, href } = body;
+    const { slug, batch } = body;
     if (!slug) return json({ error: "slug required" }, 400);
 
     const key   = `stats:blog:${slug}`;
     const stats = (await kv.get(key, "json").catch(() => null)) ?? emptyStats();
+    const today = new Date().toISOString().slice(0, 10);
 
-    // ── view ──────────────────────────────────────────────────────────────
-    if (event === "view") {
-      stats.views = (stats.views || 0) + 1;
-      stats.dailyViews = stats.dailyViews || {};
-      const today = new Date().toISOString().slice(0, 10);
-      stats.dailyViews[today] = (stats.dailyViews[today] || 0) + 1;
-      // Prune > 60 days
-      const cutoff = dateOffset(60);
-      for (const d of Object.keys(stats.dailyViews)) {
-        if (d < cutoff) delete stats.dailyViews[d];
-      }
-    }
-
-    // ── duration ──────────────────────────────────────────────────────────
-    if (event === "duration" && typeof duration === "number" && duration > 5 && duration < 3600) {
-      stats.durations = stats.durations || [];
-      stats.durations.push(Math.round(duration));
-      if (stats.durations.length > 200) stats.durations = stats.durations.slice(-200);
-    }
-
-    // ── scroll depth ──────────────────────────────────────────────────────
-    if (event === "scroll" && [25, 50, 75, 100].includes(depth)) {
-      stats.scrollDepths = stats.scrollDepths || {};
-      stats.scrollDepths[String(depth)] = (stats.scrollDepths[String(depth)] || 0) + 1;
-    }
-
-    // ── referrer ──────────────────────────────────────────────────────────
-    if (event === "referrer" && ["direct", "social", "organic", "newsletter", "other"].includes(source)) {
-      stats.referrers = stats.referrers || {};
-      stats.referrers[source] = (stats.referrers[source] || 0) + 1;
-    }
-
-    // ── link click ────────────────────────────────────────────────────────
-    if (event === "link") {
-      stats.linkClicks = (stats.linkClicks || 0) + 1;
-    }
-
-    // ── return visitor ────────────────────────────────────────────────────
-    if (event === "return") {
-      stats.returnVisits = (stats.returnVisits || 0) + 1;
+    // batch = Array von Events (ein Write statt N parallele Writes)
+    // Fallback: single-event Body für Rückwärtskompatibilität
+    const events = Array.isArray(batch) ? batch : [body];
+    for (const ev of events) {
+      applyEvent(stats, ev, today);
     }
 
     await kv.put(key, JSON.stringify(stats));
