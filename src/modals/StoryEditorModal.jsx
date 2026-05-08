@@ -17,7 +17,8 @@ import { createPortal } from "react-dom"; // still used by MediaLibraryFilePanel
 import {
   X, Save, Check, Link as LinkIcon, StickyNote,
   Trash2, Wand2, Loader, Image as ImageIcon,
-  ChevronLeft, AlignLeft,
+  ChevronLeft, AlignLeft, Eye, Clock,
+  TrendingUp, TrendingDown, Minus,
   BarChart2, Hash, Tag, RefreshCw, Globe, ExternalLink,
 } from "lucide-react";
 import { C, FONT, IW, CSS } from "../constants/colors.js";
@@ -1086,12 +1087,31 @@ export default function StoryEditorModal() {
   );
   const [tagsLoading, setTagsLoading] = useState(false);
   const [hashtagLoading, setHashtagLoading] = useState(false);
+  const [webStats, setWebStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const asRef        = useRef();
   const formRef      = useRef(form);
   const titleRef     = useRef();
   const subtitleRef  = useRef();
   formRef.current = form;
+
+  // ── Web stats fetch ───────────────────────────────────────────────────────
+  const fetchWebStats = useCallback(async (slug) => {
+    const s = slug || formRef.current.webSlug;
+    if (!s) return;
+    setStatsLoading(true);
+    try {
+      const res = await fetch(`https://develop.socialflow-pro.pages.dev/track?slug=${encodeURIComponent(s)}`);
+      if (res.ok) setWebStats(await res.json());
+    } catch { /* ignore */ }
+    setStatsLoading(false);
+  }, []);
+
+  // Auto-fetch on mount if story is already published
+  useEffect(() => {
+    if (story.webSlug) fetchWebStats(story.webSlug);
+  }, []); // eslint-disable-line
 
   // ── BlockNote editor ──────────────────────────────────────────────────────
   const editor = useCreateBlockNote({
@@ -1247,6 +1267,8 @@ export default function StoryEditorModal() {
       };
       updateStory(updated);
       setForm(prev => ({ ...prev, webSlug: slug, status: "published", webPublishedAt, webUpdatedAt }));
+      // Refresh stats after a short delay (KV may need a moment to reflect)
+      setTimeout(() => fetchWebStats(slug), 1500);
     } catch (e) {
       console.error("[PublishToWeb]", e);
       setWebPublished({ error: e.message });
@@ -1937,6 +1959,128 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                           </div>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* ── Stats card ──────────────────────────────────── */}
+                  {(webStats || statsLoading) && (
+                    <div style={{
+                      background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
+                      padding: "10px 11px", display: "flex", flexDirection: "column", gap: 8,
+                    }}>
+                      {/* Header row */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: C.textMute, textTransform: "uppercase", letterSpacing: ".06em", display: "flex", alignItems: "center", gap: 4 }}>
+                          <BarChart2 size={9} strokeWidth={2} /> Statistik
+                        </div>
+                        <button
+                          onClick={() => fetchWebStats()}
+                          disabled={statsLoading}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: C.textMute, padding: 2, display: "flex" }}
+                          title="Aktualisieren"
+                        >
+                          <RefreshCw size={10} strokeWidth={2} style={{ animation: statsLoading ? "spin 1s linear infinite" : "none" }} />
+                        </button>
+                      </div>
+
+                      {statsLoading && !webStats ? (
+                        <div style={{ fontSize: 10.5, color: C.textMute, fontFamily: FONT, textAlign: "center", padding: "8px 0" }}>Lade Daten…</div>
+                      ) : webStats && (<>
+
+                        {/* KPI row: Views, Verweildauer, Trend */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                          {/* Views */}
+                          <div style={{ background: C.surface, borderRadius: 6, padding: "7px 8px", border: `1px solid ${C.border}` }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>
+                              <Eye size={9} strokeWidth={2} color={C.textMute} />
+                              <span style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em" }}>Aufrufe</span>
+                            </div>
+                            <div style={{ fontSize: 17, fontWeight: 800, color: C.text, fontFamily: FONT, lineHeight: 1 }}>
+                              {webStats.views >= 1000 ? `${(webStats.views / 1000).toFixed(1)}k` : webStats.views}
+                            </div>
+                            <div style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, marginTop: 2 }}>
+                              {webStats.last7 > 0 ? `${webStats.last7} diese Woche` : "noch keine"}
+                            </div>
+                          </div>
+
+                          {/* Verweildauer */}
+                          <div style={{ background: C.surface, borderRadius: 6, padding: "7px 8px", border: `1px solid ${C.border}` }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>
+                              <Clock size={9} strokeWidth={2} color={C.textMute} />
+                              <span style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em" }}>Ø Zeit</span>
+                            </div>
+                            {webStats.avgDuration ? (<>
+                              <div style={{ fontSize: 17, fontWeight: 800, color: C.text, fontFamily: FONT, lineHeight: 1 }}>
+                                {webStats.avgDuration >= 60 ? `${Math.floor(webStats.avgDuration / 60)}m` : `${webStats.avgDuration}s`}
+                              </div>
+                              <div style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, marginTop: 2 }}>
+                                {webStats.avgDuration >= 60
+                                  ? `${Math.floor(webStats.avgDuration / 60)} Min ${webStats.avgDuration % 60} Sek`
+                                  : `${webStats.avgDuration} Sek`}
+                              </div>
+                            </>) : (
+                              <div style={{ fontSize: 11, color: C.textMute, fontFamily: FONT, marginTop: 4 }}>–</div>
+                            )}
+                          </div>
+
+                          {/* Trend */}
+                          <div style={{ background: C.surface, borderRadius: 6, padding: "7px 8px", border: `1px solid ${C.border}` }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 3 }}>
+                              <span style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em" }}>Trend</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                              {webStats.trend === "up"   && <TrendingUp  size={16} strokeWidth={2.5} color="#10B981" />}
+                              {webStats.trend === "down" && <TrendingDown size={16} strokeWidth={2.5} color="#EF4444" />}
+                              {webStats.trend === "neutral" && <Minus size={16} strokeWidth={2.5} color={C.textMute} />}
+                              <div style={{ fontSize: 14, fontWeight: 800, fontFamily: FONT, lineHeight: 1,
+                                color: webStats.trend === "up" ? "#10B981" : webStats.trend === "down" ? "#EF4444" : C.textMute }}>
+                                {webStats.trendPct != null ? `${webStats.trendPct > 0 ? "+" : ""}${webStats.trendPct}%` : "–"}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, marginTop: 2 }}>vs. Vorwoche</div>
+                          </div>
+                        </div>
+
+                        {/* Sparkline — 14-day bar chart */}
+                        {webStats.sparkline?.length > 0 && (() => {
+                          const maxV = Math.max(1, ...webStats.sparkline.map(d => d.views));
+                          const barW = 10;
+                          const gap  = 3;
+                          const h    = 32;
+                          const total = webStats.sparkline.length;
+                          const svgW  = total * barW + (total - 1) * gap;
+                          return (
+                            <div>
+                              <div style={{ fontSize: 8.5, color: C.textMute, fontFamily: FONT, marginBottom: 4, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                                Letzte 14 Tage
+                              </div>
+                              <svg width="100%" viewBox={`0 0 ${svgW} ${h}`} preserveAspectRatio="none" style={{ display: "block", height: h }}>
+                                {webStats.sparkline.map((d, i) => {
+                                  const barH = Math.max(2, Math.round((d.views / maxV) * h));
+                                  const isToday = i === total - 1;
+                                  return (
+                                    <rect
+                                      key={d.date}
+                                      x={i * (barW + gap)}
+                                      y={h - barH}
+                                      width={barW}
+                                      height={barH}
+                                      rx={2}
+                                      fill={isToday ? "#6941C6" : d.views > 0 ? "#6941C644" : C.borderLight}
+                                    />
+                                  );
+                                })}
+                              </svg>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                                <span style={{ fontSize: 8, color: C.textMute, fontFamily: FONT }}>
+                                  {webStats.sparkline[0]?.date?.slice(5).replace("-", ".")}
+                                </span>
+                                <span style={{ fontSize: 8, color: C.textMute, fontFamily: FONT }}>Heute</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </>)}
                     </div>
                   )}
 
