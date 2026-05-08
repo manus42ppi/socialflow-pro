@@ -50,6 +50,48 @@ const CH_ANGLE = {
 };
 
 // ── HELPERS ────────────────────────────────────────────────────────────────
+// Rich markdown converter for web publishing (preserves headings, images, lists)
+function blocksToMarkdown(blocks) {
+  if (!blocks?.length) return "";
+  const inl = (content) => {
+    if (!Array.isArray(content)) return "";
+    return content.map(item => {
+      if (item.type === "link") return `[${(item.content||[]).map(c=>c.text||"").join("")}](${item.href||""})`;
+      if (item.type !== "text") return "";
+      let t = item.text || "";
+      if (item.styles?.bold)   t = `**${t}**`;
+      if (item.styles?.italic) t = `*${t}*`;
+      if (item.styles?.code)   t = `\`${t}\``;
+      return t;
+    }).join("");
+  };
+  const lines = [];
+  for (const block of blocks) {
+    if (block.type === "image") {
+      const url = block.props?.url || "";
+      if (url && !url.startsWith("data:")) // skip base64 (too large for KV)
+        lines.push(`![${block.props?.caption || ""}](${url})`);
+    } else if (block.type === "heading") {
+      const t = inl(block.content);
+      if (t.trim()) lines.push(`${"#".repeat(block.props?.level || 2)} ${t.trim()}`);
+    } else if (block.type === "bulletListItem") {
+      const t = inl(block.content);
+      if (t.trim()) lines.push(`- ${t.trim()}`);
+    } else if (block.type === "numberedListItem") {
+      const t = inl(block.content);
+      if (t.trim()) lines.push(`1. ${t.trim()}`);
+    } else if (block.type === "blockquote" || block.type === "quote") {
+      const t = inl(block.content);
+      if (t.trim()) lines.push(`> ${t.trim()}`);
+    } else {
+      const t = inl(block.content);
+      if (t.trim()) lines.push(t.trim());
+    }
+    if (block.children?.length) lines.push(blocksToMarkdown(block.children));
+  }
+  return lines.filter(Boolean).join("\n\n");
+}
+
 function blocksToText(blocks) {
   if (!blocks?.length) return "";
   const extract = (content) => {
@@ -1157,8 +1199,9 @@ export default function StoryEditorModal() {
     setWebPublishing(true);
     try {
       const f = formRef.current;
-      const text = blocksToText(editor.document || []);
-      const excerpt = f.subtitle || text.split(/\n+/).find(l => l.trim().length > 30)?.trim()?.slice(0, 160) || "";
+      const text = blocksToMarkdown(editor.document || []); // rich markdown incl. images
+      const plainText = blocksToText(editor.document || []);
+      const excerpt = f.subtitle || plainText.split(/\n+/).find(l => l.trim().length > 30)?.trim()?.slice(0, 160) || "";
 
       // Get Clerk session token (if available) or use demo fallback
       let token = null;
