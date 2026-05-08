@@ -126,17 +126,21 @@ export async function onRequest({ request, env }) {
       if (token) await verifyClerkToken(token); // validate if provided
 
       const body = await request.json().catch(() => ({}));
-      const { title, content, excerpt, category, tags, author, workspaceId } = body;
+      const { title, content, excerpt, category, tags, author, workspaceId, slug: existingSlug } = body;
 
       if (!title || !content) {
         return json({ error: "title and content are required" }, 400);
       }
 
-      const slug = slugify(title);
+      // Use provided slug for updates (keeps URL stable), otherwise generate from title
+      const slug = existingSlug || slugify(title);
       if (!slug) return json({ error: "Could not generate slug from title" }, 400);
 
-      const id = crypto.randomUUID();
-      const publishedAt = new Date().toISOString();
+      // Preserve original publishedAt and id if post already exists (it's an update)
+      const existing = await kv.get(`public:blog:${slug}`, "json").catch(() => null);
+      const id = existing?.id || crypto.randomUUID();
+      const publishedAt = existing?.publishedAt || new Date().toISOString();
+      const updatedAt = new Date().toISOString();
 
       const post = {
         id,
@@ -145,6 +149,7 @@ export async function onRequest({ request, env }) {
         excerpt: excerpt ?? "",
         content,
         publishedAt,
+        updatedAt,
         author: author ?? null,
         category: category ?? null,
         tags: tags ?? [],

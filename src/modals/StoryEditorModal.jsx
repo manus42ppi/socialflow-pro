@@ -1224,6 +1224,8 @@ export default function StoryEditorModal() {
           tags: f.tags || "",
           author: user?.name || "ppi n3xt Redaktion",
           workspaceId: "ws-ppi-n3xt",
+          // If already published, keep the same slug so the URL doesn't change
+          slug: f.webSlug || undefined,
         }),
       });
 
@@ -1633,7 +1635,8 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
           {/* Publish to website button — only when website channel is active */}
           {form.targetChannels?.includes("website") && (
             <>
-              {webPublished && !webPublished.error ? (
+              {/* "Live ansehen" link — shown whenever post is published */}
+              {webPublished && !webPublished.error && (
                 <a
                   href={webPublished.url}
                   target="_blank"
@@ -1653,31 +1656,37 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   Live ansehen
                   <ExternalLink size={11} strokeWidth={2} />
                 </a>
-              ) : (
-                <button
-                  onClick={handlePublishToWeb}
-                  disabled={webPublishing || !form.title}
-                  title={!form.title ? "Zuerst einen Titel eingeben" : "Story auf ppi n3xt veröffentlichen"}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "0 12px", height: 32, borderRadius: 8,
-                    background: webPublishing ? "#6941C620" : "#6941C6",
-                    border: "1px solid #6941C6",
-                    color: webPublishing ? "#6941C6" : "#fff",
-                    fontFamily: FONT, fontSize: 12, fontWeight: 600,
-                    cursor: webPublishing || !form.title ? "default" : "pointer",
-                    opacity: !form.title ? 0.5 : 1,
-                    flexShrink: 0, transition: "all .15s",
-                  }}
-                  onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.background = "#5b35b0"; }}
-                  onMouseLeave={e => { if (!webPublishing) e.currentTarget.style.background = webPublishing ? "#6941C620" : "#6941C6"; }}
-                >
-                  {webPublishing
-                    ? <><Loader size={12} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} /> Wird veröffentlicht…</>
-                    : <><Globe size={13} strokeWidth={2} /> Auf Website veröffentlichen</>
-                  }
-                </button>
               )}
+              {/* Publish / Update button — always shown */}
+              <button
+                onClick={handlePublishToWeb}
+                disabled={webPublishing || !form.title}
+                title={!form.title ? "Zuerst einen Titel eingeben"
+                  : webPublished && !webPublished.error ? "Änderungen auf Website übertragen"
+                  : "Story auf ppi n3xt veröffentlichen"}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "0 12px", height: 32, borderRadius: 8,
+                  background: webPublishing ? "#6941C620"
+                    : webPublished && !webPublished.error ? "#f0ebfd"
+                    : "#6941C6",
+                  border: `1px solid ${webPublished && !webPublished.error ? "#6941C644" : "#6941C6"}`,
+                  color: webPublishing || (webPublished && !webPublished.error) ? "#6941C6" : "#fff",
+                  fontFamily: FONT, fontSize: 12, fontWeight: 600,
+                  cursor: webPublishing || !form.title ? "default" : "pointer",
+                  opacity: !form.title ? 0.5 : 1,
+                  flexShrink: 0, transition: "all .15s",
+                }}
+                onMouseEnter={e => { if (!webPublishing && form.title) e.currentTarget.style.filter = "brightness(.95)"; }}
+                onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}
+              >
+                {webPublishing
+                  ? <><Loader size={12} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} /> Wird aktualisiert…</>
+                  : webPublished && !webPublished.error
+                    ? <><RefreshCw size={12} strokeWidth={2} /> Aktualisieren</>
+                    : <><Globe size={13} strokeWidth={2} /> Auf Website veröffentlichen</>
+                }
+              </button>
               {webPublished?.error && (
                 <span style={{ fontSize: 10, color: "#C4511E", fontFamily: FONT }}>
                   ✕ {webPublished.error}
