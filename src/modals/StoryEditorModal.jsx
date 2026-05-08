@@ -1153,7 +1153,7 @@ export default function StoryEditorModal() {
     if (!s) return;
     setStatsLoading(true);
     try {
-      const res = await fetch(`https://develop.socialflow-pro.pages.dev/track?slug=${encodeURIComponent(s)}`);
+      const res = await fetch(`https://socialflow-pro.pages.dev/track?slug=${encodeURIComponent(s)}`);
       if (res.ok) setWebStats(await res.json());
     } catch { /* ignore */ }
     setStatsLoading(false);
@@ -1253,7 +1253,7 @@ export default function StoryEditorModal() {
     const excerpt = f.subtitle || plainText.split(/\n+/).find(l => l.trim().length > 30)?.trim()?.slice(0, 160) || "";
     let token = null;
     try { const clerk = window.Clerk; if (clerk?.session) token = await clerk.session.getToken(); } catch {}
-    const res = await fetch("https://develop.socialflow-pro.pages.dev/blog", {
+    const res = await fetch("https://socialflow-pro.pages.dev/blog", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({
