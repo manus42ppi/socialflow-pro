@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
-import { uid, aiCall, fileToDataURL } from "../utils/store.js";
+import { uid, aiCall, fileToDataURL, parseJSON } from "../utils/store.js";
+import { stockSearch, skGet } from "../components/StockSearch.jsx";
 import { Btn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
 import { useApp } from "../context/AppContext.jsx";
@@ -144,6 +145,68 @@ function textToBlocks(text) {
         return { type:'paragraph', props:{textAlignment:"left"}, content:[{type:"text",text:l,styles:{}}], children:[] };
       })
     );
+}
+
+// ── Spark: serialise document as numbered list for AI prompt ─────────────
+function serializeDocumentForAI(blocks) {
+  if (!blocks?.length) return "(leer)";
+  return blocks.map((b, i) => {
+    const inl = c => Array.isArray(c) ? c.map(x => x.type==="text"?x.text||"":"").join("") : "";
+    const t = inl(b.content);
+    if (b.type === "heading")          return `[${i}] H${b.props?.level||2}: "${t.slice(0,100)}"`;
+    if (b.type === "image")            return `[${i}] BILD: alt="${(b.props?.caption||"").slice(0,80)}" url="${(b.props?.url||"").slice(0,60)}"`;
+    if (b.type === "bulletListItem")   return `[${i}] LISTE: "${t.slice(0,80)}"`;
+    if (b.type === "numberedListItem") return `[${i}] NUMM: "${t.slice(0,80)}"`;
+    if (b.type === "blockquote" || b.type === "quote") return `[${i}] ZITAT: "${t.slice(0,100)}"`;
+    return `[${i}] ABS: "${t.slice(0,130)}${t.length>130?"…":""}"`;
+  }).join("\n");
+}
+
+// ── Spark: build a BlockNote block from one AI action ────────────────────
+function makeBlockFromAction(op, imageMap = {}) {
+  const mkC = txt => [{ type:"text", text: txt || "", styles:{} }];
+  if (op.type === "heading")          return { type:"heading",          props:{level:op.level||2, textAlignment:"left"}, content:mkC(op.text), children:[] };
+  if (op.type === "paragraph")        return { type:"paragraph",        props:{textAlignment:"left"},                    content:mkC(op.text), children:[] };
+  if (op.type === "bulletListItem")   return { type:"bulletListItem",   props:{textAlignment:"left"},                    content:mkC(op.text), children:[] };
+  if (op.type === "numberedListItem") return { type:"numberedListItem", props:{textAlignment:"left"},                    content:mkC(op.text), children:[] };
+  if (op.type === "image") {
+    const img = imageMap[op._imgKey];
+    if (!img) return null;
+    return { type:"image", props:{ url:img.url, caption:op.alt||op.query||"", previewWidth:512, backgroundColor:"default", textAlignment:"left" }, content:[], children:[] };
+  }
+  return null;
+}
+
+// ── Spark: apply action list to original blocks array ────────────────────
+function applyActionsToBlocks(originalBlocks, actions, imageMap) {
+  const out = [];
+  for (let i = 0; i < originalBlocks.length; i++) {
+    for (const op of actions) if (op.op==="insert_before" && op.index===i) { const b=makeBlockFromAction(op,imageMap); if(b) out.push(b); }
+    const del = actions.find(o => o.op==="delete"  && o.index===i);
+    const rep = actions.find(o => o.op==="replace" && o.index===i);
+    if      (del) { /* drop */ }
+    else if (rep) { const b=makeBlockFromAction(rep,imageMap); if(b) out.push(b); }
+    else          { out.push(originalBlocks[i]); }
+    for (const op of actions) if (op.op==="insert_after" && op.index===i) { const b=makeBlockFromAction(op,imageMap); if(b) out.push(b); }
+  }
+  for (const op of actions) if (op.op==="append") { const b=makeBlockFromAction(op,imageMap); if(b) out.push(b); }
+  return out.filter(Boolean);
+}
+
+// ── Spark: display label for one AI action (used in plan preview) ────────
+function sparkActionDisplay(a) {
+  const opIcon  = { replace:"✏", insert_after:"＋", insert_before:"＋", delete:"✕", append:"＋" };
+  const opColor = { replace:"#7C3AED", insert_after:"#059669", insert_before:"#059669", delete:"#DC2626", append:"#059669" };
+  const typeLabel = { heading:"Überschrift", paragraph:"Absatz", bulletListItem:"Aufzählung", numberedListItem:"Liste", image:"Bild" };
+  let label = "";
+  if (a.type === "image") label = `Bild: "${a.query?.slice(0,40)||""}"`;
+  else if (a.op === "delete") label = `Block [${a.index}] entfernen`;
+  else {
+    const tl = typeLabel[a.type] || a.type;
+    const txt = (a.text||"").slice(0,42) + ((a.text||"").length>42?"…":"");
+    label = a.type==="heading" ? `H${a.level||2}: "${txt}"` : `${tl}: "${txt}"`;
+  }
+  return { icon: a.type==="image" ? "🖼" : (opIcon[a.op]||"•"), label, color: opColor[a.op]||"#6B7280" };
 }
 
 function getDomain(url) {
@@ -1300,35 +1363,77 @@ export default function StoryEditorModal() {
   }, []); // eslint-disable-line
 
   // ── Spark: send prompt to AI ──────────────────────────────────────────────
+  // Selection active  → quick text-edit mode  → plain-text response
+  // No selection      → agentic editor mode   → JSON action plan response
   const sparkSend = async (prompt) => {
-    // Use sparkInputRef (always-current) to avoid React 18 stale-closure issue
     const p = (prompt || sparkInputRef.current).trim();
     if (!p || sparkLoading) return;
     setSparkInput(""); sparkInputRef.current = "";
 
-    // Capture selection context BEFORE anything changes
     const isSel    = !!(sparkSelInfo && sparkSelRef.current);
     const ctxText  = isSel ? sparkSelInfo.text : blocksToText(editor.document || []);
     const ctxWords = isSel ? sparkSelInfo.wordCount : wordCount;
     const selRange = isSel ? sparkSelRef.current : null;
 
-    const userMsg = { id: uid(), role:"user", text: p, isSel, ctxWords };
-    setSparkMessages(prev => [...prev, userMsg]);
+    setSparkMessages(prev => [...prev, { id:uid(), role:"user", text:p, isSel, ctxWords }]);
     setSparkLoading(true);
 
-    const sys = isSel
-      ? `Du bist Spark, ein präziser KI-Assistent für Content-Erstellung. Bearbeite NUR den folgenden markierten Text (${ctxWords} Wörter). Antworte NUR mit dem bearbeiteten Text – keine Erklärungen, keine Präfixe, kein Anführungszeichen.`
-      : `Du bist Spark, ein KI-Assistent für Content-Erstellung. Du bearbeitest den vollständigen Artikel (${ctxWords} Wörter). Antworte NUR mit dem bearbeiteten Text – keine Erklärungen, keine Präfixe.`;
-
     try {
-      const result = await aiCall([{ role:"user", content:`${sys}\n\nText:\n${ctxText}\n\nAufgabe: ${p}` }], 2000);
-      const trimmed = result.trim();
-      if (!trimmed) throw new Error("empty");
-      const aiMsg = { id:uid(), role:"spark", type:"suggestion", text:trimmed, isSel, selRange, original:ctxText, applied:false };
-      setSparkMessages(prev => [...prev, aiMsg]);
+      if (isSel) {
+        // ── Text-edit mode (selection) ──────────────────────────────────────
+        const sys = `Du bist Spark, ein präziser KI-Editor für Content-Erstellung. Bearbeite NUR den folgenden markierten Text (${ctxWords} Wörter). Antworte NUR mit dem bearbeiteten Text – keine Erklärungen, keine Präfixe, keine Anführungszeichen.`;
+        const result = await aiCall([{ role:"user", content:`${sys}\n\nText:\n${ctxText}\n\nAufgabe: ${p}` }], 2000);
+        const trimmed = result.trim();
+        if (!trimmed) throw new Error("empty");
+        setSparkMessages(prev => [...prev, { id:uid(), role:"spark", type:"suggestion", text:trimmed, isSel:true, selRange, applied:false }]);
+
+      } else {
+        // ── Agentic editor mode (full document) ─────────────────────────────
+        const blocks     = editor.document || [];
+        const serialized = serializeDocumentForAI(blocks);
+        const sys = `Du bist Spark, der autonome KI-Editor von SocialFlow Pro. Du kennst jeden Block des Artikels und kannst gezielte Änderungen planen: Überschriften schreiben, Absätze umformulieren, Bilder suchen & einsetzen, Strukturen verbessern, Listenelemente hinzufügen und mehr.
+
+ARTIKEL:
+Titel: "${formRef.current.title || "(kein Titel)"}"
+Kategorie: ${formRef.current.category || "–"} | Wörter: ${wordCount}
+
+INHALT (${blocks.length} Blöcke, nummeriert):
+${serialized}
+
+AUFGABE: ${p}
+
+Antworte AUSSCHLIESSLICH mit einem gültigen JSON-Objekt – kein Markdown-Code-Block, kein Text davor oder danach:
+{
+  "plan": "Was du tust (1–2 Sätze auf Deutsch)",
+  "actions": [
+    { "op": "replace",       "index": N, "type": "heading",          "level": 2,   "text": "..." },
+    { "op": "replace",       "index": N, "type": "paragraph",                       "text": "..." },
+    { "op": "insert_after",  "index": N, "type": "bulletListItem",                  "text": "..." },
+    { "op": "insert_before", "index": N, "type": "numberedListItem",                "text": "..." },
+    { "op": "insert_after",  "index": N, "type": "image",  "query": "english stock photo search term", "alt": "Bildbeschreibung" },
+    { "op": "delete",        "index": N },
+    { "op": "append",                    "type": "paragraph",                       "text": "..." }
+  ]
+}
+
+REGELN:
+- "index" = Position in der originalen Blockliste (nicht durch andere Aktionen verschoben)
+- Bilder: "query" als präziser englischer Suchbegriff für Unsplash/Pexels
+- Maximal 15 Aktionen – fokussiert und präzise
+- Verändere nur was die Aufgabe verlangt
+- Exakt valides JSON, ohne Code-Block-Backticks`;
+
+        const result  = await aiCall([{ role:"user", content:sys }], 3500);
+        const parsed  = parseJSON(result.trim());
+        if (!parsed?.plan || !Array.isArray(parsed?.actions)) throw new Error("invalid json");
+        // Assign unique image keys so results can be matched back to actions
+        const actions = parsed.actions.map(a => a.type==="image" ? { ...a, _imgKey:uid() } : a);
+        setSparkMessages(prev => [...prev, { id:uid(), role:"spark", type:"plan", plan:parsed.plan, actions, status:"pending" }]);
+      }
+
       setTimeout(() => { if (sparkScrollRef.current) sparkScrollRef.current.scrollTop = sparkScrollRef.current.scrollHeight; }, 60);
     } catch {
-      setSparkMessages(prev => [...prev, { id:uid(), role:"spark", type:"error", text:"⚠️ KI nicht verfügbar (nur auf der Live-Site)." }]);
+      setSparkMessages(prev => [...prev, { id:uid(), role:"spark", type:"error", text:"⚠️ KI nicht verfügbar oder hat kein gültiges JSON geliefert." }]);
     }
     setSparkLoading(false);
   };
@@ -1356,6 +1461,36 @@ export default function StoryEditorModal() {
     setSparkMessages(prev => prev.map(m => m.id === msg.id ? { ...m, applied:true } : m));
     setSparkSelInfo(null);
     sparkSelRef.current = null;
+  };
+
+  // ── Spark: execute agentic plan (fetch images + apply all block ops) ─────
+  const executeSparkPlan = async (msg) => {
+    setSparkMessages(prev => prev.map(m => m.id===msg.id ? { ...m, status:"applying" } : m));
+    const snapshot = JSON.parse(JSON.stringify(editor.document));
+    setSparkUndo({ blocks: snapshot, msgId: msg.id });
+    try {
+      // Fetch stock images in parallel for all image actions
+      const imageActions = (msg.actions||[]).filter(a => a.type==="image");
+      const imageMap = {};
+      await Promise.all(imageActions.map(async a => {
+        for (const src of ["unsplash","pexels","pixabay"]) {
+          if (!skGet(src)) continue;
+          try {
+            const res = await stockSearch(src, a.query, { orientation:"landscape", type:"photo" });
+            if (res?.[0]) { imageMap[a._imgKey] = res[0]; break; }
+          } catch {}
+        }
+      }));
+      const newBlocks = applyActionsToBlocks(snapshot, msg.actions||[], imageMap);
+      if (newBlocks.length) editor.replaceBlocks(editor.document, newBlocks);
+      const imgMiss = imageActions.filter(a => !imageMap[a._imgKey]).length;
+      setSparkMessages(prev => prev.map(m => m.id===msg.id ? {
+        ...m, status:"applied",
+        appliedSummary: imgMiss > 0 ? `${imgMiss} Bild${imgMiss>1?"er":""} nicht gefunden – API-Key unter Einstellungen hinterlegen.` : undefined,
+      } : m));
+    } catch {
+      setSparkMessages(prev => prev.map(m => m.id===msg.id ? { ...m, status:"error" } : m));
+    }
   };
 
   // ── Spark: undo last applied suggestion ──────────────────────────────────
@@ -2730,53 +2865,91 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                       style={{ maxHeight:210, overflowY:"auto", display:"flex", flexDirection:"column", gap:5, borderRadius:8, border:`1px solid ${T.gray100}`, padding:"7px 7px", background:T.gray50 }}
                     >
                       {sparkMessages.filter(m => !m.dismissed).map(msg => {
+                        // ── User bubble ──────────────────────────────────────────
                         if (msg.role === "user") return (
                           <div key={msg.id} style={{ display:"flex", justifyContent:"flex-end" }}>
                             <div style={{ background:"#fff", border:`1px solid ${T.gray200}`, borderRadius:"9px 9px 2px 9px", padding:"5px 9px", maxWidth:"88%", fontSize:11, color:T.gray700, fontFamily:FONT, lineHeight:1.45 }}>
+                              {msg.isSel && <span style={{ fontSize:9, color:T.gray400, fontFamily:FONT, display:"block", marginBottom:2 }}>✂ Auswahl · {msg.ctxWords} Wörter</span>}
                               {msg.text}
                             </div>
                           </div>
                         );
 
+                        // ── Error message ─────────────────────────────────────────
                         if (msg.type === "error") return (
                           <div key={msg.id} style={{ fontSize:10.5, color:"#C4511E", background:"#FFF7ED", border:"1px solid #FED7AA", borderRadius:7, padding:"5px 8px", fontFamily:FONT, lineHeight:1.4 }}>
                             {msg.text}
                           </div>
                         );
 
-                        // Suggestion card
+                        // ── Agentic plan card ─────────────────────────────────────
+                        if (msg.type === "plan") return (
+                          <div key={msg.id} style={{ display:"flex", flexDirection:"column", gap:5, background:"#fff", border:`1px solid ${msg.status==="applied"?T.gray100:T.brand100}`, borderRadius:8, padding:"7px 8px" }}>
+                            {/* Header row */}
+                            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                              <Sparkles size={10} color={T.brand600} strokeWidth={2.5}/>
+                              <span style={{ fontSize:9.5, fontWeight:700, color:T.brand600, fontFamily:FONT, letterSpacing:".05em", textTransform:"uppercase" }}>Spark · Plan</span>
+                              {msg.status==="applied" && <><Check size={9} strokeWidth={3} color="#10B981" style={{marginLeft:"auto"}}/><span style={{fontSize:9.5,color:"#10B981",fontWeight:600,fontFamily:FONT}}>Erledigt</span></>}
+                              {msg.status==="applying" && <><Loader size={9} color={T.brand600} strokeWidth={2} style={{marginLeft:"auto",animation:"spin .8s linear infinite"}}/><span style={{fontSize:9.5,color:T.brand600,fontWeight:600,fontFamily:FONT}}>Läuft…</span></>}
+                              {msg.status==="error" && <span style={{fontSize:9.5,color:"#DC2626",fontWeight:600,fontFamily:FONT,marginLeft:"auto"}}>Fehler</span>}
+                            </div>
+                            {/* Plan description */}
+                            <p style={{ margin:0, fontSize:11, color:T.gray700, fontFamily:FONT, lineHeight:1.5 }}>{msg.plan}</p>
+                            {/* Action list */}
+                            {msg.status!=="applied" && msg.actions?.length>0 && (
+                              <div style={{ borderTop:`1px solid ${T.gray100}`, paddingTop:5, display:"flex", flexDirection:"column", gap:2 }}>
+                                {msg.actions.map((a, i) => {
+                                  const d = sparkActionDisplay(a);
+                                  return (
+                                    <div key={i} style={{ display:"flex", gap:5, alignItems:"center" }}>
+                                      <span style={{ fontSize:9.5, color:d.color, fontWeight:800, fontFamily:"monospace", flexShrink:0, minWidth:14, textAlign:"center" }}>{d.icon}</span>
+                                      <span style={{ fontSize:9.5, color:T.gray500, fontFamily:FONT, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.label}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {/* Warning if images couldn't load */}
+                            {msg.appliedSummary && <div style={{ fontSize:9.5, color:"#92400E", background:"#FFF7ED", borderRadius:5, padding:"3px 6px", fontFamily:FONT }}>{msg.appliedSummary}</div>}
+                            {/* CTA buttons */}
+                            {msg.status==="pending" && (
+                              <div style={{ display:"flex", gap:4 }}>
+                                <button onMouseDown={e=>e.preventDefault()} onClick={()=>executeSparkPlan(msg)}
+                                  style={{ flex:1, padding:"4px 0", borderRadius:6, border:"none", background:C.accent, color:"#fff", fontSize:10.5, fontWeight:700, cursor:"pointer", fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:3 }}>
+                                  <Check size={10} strokeWidth={3}/> Anwenden
+                                </button>
+                                <button onMouseDown={e=>e.preventDefault()} onClick={()=>setSparkMessages(prev=>prev.map(m=>m.id===msg.id?{...m,dismissed:true}:m))}
+                                  style={{ flex:1, padding:"4px 0", borderRadius:6, border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray500, fontSize:10.5, fontWeight:600, cursor:"pointer", fontFamily:FONT }}>
+                                  Verwerfen
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+
+                        // ── Selection text-edit suggestion card ───────────────────
                         return (
                           <div key={msg.id} style={{ display:"flex", flexDirection:"column", gap:5, background:"#fff", border:`1px solid ${msg.applied ? T.gray100 : T.brand100}`, borderRadius:8, padding:"7px 8px" }}>
                             <div style={{ display:"flex", alignItems:"center", gap:4 }}>
                               <Sparkles size={10} color={T.brand600} strokeWidth={2.5}/>
-                              <span style={{ fontSize:9.5, fontWeight:700, color:T.brand600, fontFamily:FONT, letterSpacing:".05em", textTransform:"uppercase" }}>Spark</span>
+                              <span style={{ fontSize:9.5, fontWeight:700, color:T.brand600, fontFamily:FONT, letterSpacing:".05em", textTransform:"uppercase" }}>Spark · Text</span>
                               {msg.applied && (
                                 <span style={{ marginLeft:"auto", fontSize:9.5, color:"#10B981", fontWeight:600, fontFamily:FONT, display:"flex", alignItems:"center", gap:3 }}>
                                   <Check size={9} strokeWidth={3}/> Übernommen
                                 </span>
                               )}
                             </div>
-                            <div style={{
-                              fontSize:11, color: msg.applied ? T.gray400 : T.gray700,
-                              fontFamily:FONT, lineHeight:1.55, maxHeight:110, overflowY:"auto",
-                              whiteSpace:"pre-wrap", wordBreak:"break-word",
-                            }}>
+                            <div style={{ fontSize:11, color: msg.applied ? T.gray400 : T.gray700, fontFamily:FONT, lineHeight:1.55, maxHeight:110, overflowY:"auto", whiteSpace:"pre-wrap", wordBreak:"break-word" }}>
                               {msg.text}
                             </div>
                             {!msg.applied && (
                               <div style={{ display:"flex", gap:4 }}>
-                                <button
-                                  onMouseDown={e => e.preventDefault()}
-                                  onClick={() => sparkApply(msg)}
-                                  style={{ flex:1, padding:"4px 0", borderRadius:6, border:"none", background:C.accent, color:"#fff", fontSize:10.5, fontWeight:700, cursor:"pointer", fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:3 }}
-                                >
+                                <button onMouseDown={e=>e.preventDefault()} onClick={()=>sparkApply(msg)}
+                                  style={{ flex:1, padding:"4px 0", borderRadius:6, border:"none", background:C.accent, color:"#fff", fontSize:10.5, fontWeight:700, cursor:"pointer", fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:3 }}>
                                   <Check size={10} strokeWidth={3}/> Übernehmen
                                 </button>
-                                <button
-                                  onMouseDown={e => e.preventDefault()}
-                                  onClick={() => setSparkMessages(prev => prev.map(m => m.id === msg.id ? {...m, dismissed:true} : m))}
-                                  style={{ flex:1, padding:"4px 0", borderRadius:6, border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray500, fontSize:10.5, fontWeight:600, cursor:"pointer", fontFamily:FONT }}
-                                >
+                                <button onMouseDown={e=>e.preventDefault()} onClick={()=>setSparkMessages(prev=>prev.map(m=>m.id===msg.id?{...m,dismissed:true}:m))}
+                                  style={{ flex:1, padding:"4px 0", borderRadius:6, border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray500, fontSize:10.5, fontWeight:600, cursor:"pointer", fontFamily:FONT }}>
                                   Verwerfen
                                 </button>
                               </div>
