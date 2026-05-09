@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
-import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
+import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_PROJECTS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { uid, storeGet, storeSet } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
@@ -49,6 +49,7 @@ export function AppProvider({ children }) {
   const [items, setItems] = useState([]);
   const [campaigns, setCampaigns] = useState(DEMO_CAMPAIGNS);
   const [stories, setStories] = useState(DEMO_STORIES);
+  const [projects, setProjects] = useState(DEMO_PROJECTS);
 
   // ── Modal / filter state ──────────────────────────────────────────────────
   const [edPost, setEdPost] = useState(null);
@@ -64,6 +65,7 @@ export function AppProvider({ children }) {
   const postsLoaded = useRef(false);
   const campsLoaded = useRef(false);
   const storiesLoaded = useRef(false);
+  const projectsLoaded = useRef(false);
   const demoMediaLoaded = useRef(false);
   const demoStoriesLoaded = useRef(false);
 
@@ -80,14 +82,16 @@ export function AppProvider({ children }) {
     if (!isSignedIn) {
       // Signed out (or demo mode): reset guards + restore demo data.
       // This also runs on initial page load before any login happens.
-      postsLoaded.current   = false;
-      campsLoaded.current   = false;
-      storiesLoaded.current = false;
-      mediaLoaded.current   = false;
+      postsLoaded.current    = false;
+      campsLoaded.current    = false;
+      storiesLoaded.current  = false;
+      mediaLoaded.current    = false;
+      projectsLoaded.current = false;
       setPosts(DEMO_POSTS);
       setCampaigns(DEMO_CAMPAIGNS);
       setStories(DEMO_STORIES);
       setItems(DEMO_MEDIA);
+      setProjects(DEMO_PROJECTS);
       return;
     }
 
@@ -124,6 +128,12 @@ export function AppProvider({ children }) {
       else setStories(DEMO_STORIES);
     });
 
+    projectsLoaded.current = false;
+    storeGet("projects").then(data => {
+      projectsLoaded.current = true;
+      setProjects(data?.length ? data : []);
+    });
+
     mediaLoaded.current = false;
     storeGet("media:index").then(async index => {
       if (index?.length) {
@@ -155,6 +165,11 @@ export function AppProvider({ children }) {
     if (!storiesLoaded.current) return;
     storeSet("stories", stories);
   }, [stories]);
+
+  useEffect(() => {
+    if (!projectsLoaded.current) return;
+    storeSet("projects", projects);
+  }, [projects]);
 
   useEffect(() => {
     if (!mediaLoaded.current) return;
@@ -331,6 +346,17 @@ export function AppProvider({ children }) {
     });
   };
 
+  // ── Project (Creation Voodoo) actions ────────────────────────────────────
+  const saveProject = p => {
+    const wsId = p.workspaceId || currentWorkspaceId || "ws-ppi-media";
+    const saved = { ...p, workspaceId: wsId, updatedAt: new Date().toISOString() };
+    setProjects(prev =>
+      prev.find(x => x.id === saved.id) ? prev.map(x => x.id === saved.id ? saved : x) : [...prev, saved]
+    );
+    return saved;
+  };
+  const delProject = id => setProjects(prev => prev.filter(p => p.id !== id));
+
   // ── Media actions ─────────────────────────────────────────────────────────
   const uploadItem = i => setItems(prev => [...prev, { ...i, workspaceId: i.workspaceId || currentWorkspaceId || "ws-ppi-media" }]);
   const updateItem = u => setItems(prev => prev.map(x => x.id === u.id ? u : x));
@@ -402,6 +428,10 @@ export function AppProvider({ children }) {
     newStory,
     detailPost,
     setDetailPost,
+    // Projects (Creation Voodoo)
+    projects,
+    saveProject,
+    delProject,
     // Workspace
     workspaces: DEMO_WORKSPACES,
     userWorkspaces,

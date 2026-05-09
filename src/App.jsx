@@ -26,6 +26,7 @@ import MonitoringPage from "./pages/MonitoringPage.jsx";
 import StoriesPage from "./pages/StoriesPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import UGCPortalPage from "./pages/UGCPortalPage.jsx";
+import VoodooPage from "./pages/VoodooPage.jsx";
 
 // ── APP ROOT ───────────────────────────────────────────────────────────────
 export default function App() {
@@ -60,6 +61,7 @@ function AppShell() {
     trends: "Trends", "domain-analyse": "Domain-Analyse",
     wettbewerber: "Wettbewerber", "content-audit": "Content-Audit",
     "structure-audit": "Structure-Audit", "social-intel": "Social Intelligence",
+    voodoo: "Creation Voodoo",
   };
 
   return (
@@ -91,6 +93,7 @@ function AppShell() {
               {nav === "stories"        && <StoriesPage />}
               {nav === "admin"          && <AdminPage />}
               {nav === "ugc"            && <UGCPortalPage />}
+              {nav === "voodoo"         && <VoodooPage />}
             </div>
             <GlobalRightSidebar />
           </div>

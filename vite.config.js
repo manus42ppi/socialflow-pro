@@ -26,6 +26,7 @@ const { count: BUILD_NUMBER, sha: BUILD_SHA } = getBuildMeta();
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: { allowedHosts: true },
   define: {
     __BUILD_NUMBER__: JSON.stringify(BUILD_NUMBER),
     __BUILD_SHA__:    JSON.stringify(BUILD_SHA),

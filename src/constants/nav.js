@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
   Flag, Trash2, BookOpen, CalendarRange, Eye, Inbox,
-  Flame, Globe, Target, FileText, Code2, Share2,
+  Flame, Globe, Target, FileText, Code2, Share2, Wand2,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -51,6 +51,12 @@ export const NAV_GROUPS = [
     ],
   },
   {
+    label: "CREATION VOODOO",
+    items: [
+      { id:"voodoo", label:"Creation Voodoo", I:Wand2 },
+    ],
+  },
+  {
     label: "ANALYSE",
     items: [
       { id:"performance",       label:"Performance",       I:BarChart2    },
@@ -96,4 +102,5 @@ export const TITLE = {
   "content-audit":    "Content-Audit",
   "structure-audit":  "Structure-Audit",
   "social-intel":     "Social Intelligence",
+  voodoo:             "Creation Voodoo",
 };

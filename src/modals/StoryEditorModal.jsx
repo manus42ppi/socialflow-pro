@@ -1164,7 +1164,7 @@ function AccSection({ label, badge, badgeWarn, isOpen, onToggle, children }) {
 
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function StoryEditorModal() {
-  const { edStory: story, items, posts, saveStory: onSave, updateStory, lockStory, unlockStory, setEdStory, setPosts, user } = useApp();
+  const { edStory: story, items, posts, saveStory: onSave, updateStory, lockStory, unlockStory, setEdStory, setPosts, user, projects } = useApp();
   const onClose = () => {
     if (story.id) unlockStory(story.id);
     setEdStory(null);
@@ -1193,6 +1193,7 @@ export default function StoryEditorModal() {
     hashtags: story.hashtags || "",
     webPublishedAt: story.webPublishedAt || null,
     webUpdatedAt: story.webUpdatedAt || null,
+    voodooProjectId: story.voodooProjectId || null,
   });
 
   const [collapsed, setCollapsed] = useState(() => {
@@ -2469,6 +2470,98 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   </div>
                 </AccSection>
               )}
+
+              {/* CREATION VOODOO – Landing Page link */}
+              {(() => {
+                const liveProjects = (projects || []).filter(p => p.status === "live");
+                if (!liveProjects.length && !form.voodooProjectId) return null;
+                const linked = form.voodooProjectId ? (projects || []).find(p => p.id === form.voodooProjectId) : null;
+                return (
+                  <AccSection
+                    label="Creation Voodoo · Landing Page"
+                    badge={linked ? "Verknüpft" : null}
+                    isOpen={sOpen("voodoo", false)}
+                    onToggle={() => toggleSection("voodoo")}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {/* Info text */}
+                      <div style={{ fontSize: 10.5, color: T.gray500, fontFamily: FONT, lineHeight: 1.5 }}>
+                        Verknüpfe diese Story mit einer Creation Voodoo Landing Page. Die Story wird als Referenz-Content für die Seite gespeichert.
+                      </div>
+
+                      {/* Project selector */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {liveProjects.map(p => {
+                          const isLinked = form.voodooProjectId === p.id;
+                          return (
+                            <button key={p.id}
+                              onClick={() => setForm(f => ({ ...f, voodooProjectId: isLinked ? null : p.id }))}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 8, width: "100%",
+                                padding: "7px 10px", borderRadius: T.rMd, textAlign: "left",
+                                border: `1.5px solid ${isLinked ? "#7C3AED55" : T.gray200}`,
+                                background: isLinked ? "#7C3AED0A" : T.white,
+                                cursor: "pointer", fontFamily: FONT, transition: "all .13s",
+                                boxShadow: isLinked ? `0 0 0 2px #7C3AED18` : T.shadowXs,
+                              }}
+                              onMouseEnter={e => { if (!isLinked) { e.currentTarget.style.borderColor = "#7C3AED44"; e.currentTarget.style.background = "#7C3AED06"; }}}
+                              onMouseLeave={e => { if (!isLinked) { e.currentTarget.style.borderColor = T.gray200; e.currentTarget.style.background = T.white; }}}
+                            >
+                              <div style={{
+                                width: 28, height: 28, borderRadius: T.rSm, flexShrink: 0,
+                                background: isLinked ? "#7C3AED" : T.gray100,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                transition: "all .13s",
+                              }}>
+                                <Wand2 size={13} strokeWidth={2} color={isLinked ? "#fff" : T.gray400} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 11.5, fontWeight: 700, color: isLinked ? "#7C3AED" : T.gray800, fontFamily: FONT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {p.name}
+                                </div>
+                                {p.slug && (
+                                  <div style={{ fontSize: 9.5, color: T.gray400, fontFamily: FONT, marginTop: 1, fontWeight: 500 }}>
+                                    /site/{p.slug}
+                                  </div>
+                                )}
+                              </div>
+                              {isLinked && (
+                                <div style={{ flexShrink: 0, background: "#7C3AED", color: "#fff", borderRadius: 20, padding: "1px 7px", fontSize: 9, fontWeight: 800 }}>
+                                  <Check size={8} strokeWidth={3} style={{ verticalAlign: "middle" }} /> Aktiv
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Link to live page */}
+                      {linked?.slug && (
+                        <a href={`https://socialflow-pro.pages.dev/site/${linked.slug}`} target="_blank" rel="noopener noreferrer"
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                            padding: "6px 0", borderRadius: T.rMd, border: `1px solid #7C3AED44`,
+                            background: "#7C3AED0A", color: "#7C3AED", fontFamily: FONT,
+                            fontSize: 11.5, fontWeight: 600, textDecoration: "none",
+                            width: "100%", transition: "all .15s", boxSizing: "border-box",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = "#7C3AED14"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "#7C3AED0A"; }}
+                        >
+                          <ExternalLink size={11} strokeWidth={2} /> Landing Page öffnen
+                        </a>
+                      )}
+
+                      {/* No live projects hint */}
+                      {liveProjects.length === 0 && (
+                        <div style={{ fontSize: 10, color: T.gray400, fontFamily: FONT, textAlign: "center", padding: "6px 0", fontStyle: "italic" }}>
+                          Keine Live-Seiten verfügbar — erstelle zuerst eine Landing Page in Creation Voodoo.
+                        </div>
+                      )}
+                    </div>
+                  </AccSection>
+                );
+              })()}
 
               {/* STATUS */}
               <AccSection label="Status" isOpen={sOpen("status")} onToggle={() => toggleSection("status")}>

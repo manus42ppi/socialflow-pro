@@ -292,3 +292,14 @@ export const DEMO_MEDIA = [
   { id:"img-a2", workspaceId:"ws-alphabeta",  name:"kampagne-visual.jpg",   url:"https://picsum.photos/seed/alphabeta2/1200/800", type:"image", size:489000, date:"07.04.2026", width:1200, height:800, tags:"kampagne, visual, werbung, grafik", description:"Kampagnen-Visual fuer Stadtmuseum", altText:"Kampagnen Visual", category:"Kampagne", focusPoint:{x:40,y:50}, mood:"artistic", source:"upload" },
   { id:"img-a3", workspaceId:"ws-alphabeta",  name:"preiszeremonie.jpg",    url:"https://picsum.photos/seed/alphabeta3/900/600",  type:"image", size:267000, date:"06.04.2026", width:900, height:600, tags:"preis, award, zeremonie, design", description:"Designpreis-Verleihung 2026", altText:"Preisverleihung", category:"Event", focusPoint:{x:50,y:45}, mood:"celebratory", source:"upload" },
 ];
+
+// ── Creation Voodoo demo projects ────────────────────────────────────────────
+export const DEMO_PROJECTS = [];
+
+// ── Voodoo content-source types ──────────────────────────────────────────────
+export const VOODOO_SOURCE_TYPES = [
+  { id:"story",  label:"Story",            icon:"BookOpen"  },
+  { id:"post",   label:"Publisher-Post",   icon:"Send"      },
+  { id:"media",  label:"Medienbibliothek", icon:"Image"     },
+  { id:"url",    label:"Externe URL",      icon:"Globe"     },
+];
