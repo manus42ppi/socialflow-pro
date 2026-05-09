@@ -1175,12 +1175,13 @@ export default function StoryEditorModal() {
   const [sparkSelInfo,  setSparkSelInfo]  = useState(null); // { text, wordCount }
   const [sparkUndo,     setSparkUndo]     = useState(null); // { blocks, msgId }
 
-  const asRef        = useRef();
-  const formRef      = useRef(form);
-  const titleRef     = useRef();
-  const subtitleRef  = useRef();
-  const sparkSelRef   = useRef(null); // stored Range for selection-based edits
-  const sparkScrollRef = useRef(null); // ref for auto-scrolling chat
+  const asRef          = useRef();
+  const formRef        = useRef(form);
+  const titleRef       = useRef();
+  const subtitleRef    = useRef();
+  const sparkSelRef    = useRef(null);  // stored Range for selection-based edits
+  const sparkScrollRef = useRef(null);  // ref for auto-scrolling chat
+  const sparkInputRef  = useRef("");    // always-current value — avoids stale closure in sparkSend
   formRef.current = form;
 
   // ── Web stats fetch ───────────────────────────────────────────────────────
@@ -1300,9 +1301,10 @@ export default function StoryEditorModal() {
 
   // ── Spark: send prompt to AI ──────────────────────────────────────────────
   const sparkSend = async (prompt) => {
-    const p = (prompt || sparkInput).trim();
+    // Use sparkInputRef (always-current) to avoid React 18 stale-closure issue
+    const p = (prompt || sparkInputRef.current).trim();
     if (!p || sparkLoading) return;
-    setSparkInput("");
+    setSparkInput(""); sparkInputRef.current = "";
 
     // Capture selection context BEFORE anything changes
     const isSel    = !!(sparkSelInfo && sparkSelRef.current);
@@ -1320,7 +1322,9 @@ export default function StoryEditorModal() {
 
     try {
       const result = await aiCall([{ role:"user", content:`${sys}\n\nText:\n${ctxText}\n\nAufgabe: ${p}` }], 2000);
-      const aiMsg = { id:uid(), role:"spark", type:"suggestion", text:result.trim(), isSel, selRange, original:ctxText, applied:false };
+      const trimmed = result.trim();
+      if (!trimmed) throw new Error("empty");
+      const aiMsg = { id:uid(), role:"spark", type:"suggestion", text:trimmed, isSel, selRange, original:ctxText, applied:false };
       setSparkMessages(prev => [...prev, aiMsg]);
       setTimeout(() => { if (sparkScrollRef.current) sparkScrollRef.current.scrollTop = sparkScrollRef.current.scrollHeight; }, 60);
     } catch {
@@ -2670,7 +2674,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
               {/* ✨ SPARK – KI-Assistent */}
               <AccSection
                 label="Spark"
-                badge={sparkMessages.length > 0 ? sparkMessages.length : undefined}
+                badge={sparkMessages.filter(m=>!m.dismissed).length > 0 ? sparkMessages.filter(m=>!m.dismissed).length : undefined}
                 isOpen={sOpen("spark", false)}
                 onToggle={() => toggleSection("spark")}
               >
@@ -2720,12 +2724,12 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   </div>
 
                   {/* Chat history */}
-                  {sparkMessages.length > 0 && (
+                  {sparkMessages.filter(m=>!m.dismissed).length > 0 && (
                     <div
                       ref={sparkScrollRef}
                       style={{ maxHeight:300, overflowY:"auto", display:"flex", flexDirection:"column", gap:8, borderRadius:10, border:`1px solid ${T.gray100}`, padding:"8px 8px", background:T.gray50 }}
                     >
-                      {sparkMessages.map(msg => {
+                      {sparkMessages.filter(m => !m.dismissed).map(msg => {
                         if (msg.role === "user") return (
                           <div key={msg.id} style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2 }}>
                             <div style={{ background:"#fff", border:`1px solid ${T.gray200}`, borderRadius:"10px 10px 2px 10px", padding:"6px 10px", maxWidth:"90%", fontSize:11.5, color:T.gray700, fontFamily:FONT, lineHeight:1.45 }}>
@@ -2806,7 +2810,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   <div style={{ display:"flex", gap:5, alignItems:"flex-end" }}>
                     <textarea
                       value={sparkInput}
-                      onChange={e => setSparkInput(e.target.value)}
+                      onChange={e => { setSparkInput(e.target.value); sparkInputRef.current = e.target.value; }}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sparkSend(); } }}
                       placeholder="Frag Spark… (Enter zum Senden)"
                       rows={2}
@@ -2820,7 +2824,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                     <button
                       onMouseDown={e => e.preventDefault()}
                       onClick={() => sparkSend()}
-                      disabled={!sparkInput.trim() || sparkLoading}
+                      disabled={!sparkInputRef.current.trim() || sparkLoading}
                       style={{
                         width:32, height:32, borderRadius:8, border:"none", flexShrink:0,
                         background: sparkInput.trim() && !sparkLoading ? C.accent : T.gray200,
