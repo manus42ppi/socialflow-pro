@@ -52,6 +52,18 @@ export async function storeSet(path, value) {
   } catch {}
 }
 
+export async function storeDelete(path) {
+  try {
+    const token = await getClerkToken();
+    if (!token) return; // Demo-User → silent no-op
+    await fetch("/store", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ method: "delete", path }),
+    });
+  } catch {}
+}
+
 // ── INSTAGRAM SYNC ─────────────────────────────────────────────────────────
 // Ruft /instagram auf (Cloudflare Function) und gibt normalisierte Posts zurück
 export async function igSync(accessToken, instagramUserId) {

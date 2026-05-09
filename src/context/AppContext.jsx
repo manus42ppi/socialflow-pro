@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_PROJECTS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
-import { uid, storeGet, storeSet } from "../utils/store.js";
+import { uid, storeGet, storeSet, storeDelete } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
 function mapClerkUser(clerkUser) {
@@ -68,6 +68,7 @@ export function AppProvider({ children }) {
   const projectsLoaded = useRef(false);
   const demoMediaLoaded = useRef(false);
   const demoStoriesLoaded = useRef(false);
+  const demoProjectsLoaded = useRef(false);
 
   // ── KV Persistence: Load when Clerk signs in, reset when signed out ───────
   //
@@ -87,6 +88,7 @@ export function AppProvider({ children }) {
       storiesLoaded.current  = false;
       mediaLoaded.current    = false;
       projectsLoaded.current = false;
+      demoProjectsLoaded.current = false;
       setPosts(DEMO_POSTS);
       setCampaigns(DEMO_CAMPAIGNS);
       setStories(DEMO_STORIES);
@@ -128,10 +130,23 @@ export function AppProvider({ children }) {
       else setStories(DEMO_STORIES);
     });
 
+    // Projects: metadata index stored without generatedHtml; HTML loaded separately
     projectsLoaded.current = false;
-    storeGet("projects").then(data => {
+    storeGet("projects").then(async metaArr => {
       projectsLoaded.current = true;
-      setProjects(data?.length ? data : []);
+      if (metaArr?.length) {
+        // Re-attach generatedHtml for live projects (stored separately to keep index lean)
+        const withHtml = await Promise.all(metaArr.map(async meta => {
+          if (meta.status === "live") {
+            const d = await storeGet(`project:html:${meta.id}`);
+            return { ...meta, generatedHtml: d?.html || null };
+          }
+          return { ...meta, generatedHtml: null };
+        }));
+        setProjects(withHtml);
+      } else {
+        setProjects([]);
+      }
     });
 
     mediaLoaded.current = false;
@@ -168,7 +183,13 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!projectsLoaded.current) return;
-    storeSet("projects", projects);
+    // Save metadata index without generatedHtml (keeps payload small)
+    const index = projects.map(({ generatedHtml, ...meta }) => meta); // eslint-disable-line no-unused-vars
+    storeSet("projects", index);
+    // Save generatedHtml separately per project so it doesn't bloat the index
+    projects.forEach(p => {
+      if (p.generatedHtml) storeSet(`project:html:${p.id}`, { html: p.generatedHtml });
+    });
   }, [projects]);
 
   useEffect(() => {
@@ -234,6 +255,36 @@ export function AppProvider({ children }) {
     try { localStorage.setItem("demo_stories", JSON.stringify(stories)); }
     catch {}
   }, [stories, demoUser]);
+
+  // ── Demo-User: localStorage Fallback für Projects ─────────────────────────
+  // Clerk-User nutzen KV (mit geteilter HTML-Speicherung).
+  // Demo-User bekommen localStorage damit Projekte den Reload überleben.
+  useEffect(() => {
+    if (!demoUser) { demoProjectsLoaded.current = false; return; }
+    if (demoProjectsLoaded.current) return;
+    try {
+      const saved = localStorage.getItem("demo_projects");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setProjects(parsed);
+          projectsLoaded.current = true; // guard KV save (won't fire for demo users)
+          demoProjectsLoaded.current = true;
+          return;
+        }
+      }
+    } catch {}
+    // No saved projects → start empty (not DEMO_PROJECTS — user creates their own)
+    setProjects([]);
+    demoProjectsLoaded.current = true;
+  }, [demoUser]);
+
+  useEffect(() => {
+    if (!demoUser || !demoProjectsLoaded.current) return;
+    // Demo users: save full project (incl. generatedHtml) to localStorage
+    try { localStorage.setItem("demo_projects", JSON.stringify(projects)); }
+    catch {}
+  }, [projects, demoUser]);
 
   // ── Resolved user ─────────────────────────────────────────────────────────
   const user = demoUser || (isSignedIn && clerkUser ? mapClerkUser(clerkUser) : null);
@@ -355,7 +406,31 @@ export function AppProvider({ children }) {
     );
     return saved;
   };
-  const delProject = id => setProjects(prev => prev.filter(p => p.id !== id));
+  const delProject = (id) => {
+    // Find the project before removing so we can clean up its artefacts
+    const project = projects.find(p => p.id === id);
+    setProjects(prev => prev.filter(p => p.id !== id));
+    if (project) {
+      // Clean up per-project HTML from user-scoped KV
+      storeDelete(`project:html:${id}`);
+      // Also remove the localStorage demo key to keep demo storage clean
+      try {
+        const raw = localStorage.getItem("demo_projects");
+        if (raw) {
+          const arr = JSON.parse(raw).filter(p => p.id !== id);
+          localStorage.setItem("demo_projects", JSON.stringify(arr));
+        }
+      } catch {}
+      // Remove the deployed site from global KV so the public URL 404s properly
+      if (project.slug) {
+        fetch("/deploy-site", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: project.slug, delete: true }),
+        }).catch(() => {});
+      }
+    }
+  };
 
   // ── Media actions ─────────────────────────────────────────────────────────
   const uploadItem = i => setItems(prev => [...prev, { ...i, workspaceId: i.workspaceId || currentWorkspaceId || "ws-ppi-media" }]);

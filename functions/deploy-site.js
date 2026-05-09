@@ -39,15 +39,22 @@ export async function onRequest({ request, env }) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { slug, html } = body;
+  const { slug, html, delete: del } = body;
 
   if (!slug || typeof slug !== "string") return json({ error: "slug required" }, 400);
-  if (!html  || typeof html  !== "string") return json({ error: "html required" }, 400);
 
   // Validate slug: only lowercase alphanumeric + hyphens, 3–80 chars
   if (!/^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/.test(slug)) {
     return json({ error: "Invalid slug. Use lowercase letters, numbers and hyphens (3–80 chars)." }, 400);
   }
+
+  // DELETE: remove the deployed site from KV
+  if (del === true) {
+    await env.SOCIALFLOW_KV.delete(`site:${slug}`);
+    return json({ ok: true, deleted: true, slug });
+  }
+
+  if (!html || typeof html !== "string") return json({ error: "html required" }, 400);
 
   await env.SOCIALFLOW_KV.put(`site:${slug}`, html);
 
