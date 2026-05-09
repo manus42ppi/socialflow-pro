@@ -27,7 +27,9 @@ function blocksToPlain(blocks) {
   return lines.join(" ");
 }
 
-const SITE_BASE = "https://socialflow-pro.pages.dev/site/";
+// Dynamic — uses the same origin as the running app so the link always
+// points to a deployment that has functions/site/[slug].js available.
+const getSiteUrl = (slug) => `${window.location.origin}/site/${slug}`;
 
 // ── sub-components ────────────────────────────────────────────────────────────
 function SectionLabel({ children }) {
@@ -303,8 +305,16 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
 - Antworte NUR mit dem HTML-Code (beginnend mit <!DOCTYPE html>) – kein Markdown-Codeblock`;
 
     try {
-      const html = await aiCall([{ role:"user", content:sys }], 4000);
-      if (!html?.trim().startsWith("<!")) throw new Error("bad response");
+      let raw = await aiCall([{ role:"user", content:sys }], 4000);
+      // Strip markdown code-block wrapper (model sometimes adds it despite instruction)
+      let html = (raw || "").trim();
+      if (html.startsWith("```")) {
+        html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/,"").trim();
+      }
+      if (!html.startsWith("<!")) {
+        console.error("VoodooPage generate: unexpected AI response:", html.slice(0,200));
+        throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte versuche es erneut.");
+      }
 
       // Deploy to KV via Cloudflare Function
       const res = await fetch("/deploy-site", {
@@ -312,15 +322,16 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({ slug:form.slug, html }),
       });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "deploy failed");
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) throw new Error(data.error || "Deploy fehlgeschlagen");
 
       const updated = { ...form, generatedHtml: html, lastGeneratedAt: new Date().toISOString(), status:"live" };
       setForm(updated);
       onSave(updated);
       setTab("site");
     } catch(e) {
-      alert("Generierung fehlgeschlagen: " + e.message);
+      console.error("VoodooPage generate error:", e);
+      alert("Generierung fehlgeschlagen:\n" + e.message);
     }
     setGenerating(false);
   }
@@ -334,12 +345,16 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
     setRefineMsg("");
     try {
       const sys = `Du bist ein professioneller Web-Developer. Hier ist eine bestehende Landing Page als HTML. Verbessere sie gemäß der Anweisung des Users. Antworte NUR mit dem vollständigen aktualisierten HTML (beginnend mit <!DOCTYPE html>).`;
-      const html = await aiCall([
+      let raw = await aiCall([
         { role:"user", content: sys },
         { role:"assistant", content: form.generatedHtml },
         { role:"user", content: p },
       ], 4000);
-      if (!html?.trim().startsWith("<!")) throw new Error("bad response");
+      let html = (raw || "").trim();
+      if (html.startsWith("```")) {
+        html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/,"").trim();
+      }
+      if (!html.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
 
       await fetch("/deploy-site", {
         method:"POST",
@@ -359,7 +374,7 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
   }
 
   function copyLink() {
-    navigator.clipboard.writeText(SITE_BASE + form.slug).catch(()=>{});
+    navigator.clipboard.writeText(getSiteUrl(form.slug)).catch(()=>{});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -635,7 +650,7 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
                     fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:6,
                   }}
                 >
-                  <ExternalLink size={12} strokeWidth={2}/> Live-Seite ansehen
+                  <Zap size={12} strokeWidth={2}/> Live-Seite ansehen
                 </button>
               )}
             </div>
@@ -678,7 +693,7 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
                 <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 16px", background:"#fff", borderBottom:`1px solid ${T.gray200}`, flexShrink:0 }}>
                   <div style={{ flex:1, display:"flex", alignItems:"center", gap:8, background:T.gray50, border:`1px solid ${T.gray200}`, borderRadius:8, padding:"5px 12px" }}>
                     <Globe size={12} strokeWidth={2} color={T.gray400}/>
-                    <span style={{ fontSize:12, color:T.gray500, fontFamily:"monospace" }}>{SITE_BASE}{form.slug}</span>
+                    <span style={{ fontSize:12, color:T.gray500, fontFamily:"monospace" }}>{getSiteUrl(form.slug)}</span>
                   </div>
                   <button onClick={copyLink} style={{
                     display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:7,
@@ -688,20 +703,23 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
                     {copied ? <Check size={12} strokeWidth={3} color="#10B981"/> : <Copy size={12} strokeWidth={2}/>}
                     {copied ? "Kopiert!" : "Link kopieren"}
                   </button>
-                  <a href={SITE_BASE+form.slug} target="_blank" rel="noopener noreferrer" style={{
+                  <a href={getSiteUrl(form.slug)} target="_blank" rel="noopener noreferrer" style={{
                     display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:7,
                     border:"none", background:C.accent, color:"#fff",
                     fontSize:12, fontWeight:700, textDecoration:"none", fontFamily:FONT,
                   }}>
                     <ExternalLink size={12} strokeWidth={2}/> Öffnen
                   </a>
-                  <button onClick={() => { const u={...form,lastGeneratedAt:null}; setForm(u); }} title="Vorschau neu laden" style={{ background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:4 }}>
+                  <button onClick={() => setForm(f => ({ ...f, _previewKey: Date.now() }))} title="Vorschau neu laden" style={{ background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:4 }}>
                     <RefreshCw size={14} strokeWidth={2}/>
                   </button>
                 </div>
+                {/* srcDoc renders the HTML directly — no round-trip to the server needed,
+                    works on any deployment (preview or production) immediately after generation */}
                 <iframe
-                  key={form.lastGeneratedAt}
-                  src={SITE_BASE + form.slug}
+                  key={form._previewKey || form.lastGeneratedAt}
+                  srcDoc={form.generatedHtml || ""}
+                  sandbox="allow-scripts allow-same-origin"
                   style={{ flex:1, border:"none", width:"100%" }}
                   title="Landing Page Vorschau"
                 />

@@ -2537,7 +2537,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
 
                       {/* Link to live page */}
                       {linked?.slug && (
-                        <a href={`https://socialflow-pro.pages.dev/site/${linked.slug}`} target="_blank" rel="noopener noreferrer"
+                        <a href={`${window.location.origin}/site/${linked.slug}`} target="_blank" rel="noopener noreferrer"
                           style={{
                             display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                             padding: "6px 0", borderRadius: T.rMd, border: `1px solid #7C3AED44`,
