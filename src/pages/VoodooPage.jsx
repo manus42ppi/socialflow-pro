@@ -6,7 +6,7 @@ import {
   FileText, Zap,
 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
-import { uid, aiCall } from "../utils/store.js";
+import { uid, aiCallStream } from "../utils/store.js";
 import { useApp } from "../context/AppContext.jsx";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -218,11 +218,13 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
 
   // Spark / generation state
   const [generating, setGenerating] = useState(false);
+  const [genChars, setGenChars] = useState(0);   // streaming progress counter
   const [genPrompt, setGenPrompt] = useState("");
   const genPromptRef = useRef("");
   const [sparkInput, setSparkInput] = useState("");
   const sparkInputRef = useRef("");
   const [sparkLoading, setSparkLoading] = useState(false);
+  const [sparkChars, setSparkChars] = useState(0);
   const [copied, setCopied] = useState(false);
   const [refineMsg, setRefineMsg] = useState("");
 
@@ -281,39 +283,41 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   // ── Generate landing page ──────────────────────────────────────────────────
   async function generate() {
     setGenerating(true);
+    setGenChars(0);
     const ctx = buildContext();
     const extraPrompt = genPrompt.trim();
-    const sys = `Du bist ein professioneller Web-Designer und Developer. Erstelle eine vollständige, moderne, mobilresponsive Landing Page als einzelne selbst-enthaltene HTML-Datei.
+    const prompt = `Du bist ein professioneller Web-Designer. Erstelle eine vollständige, mobilresponsive Landing Page als selbst-enthaltene HTML-Datei.
 
 PROJEKTNAME: ${form.name}
 BESCHREIBUNG: ${form.description || "(keine Beschreibung)"}
-SLUG/URL: ${SITE_BASE}${form.slug}
 
-INHALTE FÜR DIE SEITE:
+INHALTE:
 ${ctx}
 
-${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
-- Vollständig inline-CSS (kein externes Stylesheet, kein CDN)
-- Kein JavaScript erforderlich (optionales vanilla JS für Hamburger-Menü ist OK)
-- Mobile-first responsive Design
-- Modernes, professionelles Design mit Farben passend zum Projektthema
-- Navigation mit Anchor-Links zu Abschnitten
-- Hero-Bereich mit Headline und CTA
-- Alle Bilder aus den Inhalten einbinden (img src direkt)
-- Footer mit Copyright
-- Keine Platzhalter – alle echten Inhalte aus den Projektdaten einbauen
-- Antworte NUR mit dem HTML-Code (beginnend mit <!DOCTYPE html>) – kein Markdown-Codeblock`;
+${extraPrompt ? `WÜNSCHE:\n${extraPrompt}\n\n` : ""}REGELN:
+- Vollständig inline-CSS, kein CDN
+- Vanilla JS nur für Hamburger-Menü erlaubt
+- Mobile-first, Navigation mit Anchor-Links, Hero + CTA + Footer
+- Alle Bilder aus den Inhalten per img src einbinden
+- Keine Platzhalter – nur echte Inhalte aus den Projektdaten
+- Antworte NUR mit dem HTML (beginnend <!DOCTYPE html>) – KEIN Markdown`;
 
     try {
-      let raw = await aiCall([{ role:"user", content:sys }], 4000);
-      // Strip markdown code-block wrapper (model sometimes adds it despite instruction)
-      let html = (raw || "").trim();
+      // Use streaming so the CF Worker doesn't hit the 30s buffer timeout
+      const raw = await aiCallStream(
+        [{ role:"user", content:prompt }],
+        3000,
+        (_chunk, full) => setGenChars(full.length),
+      );
+
+      // Strip markdown wrapper if model adds it anyway
+      let html = raw.trim();
       if (html.startsWith("```")) {
-        html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/,"").trim();
+        html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
       }
       if (!html.startsWith("<!")) {
-        console.error("VoodooPage generate: unexpected AI response:", html.slice(0,200));
-        throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte versuche es erneut.");
+        console.error("VoodooPage generate: unexpected response:", html.slice(0, 200));
+        throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
       }
 
       // Deploy to KV via Cloudflare Function
@@ -334,6 +338,7 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
       alert("Generierung fehlgeschlagen:\n" + e.message);
     }
     setGenerating(false);
+    setGenChars(0);
   }
 
   // ── Spark page refinement ──────────────────────────────────────────────────
@@ -342,17 +347,19 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
     if (!p || sparkLoading || !form.generatedHtml) return;
     setSparkInput(""); sparkInputRef.current = "";
     setSparkLoading(true);
+    setSparkChars(0);
     setRefineMsg("");
     try {
-      const sys = `Du bist ein professioneller Web-Developer. Hier ist eine bestehende Landing Page als HTML. Verbessere sie gemäß der Anweisung des Users. Antworte NUR mit dem vollständigen aktualisierten HTML (beginnend mit <!DOCTYPE html>).`;
-      let raw = await aiCall([
+      const sys = `Du bist ein professioneller Web-Developer. Hier ist eine bestehende Landing Page. Verbessere sie gemäß der Anweisung. Antworte NUR mit dem vollständigen aktualisierten HTML (beginnend <!DOCTYPE html>) – KEIN Markdown.`;
+      const raw = await aiCallStream([
         { role:"user", content: sys },
         { role:"assistant", content: form.generatedHtml },
         { role:"user", content: p },
-      ], 4000);
-      let html = (raw || "").trim();
+      ], 3000, (_c, full) => setSparkChars(full.length));
+
+      let html = raw.trim();
       if (html.startsWith("```")) {
-        html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/,"").trim();
+        html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
       }
       if (!html.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
 
@@ -370,6 +377,7 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
     } catch {
       setRefineMsg("⚠️ Fehler – bitte erneut versuchen");
     }
+    setSparkChars(0);
     setSparkLoading(false);
   }
 
@@ -634,7 +642,8 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
                 }}
               >
                 {generating ? (
-                  <><Loader size={14} strokeWidth={2} style={{animation:"spin .8s linear infinite"}}/> Generiert…</>
+                  <><Loader size={14} strokeWidth={2} style={{animation:"spin .8s linear infinite"}}/>
+                    {genChars > 0 ? `${(genChars/1000).toFixed(1)} k…` : "Verbinde…"}</>
                 ) : (
                   <><Wand2 size={14} strokeWidth={2}/> Seite generieren</>
                 )}
@@ -779,6 +788,11 @@ ${extraPrompt ? `ZUSÄTZLICHE WÜNSCHE:\n${extraPrompt}\n\n` : ""}ANFORDERUNGEN:
                   ))}
                 </div>
 
+                {sparkLoading && sparkChars > 0 && (
+                  <div style={{ fontSize:11, color:C.accent, marginBottom:6, fontWeight:600 }}>
+                    ⟳ {(sparkChars/1000).toFixed(1)} k Zeichen…
+                  </div>
+                )}
                 {refineMsg && (
                   <div style={{ fontSize:12, color: refineMsg.startsWith("✓") ? "#15803D" : "#C4511E",
                     background: refineMsg.startsWith("✓") ? "#DCFCE7" : "#FFF7ED",

@@ -18,6 +18,48 @@ export async function aiCall(messages, max_tokens=800) {
 }
 export const parseJSON = raw => { try{return JSON.parse(raw.replace(/```json|```/g,"").trim());}catch{return null;} };
 
+// Streaming variant — forwards Anthropic's SSE through the /ai Worker.
+// Calls onChunk(newChunk, fullTextSoFar) after each token.
+// Returns the complete text when the stream ends.
+// Uses stream:true so the Worker bypasses the 30s buffer timeout.
+export async function aiCallStream(messages, max_tokens = 800, onChunk = null) {
+  const r = await fetch("/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens, messages, stream: true }),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}));
+    throw new Error(data?.error?.message || `HTTP ${r.status}`);
+  }
+  const reader = r.body.getReader();
+  const decoder = new TextDecoder();
+  let full = "";
+  let buf = "";
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const raw = line.slice(6).trim();
+      if (raw === "[DONE]") continue;
+      try {
+        const ev = JSON.parse(raw);
+        if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta") {
+          const chunk = ev.delta.text;
+          full += chunk;
+          onChunk?.(chunk, full);
+        }
+      } catch { /* ignore malformed lines */ }
+    }
+  }
+  return full;
+}
+
 // ── KV STORAGE HELPERS ──────────────────────────────────────────────────────
 // Clerk-JWT holen (globale Clerk-Instanz, nach ClerkProvider verfügbar)
 // Demo-User haben keine Clerk-Session → token = null → kein Persist
