@@ -43,12 +43,12 @@ const STATUSES = [
 const CH_LIMITS = { instagram:2200, twitter:280, linkedin:1300, facebook:500, whatsapp:800, website:100000, print:100000 };
 
 const SPARK_ACTIONS = [
-  { id:"shorten",    label:"✂️ Kürzen",        prompt:"Kürze diesen Text auf das Wesentliche, ohne wichtige Informationen zu verlieren." },
-  { id:"expand",     label:"📏 Verlängern",     prompt:"Erweitere diesen Text mit mehr Details, Beispielen und konkreten Zahlen." },
-  { id:"rephrase",   label:"🔄 Umformulieren",  prompt:"Formuliere diesen Text komplett um, behalte Inhalt und Aussage bei." },
-  { id:"simplify",   label:"📖 Vereinfachen",   prompt:"Vereinfache den Schreibstil für ein breiteres Publikum: kürzere Sätze, weniger Fachbegriffe." },
-  { id:"formal",     label:"👔 Formeller",      prompt:"Schreibe formeller und professioneller, behalt den Inhalt vollständig bei." },
-  { id:"spellcheck", label:"✅ Korrektur",      prompt:"Korrigiere alle Rechtschreib- und Grammatikfehler. Verändere keine Inhalte." },
+  { id:"shorten",    label:"Kürzen",        prompt:"Kürze diesen Text auf das Wesentliche, ohne wichtige Informationen zu verlieren." },
+  { id:"expand",     label:"Verlängern",    prompt:"Erweitere diesen Text mit mehr Details, Beispielen und konkreten Zahlen." },
+  { id:"rephrase",   label:"Umformulieren", prompt:"Formuliere diesen Text komplett um, behalte Inhalt und Aussage bei." },
+  { id:"simplify",   label:"Vereinfachen",  prompt:"Vereinfache den Schreibstil für ein breiteres Publikum: kürzere Sätze, weniger Fachbegriffe." },
+  { id:"formal",     label:"Formeller",     prompt:"Schreibe formeller und professioneller, behalt den Inhalt vollständig bei." },
+  { id:"spellcheck", label:"Korrektur",     prompt:"Korrigiere alle Rechtschreib- und Grammatikfehler. Verändere keine Inhalte." },
 ];
 const CH_ANGLE = {
   instagram: "Visueller Hook + kurze, emotionale Caption + Hashtags",
@@ -2678,127 +2678,119 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                 isOpen={sOpen("spark", false)}
                 onToggle={() => toggleSection("spark")}
               >
-                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
 
                   {/* Context indicator */}
-                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
                     <div style={{
                       flex:1, display:"flex", alignItems:"center", gap:5,
-                      background: sparkSelInfo ? "#ECFDF5" : T.gray50,
+                      background: sparkSelInfo ? "#ECFDF5" : "#fff",
                       border: `1px solid ${sparkSelInfo ? "#6EE7B7" : T.gray200}`,
-                      borderRadius:20, padding:"4px 10px",
+                      borderRadius:16, padding:"3px 8px",
                     }}>
-                      <Sparkles size={11} color={sparkSelInfo ? "#10B981" : T.gray400} strokeWidth={2.5} style={{flexShrink:0}}/>
-                      <span style={{ fontSize:10.5, fontWeight:600, color: sparkSelInfo ? "#065F46" : T.gray500, fontFamily:FONT, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                        {sparkSelInfo ? `✂️ Auswahl · ${sparkSelInfo.wordCount} Wörter` : `📄 Vollständiger Artikel · ${wordCount} Wörter`}
+                      <Sparkles size={10} color={sparkSelInfo ? "#10B981" : T.gray400} strokeWidth={2.5} style={{flexShrink:0}}/>
+                      <span style={{ fontSize:9.5, fontWeight:600, color: sparkSelInfo ? "#065F46" : T.gray500, fontFamily:FONT, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {sparkSelInfo ? `Auswahl · ${sparkSelInfo.wordCount} Wörter` : `Artikel · ${wordCount} Wörter`}
                       </span>
                     </div>
                     {sparkMessages.length > 0 && (
                       <button
                         onClick={() => { setSparkMessages([]); setSparkUndo(null); }}
                         title="Chat leeren"
-                        style={{ background:"none", border:`1px solid ${T.gray200}`, borderRadius:6, color:T.gray400, cursor:"pointer", padding:"3px 6px", fontSize:10, fontFamily:FONT, flexShrink:0 }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor=T.gray400; e.currentTarget.style.color=T.gray600; }}
+                        style={{ background:"none", border:`1px solid ${T.gray200}`, borderRadius:5, color:T.gray400, cursor:"pointer", padding:"2px 5px", fontSize:9.5, fontFamily:FONT, flexShrink:0, lineHeight:1.4 }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor=T.gray300; e.currentTarget.style.color=T.gray600; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor=T.gray200; e.currentTarget.style.color=T.gray400; }}
                       >✕</button>
                     )}
                   </div>
 
                   {/* Quick action chips */}
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:4, flexShrink:0 }}>
                     {SPARK_ACTIONS.map(a => (
                       <button
                         key={a.id}
-                        onMouseDown={e => { e.preventDefault(); }} // preserve editor selection
+                        onMouseDown={e => e.preventDefault()}
                         onClick={() => sparkSend(a.prompt)}
                         disabled={sparkLoading}
                         style={{
-                          padding:"4px 9px", borderRadius:14, fontSize:10.5, fontWeight:600, fontFamily:FONT, cursor:"pointer",
-                          border:`1px solid ${T.gray200}`, background:T.gray50, color:T.gray600,
+                          padding:"3px 8px", borderRadius:12, fontSize:10, fontWeight:600, fontFamily:FONT, cursor:"pointer",
+                          border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray600,
                           opacity: sparkLoading ? .5 : 1, transition:"all .12s",
                         }}
                         onMouseEnter={e => { if(!sparkLoading){e.currentTarget.style.background=T.brand25;e.currentTarget.style.borderColor=T.brand200;e.currentTarget.style.color=T.brand600;} }}
-                        onMouseLeave={e => { e.currentTarget.style.background=T.gray50;e.currentTarget.style.borderColor=T.gray200;e.currentTarget.style.color=T.gray600; }}
+                        onMouseLeave={e => { e.currentTarget.style.background="#fff";e.currentTarget.style.borderColor=T.gray200;e.currentTarget.style.color=T.gray600; }}
                       >{a.label}</button>
                     ))}
                   </div>
 
-                  {/* Chat history */}
-                  {sparkMessages.filter(m=>!m.dismissed).length > 0 && (
+                  {/* Chat history — scrolls internally */}
+                  {(sparkMessages.filter(m=>!m.dismissed).length > 0 || sparkLoading) && (
                     <div
                       ref={sparkScrollRef}
-                      style={{ maxHeight:300, overflowY:"auto", display:"flex", flexDirection:"column", gap:8, borderRadius:10, border:`1px solid ${T.gray100}`, padding:"8px 8px", background:T.gray50 }}
+                      style={{ maxHeight:210, overflowY:"auto", display:"flex", flexDirection:"column", gap:5, borderRadius:8, border:`1px solid ${T.gray100}`, padding:"7px 7px", background:T.gray50 }}
                     >
                       {sparkMessages.filter(m => !m.dismissed).map(msg => {
                         if (msg.role === "user") return (
-                          <div key={msg.id} style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2 }}>
-                            <div style={{ background:"#fff", border:`1px solid ${T.gray200}`, borderRadius:"10px 10px 2px 10px", padding:"6px 10px", maxWidth:"90%", fontSize:11.5, color:T.gray700, fontFamily:FONT, lineHeight:1.45 }}>
+                          <div key={msg.id} style={{ display:"flex", justifyContent:"flex-end" }}>
+                            <div style={{ background:"#fff", border:`1px solid ${T.gray200}`, borderRadius:"9px 9px 2px 9px", padding:"5px 9px", maxWidth:"88%", fontSize:11, color:T.gray700, fontFamily:FONT, lineHeight:1.45 }}>
                               {msg.text}
-                            </div>
-                            <div style={{ fontSize:9.5, color:T.gray400, fontFamily:FONT }}>
-                              {msg.isSel ? `✂️ ${msg.ctxWords} Wörter Auswahl` : `📄 Artikel`}
                             </div>
                           </div>
                         );
 
                         if (msg.type === "error") return (
-                          <div key={msg.id} style={{ fontSize:11, color:"#C4511E", background:"#FFF0E6", border:"1px solid #FDDCB5", borderRadius:8, padding:"6px 9px", fontFamily:FONT, lineHeight:1.4 }}>
+                          <div key={msg.id} style={{ fontSize:10.5, color:"#C4511E", background:"#FFF7ED", border:"1px solid #FED7AA", borderRadius:7, padding:"5px 8px", fontFamily:FONT, lineHeight:1.4 }}>
                             {msg.text}
                           </div>
                         );
 
                         // Suggestion card
                         return (
-                          <div key={msg.id} style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                            {/* Spark icon + label */}
+                          <div key={msg.id} style={{ display:"flex", flexDirection:"column", gap:5, background:"#fff", border:`1px solid ${msg.applied ? T.gray100 : T.brand100}`, borderRadius:8, padding:"7px 8px" }}>
                             <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                              <Sparkles size={11} color={T.brand600} strokeWidth={2.5}/>
-                              <span style={{ fontSize:10, fontWeight:700, color:T.brand600, fontFamily:FONT, letterSpacing:".04em" }}>SPARK</span>
+                              <Sparkles size={10} color={T.brand600} strokeWidth={2.5}/>
+                              <span style={{ fontSize:9.5, fontWeight:700, color:T.brand600, fontFamily:FONT, letterSpacing:".05em", textTransform:"uppercase" }}>Spark</span>
+                              {msg.applied && (
+                                <span style={{ marginLeft:"auto", fontSize:9.5, color:"#10B981", fontWeight:600, fontFamily:FONT, display:"flex", alignItems:"center", gap:3 }}>
+                                  <Check size={9} strokeWidth={3}/> Übernommen
+                                </span>
+                              )}
                             </div>
-                            {/* Suggested text preview */}
                             <div style={{
-                              background: msg.applied ? T.gray50 : T.brand25,
-                              border:`1px solid ${msg.applied ? T.gray200 : T.brand200}`,
-                              borderRadius:10, padding:"8px 10px", fontSize:11.5, color: msg.applied ? T.gray500 : T.gray800,
-                              fontFamily:FONT, lineHeight:1.6, maxHeight:180, overflowY:"auto",
+                              fontSize:11, color: msg.applied ? T.gray400 : T.gray700,
+                              fontFamily:FONT, lineHeight:1.55, maxHeight:110, overflowY:"auto",
                               whiteSpace:"pre-wrap", wordBreak:"break-word",
                             }}>
                               {msg.text}
                             </div>
-                            {/* Actions */}
-                            {!msg.applied ? (
-                              <div style={{ display:"flex", gap:5 }}>
+                            {!msg.applied && (
+                              <div style={{ display:"flex", gap:4 }}>
                                 <button
                                   onMouseDown={e => e.preventDefault()}
                                   onClick={() => sparkApply(msg)}
-                                  style={{ flex:1, padding:"5px 0", borderRadius:7, border:"none", background:C.accent, color:"#fff", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}
+                                  style={{ flex:1, padding:"4px 0", borderRadius:6, border:"none", background:C.accent, color:"#fff", fontSize:10.5, fontWeight:700, cursor:"pointer", fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:3 }}
                                 >
-                                  <Check size={11} strokeWidth={3}/> Übernehmen
+                                  <Check size={10} strokeWidth={3}/> Übernehmen
                                 </button>
                                 <button
                                   onMouseDown={e => e.preventDefault()}
                                   onClick={() => setSparkMessages(prev => prev.map(m => m.id === msg.id ? {...m, dismissed:true} : m))}
-                                  style={{ flex:1, padding:"5px 0", borderRadius:7, border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray500, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:FONT }}
+                                  style={{ flex:1, padding:"4px 0", borderRadius:6, border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray500, fontSize:10.5, fontWeight:600, cursor:"pointer", fontFamily:FONT }}
                                 >
                                   Verwerfen
                                 </button>
-                              </div>
-                            ) : (
-                              <div style={{ display:"flex", alignItems:"center", gap:5, padding:"3px 6px" }}>
-                                <Check size={10} color="#10B981" strokeWidth={3}/>
-                                <span style={{ fontSize:10.5, color:"#10B981", fontWeight:600, fontFamily:FONT }}>Übernommen</span>
                               </div>
                             )}
                           </div>
                         );
                       })}
-                      {/* Loading indicator */}
+                      {/* Loading dots */}
                       {sparkLoading && (
-                        <div style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 2px" }}>
-                          <Sparkles size={11} color={T.brand600} strokeWidth={2.5}/>
-                          <div style={{ display:"flex", gap:4 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:5, padding:"3px 2px" }}>
+                          <Sparkles size={10} color={T.brand600} strokeWidth={2.5}/>
+                          <div style={{ display:"flex", gap:3 }}>
                             {[0,1,2].map(i => (
-                              <div key={i} style={{ width:5, height:5, borderRadius:"50%", background:T.brand600, animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite` }}/>
+                              <div key={i} style={{ width:4, height:4, borderRadius:"50%", background:T.brand600, animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite` }}/>
                             ))}
                           </div>
                         </div>
@@ -2806,18 +2798,18 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                     </div>
                   )}
 
-                  {/* Input row */}
-                  <div style={{ display:"flex", gap:5, alignItems:"flex-end" }}>
+                  {/* Input row — always pinned at bottom */}
+                  <div style={{ display:"flex", gap:5, alignItems:"flex-end", flexShrink:0, borderTop:`1px solid ${T.gray100}`, paddingTop:6 }}>
                     <textarea
                       value={sparkInput}
                       onChange={e => { setSparkInput(e.target.value); sparkInputRef.current = e.target.value; }}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sparkSend(); } }}
-                      placeholder="Frag Spark… (Enter zum Senden)"
+                      placeholder="Frag Spark…"
                       rows={2}
                       style={{
-                        flex:1, resize:"none", padding:"7px 10px", borderRadius:9,
-                        border:`1.5px solid ${sparkInput ? C.accent + "66" : T.gray200}`,
-                        fontSize:11.5, fontFamily:FONT, color:C.text, outline:"none",
+                        flex:1, resize:"none", padding:"6px 9px", borderRadius:8,
+                        border:`1.5px solid ${sparkInput ? C.accent + "55" : T.gray200}`,
+                        fontSize:11, fontFamily:FONT, color:C.text, outline:"none",
                         background:"#fff", lineHeight:1.4, transition:"border-color .12s",
                       }}
                     />
@@ -2826,30 +2818,30 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                       onClick={() => sparkSend()}
                       disabled={!sparkInputRef.current.trim() || sparkLoading}
                       style={{
-                        width:32, height:32, borderRadius:8, border:"none", flexShrink:0,
+                        width:30, height:30, borderRadius:7, border:"none", flexShrink:0,
                         background: sparkInput.trim() && !sparkLoading ? C.accent : T.gray200,
                         color:"#fff", cursor: sparkInput.trim() && !sparkLoading ? "pointer" : "default",
                         display:"flex", alignItems:"center", justifyContent:"center", transition:"background .12s",
                       }}
                     >
-                      {sparkLoading ? <Loader size={13} strokeWidth={2} style={{animation:"spin .8s linear infinite"}}/> : <Send size={13} strokeWidth={2.5}/>}
+                      {sparkLoading ? <Loader size={12} strokeWidth={2} style={{animation:"spin .8s linear infinite"}}/> : <Send size={12} strokeWidth={2.5}/>}
                     </button>
                   </div>
 
-                  {/* Undo bar */}
+                  {/* Undo — below input */}
                   {sparkUndo && (
                     <button
                       onClick={sparkUndoApply}
                       style={{
-                        display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-                        padding:"7px 0", borderRadius:8, border:`1.5px solid ${T.gray300}`,
-                        background:T.gray50, color:T.gray600, fontSize:11, fontWeight:600,
+                        flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                        padding:"5px 0", borderRadius:7, border:`1px solid ${T.gray200}`,
+                        background:T.gray50, color:T.gray500, fontSize:10.5, fontWeight:600,
                         cursor:"pointer", fontFamily:FONT, transition:"all .12s",
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background=T.gray100; e.currentTarget.style.borderColor=T.gray400; }}
-                      onMouseLeave={e => { e.currentTarget.style.background=T.gray50; e.currentTarget.style.borderColor=T.gray300; }}
+                      onMouseEnter={e => { e.currentTarget.style.background=T.gray100; e.currentTarget.style.borderColor=T.gray300; }}
+                      onMouseLeave={e => { e.currentTarget.style.background=T.gray50; e.currentTarget.style.borderColor=T.gray200; }}
                     >
-                      <RotateCcw size={12} strokeWidth={2.5}/> Änderung rückgängig
+                      <RotateCcw size={11} strokeWidth={2.5}/> Rückgängig
                     </button>
                   )}
 
