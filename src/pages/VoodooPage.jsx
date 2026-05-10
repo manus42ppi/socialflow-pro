@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import {
   Wand2, Plus, Trash2, ExternalLink, Copy, Check, Loader,
   BookOpen, Send as SendIcon, Image as ImageIcon, Globe,
@@ -105,18 +105,20 @@ function SourceChip({ icon: Icon, label, count, active, onClick }) {
 
 // ── main component ────────────────────────────────────────────────────────────
 export default function VoodooPage() {
-  const { projects, saveProject, delProject, stories, posts, items, currentWorkspaceId } = useApp();
+  const {
+    projects, saveProject, delProject, stories, posts, items,
+    currentWorkspaceId, voodooProjectId, setVoodooProjectId,
+  } = useApp();
 
-  // Filter projects to current workspace
   const wsProjects = projects.filter(p =>
     !currentWorkspaceId || p.workspaceId === currentWorkspaceId
   );
 
-  const [selected, setSelected] = useState(null); // project id
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
+  const project = wsProjects.find(p => p.id === voodooProjectId) || null;
 
-  const project = wsProjects.find(p => p.id === selected) || null;
+  // ── Inline create form (shown when no project is selected) ─────────────────
+  const [newName, setNewName] = useState("");
+  const newNameRef = useRef(null);
 
   function createProject() {
     if (!newName.trim()) return;
@@ -130,120 +132,87 @@ export default function VoodooPage() {
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
     saveProject(p);
-    setSelected(id);
-    setCreating(false);
+    setVoodooProjectId(id);
     setNewName("");
+  }
+
+  if (!project) {
+    return (
+      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
+        flexDirection:"column", gap:0, fontFamily:FONT, background:T.gray50 }}>
+        <style>{CSS}</style>
+        {/* Brand mark */}
+        <div style={{ width:56, height:56, borderRadius:16, marginBottom:20,
+          background:`linear-gradient(135deg, ${C.accent}, #7C3AED)`,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          boxShadow:"0 8px 24px rgba(124,58,237,.25)" }}>
+          <Wand2 size={26} strokeWidth={1.7} color="#fff"/>
+        </div>
+        <h2 style={{ fontSize:20, fontWeight:800, color:C.text, margin:"0 0 6px" }}>
+          Creation Voodoo
+        </h2>
+        <p style={{ fontSize:13, color:T.gray500, margin:"0 0 28px", textAlign:"center", lineHeight:1.6, maxWidth:340 }}>
+          Erstelle Landing Pages aus deinen Storys, Posts und Medien.
+          Wähle ein Projekt in der Sidebar oder starte ein neues.
+        </p>
+
+        {/* New project card */}
+        <div style={{ background:"#fff", borderRadius:14, border:`1.5px solid ${T.gray200}`,
+          padding:"24px 28px", width:340, boxShadow:T.shadowXs }}>
+          <div style={{ fontSize:12, fontWeight:700, color:T.gray500, marginBottom:10,
+            textTransform:"uppercase", letterSpacing:".06em" }}>
+            Neues Projekt
+          </div>
+          <input
+            ref={newNameRef}
+            autoFocus
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if(e.key==="Enter") createProject(); }}
+            placeholder="Projektname eingeben…"
+            style={{
+              width:"100%", padding:"10px 12px", borderRadius:8, boxSizing:"border-box",
+              border:`1.5px solid ${newName ? C.accent+"66" : T.gray200}`,
+              fontSize:14, fontFamily:FONT, outline:"none", color:C.text,
+              transition:"border-color .15s", marginBottom:10,
+            }}
+          />
+          <button
+            onClick={createProject}
+            disabled={!newName.trim()}
+            style={{
+              width:"100%", padding:"10px 0", borderRadius:8, border:"none",
+              background: newName.trim() ? `linear-gradient(135deg, ${C.accent}, #7C3AED)` : T.gray200,
+              color: newName.trim() ? "#fff" : T.gray400,
+              fontSize:13, fontWeight:700, cursor: newName.trim() ? "pointer" : "default",
+              fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:7,
+              transition:"all .2s",
+            }}>
+            <Wand2 size={14} strokeWidth={2}/> Projekt erstellen
+          </button>
+        </div>
+
+        {wsProjects.length > 0 && (
+          <p style={{ marginTop:16, fontSize:11, color:T.gray400 }}>
+            oder wähle ein bestehendes Projekt in der linken Sidebar
+          </p>
+        )}
+      </div>
+    );
   }
 
   return (
     <div style={{ display:"flex", height:"100%", overflow:"hidden", fontFamily:FONT }}>
       <style>{CSS}</style>
-
-      {/* ── LEFT: Project list ───────────────────────────────────────── */}
-      <div style={{
-        width:240, flexShrink:0, borderRight:`1px solid ${T.gray200}`,
-        background:T.gray50, display:"flex", flexDirection:"column", overflow:"hidden",
-      }}>
-        <div style={{ padding:"16px 16px 8px", borderBottom:`1px solid ${T.gray100}` }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-            <Wand2 size={16} strokeWidth={IW} color={C.accent}/>
-            <span style={{ fontSize:13, fontWeight:700, color:C.text, fontFamily:FONT }}>
-              Projekte
-            </span>
-          </div>
-          <button
-            onClick={() => setCreating(true)}
-            style={{
-              width:"100%", display:"flex", alignItems:"center", justifyContent:"center",
-              gap:6, padding:"7px 0", borderRadius:8, border:`1.5px dashed ${T.gray300}`,
-              background:"#fff", color:T.gray500, fontSize:12, fontWeight:600,
-              cursor:"pointer", fontFamily:FONT, transition:"all .12s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor=C.accent; e.currentTarget.style.color=C.accent; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor=T.gray300; e.currentTarget.style.color=T.gray500; }}
-          >
-            <Plus size={13} strokeWidth={2.5}/> Neues Projekt
-          </button>
-
-          {creating && (
-            <div style={{ marginTop:8, display:"flex", gap:5 }}>
-              <input
-                autoFocus
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => { if(e.key==="Enter") createProject(); if(e.key==="Escape"){ setCreating(false); setNewName(""); }}}
-                placeholder="Projektname…"
-                style={{
-                  flex:1, padding:"6px 9px", borderRadius:7, border:`1.5px solid ${C.accent}55`,
-                  fontSize:12, fontFamily:FONT, outline:"none", color:C.text, background:"#fff",
-                }}
-              />
-              <button onClick={createProject} style={{
-                padding:"6px 10px", borderRadius:7, border:"none",
-                background:C.accent, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer",
-              }}>OK</button>
-            </div>
-          )}
-        </div>
-
-        <div style={{ flex:1, overflowY:"auto" }}>
-          {wsProjects.length === 0 && !creating && (
-            <div style={{ padding:"24px 16px", textAlign:"center", color:T.gray400, fontSize:12 }}>
-              Noch keine Projekte.<br/>Erstelle dein erstes Projekt.
-            </div>
-          )}
-          {wsProjects.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setSelected(p.id)}
-              style={{
-                width:"100%", display:"flex", alignItems:"center", gap:8,
-                padding:"10px 14px", border:"none", background:"none", cursor:"pointer",
-                borderLeft:`3px solid ${selected===p.id ? C.accent : "transparent"}`,
-                background: selected===p.id ? C.accent+"10" : "transparent",
-                textAlign:"left", transition:"all .1s",
-              }}
-              onMouseEnter={e => { if(selected!==p.id) e.currentTarget.style.background=T.gray100; }}
-              onMouseLeave={e => { if(selected!==p.id) e.currentTarget.style.background="transparent"; }}
-            >
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:12, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {p.name}
-                </div>
-                <div style={{ fontSize:10, color:T.gray400, display:"flex", gap:6, marginTop:2 }}>
-                  <span style={{
-                    background: p.status==="live" ? "#DCFCE7" : T.gray100,
-                    color: p.status==="live" ? "#15803D" : T.gray500,
-                    borderRadius:4, padding:"1px 5px", fontWeight:700,
-                  }}>{p.status==="live" ? "Live" : "Entwurf"}</span>
-                  <span>{(p.storyIds||[]).length+(p.postIds||[]).length+(p.mediaIds||[]).length+(p.externalUrls||[]).length} Quellen</span>
-                </div>
-              </div>
-              <ChevronRight size={12} strokeWidth={2} color={T.gray400}/>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── MAIN: Project detail ─────────────────────────────────────── */}
-      {!project ? (
-        <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16, color:T.gray400 }}>
-          <Wand2 size={48} strokeWidth={1} color={T.gray300}/>
-          <p style={{ fontSize:14, color:T.gray400, fontFamily:FONT, textAlign:"center", margin:0 }}>
-            Wähle ein Projekt oder erstelle ein neues,<br/>um mit Creation Voodoo zu beginnen.
-          </p>
-        </div>
-      ) : (
-        <ProjectDetail
-          key={project.id}
-          project={project}
-          stories={stories}
-          posts={posts}
-          items={items}
-          onSave={saveProject}
-          onDelete={() => { delProject(project.id); setSelected(null); }}
-        />
-      )}
+      <ProjectDetail
+        key={project.id}
+        project={project}
+        stories={stories}
+        posts={posts}
+        items={items}
+        onSave={saveProject}
+        onDelete={() => { delProject(project.id); setVoodooProjectId(null); }}
+      />
     </div>
   );
 }

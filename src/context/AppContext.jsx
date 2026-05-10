@@ -58,6 +58,8 @@ export function AppProvider({ children }) {
   const [chFilt, setChFilt] = useState("all");
   const [edStory, setEdStory] = useState(null);
   const [detailPost, setDetailPost] = useState(null);
+  // Active project in Creation Voodoo — shared between Sidebar and VoodooPage
+  const [voodooProjectId, setVoodooProjectId] = useState(null);
 
   // ── KV load-guard refs ────────────────────────────────────────────────────
   // Guards prevent writing demo/empty data back to KV before real data is loaded
@@ -507,6 +509,8 @@ export function AppProvider({ children }) {
     projects,
     saveProject,
     delProject,
+    voodooProjectId,
+    setVoodooProjectId,
     // Workspace
     workspaces: DEMO_WORKSPACES,
     userWorkspaces,

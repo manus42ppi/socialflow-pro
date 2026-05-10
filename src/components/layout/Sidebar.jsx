@@ -1,4 +1,4 @@
-import { Settings, LogOut, Layers, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { Settings, LogOut, Layers, ChevronLeft, ChevronRight, ChevronDown, Plus } from "lucide-react";
 import { C, T, FONT, IW } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 import { NAV_GROUPS, NAV_UTILITY } from "../../constants/nav.js";
@@ -17,6 +17,7 @@ export default function Sidebar() {
     nav: active, goNav: onNav, user, handleLogout: onLogout,
     posts: allPosts, goChNav: onChNav, chFilt: activeCh,
     userWorkspaces, currentWorkspaceId, setCurrentWorkspaceId, currentWorkspace,
+    projects: allProjects, voodooProjectId, setVoodooProjectId,
   } = useApp();
 
   const [wsOpen, setWsOpen] = useState(false);
@@ -454,6 +455,66 @@ export default function Sidebar() {
                     })}
                   </div>
                 )}
+
+                {/* Voodoo project sub-items (nur aufgeklappt) */}
+                {id === "voodoo" && open && (() => {
+                  const wsProjects = (allProjects || []).filter(p =>
+                    !currentWorkspaceId || p.workspaceId === currentWorkspaceId
+                  );
+                  return (
+                    <div style={{ marginLeft: 22, marginBottom: 2, marginTop: 1 }}>
+                      {wsProjects.map(p => {
+                        const isP = active === "voodoo" && voodooProjectId === p.id;
+                        return (
+                          <button key={p.id}
+                            onClick={() => { setVoodooProjectId(p.id); onNav("voodoo"); }}
+                            title={p.name}
+                            style={{
+                              width: "100%", height: 28, borderRadius: T.rSm,
+                              border: "none", cursor: "pointer",
+                              display: "flex", alignItems: "center", gap: 7,
+                              padding: "0 8px 0 10px", fontFamily: FONT,
+                              fontSize: 12, fontWeight: isP ? 600 : 400,
+                              transition: "all .1s",
+                              background: isP ? T.brand100 : "transparent",
+                              color: isP ? C.accent : T.gray500,
+                            }}
+                            onMouseEnter={e => { if (!isP) { e.currentTarget.style.background = T.brand25; e.currentTarget.style.color = T.gray700; } }}
+                            onMouseLeave={e => { if (!isP) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.gray500; } }}
+                          >
+                            <div style={{ width: 1, height: 14, background: T.gray200, flexShrink: 0 }} />
+                            <span style={{
+                              width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                              background: p.status === "live" ? "#22C55E" : T.gray300,
+                            }} />
+                            <span style={{ flex: 1, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {p.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {/* Neues Projekt */}
+                      <button
+                        onClick={() => { setVoodooProjectId(null); onNav("voodoo"); }}
+                        style={{
+                          width: "100%", height: 28, borderRadius: T.rSm,
+                          border: "none", cursor: "pointer",
+                          display: "flex", alignItems: "center", gap: 7,
+                          padding: "0 8px 0 10px", fontFamily: FONT,
+                          fontSize: 12, fontWeight: 400,
+                          background: "transparent", color: T.gray400,
+                          transition: "all .1s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = T.brand25; e.currentTarget.style.color = C.accent; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.gray400; }}
+                      >
+                        <div style={{ width: 1, height: 14, background: T.gray200, flexShrink: 0 }} />
+                        <Plus size={10} strokeWidth={2.5} />
+                        <span>Neues Projekt</span>
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>
