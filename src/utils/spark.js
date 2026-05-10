@@ -53,16 +53,37 @@ footer{background:#0f172a;color:#94a3b8;padding:32px clamp(16px,4vw,28px);text-a
 footer a{color:#94a3b8}.footer-g{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
 @media(max-width:600px){.nl{display:none}}`;
 
-// ── Link guard ────────────────────────────────────────────────────────────────
+// ── Link guard v2 ─────────────────────────────────────────────────────────────
 // Injected before </body> in every generated/refined page.
-// Prevents the iframe from navigating away on non-anchor link clicks.
-// Anchor (#section) links scroll normally. External URLs open in a new tab.
+//
+// Handles three cases:
+//   #anchor where id exists   → normal browser scroll (no interference)
+//   #anchor where id MISSING  → fuzzy-match nearest section, smooth-scroll to it
+//   External http(s) links    → open in new tab (no iframe navigation)
+//   mailto / tel              → pass through
 export const LINK_GUARD = `<script>
-/* Spark link guard – keeps the preview inside the iframe */
+/* Spark link guard v2 – anchor repair + iframe guard */
 document.addEventListener('click',function(e){
   var a=e.target.closest('a');if(!a)return;
   var h=a.getAttribute('href')||'';
-  if(!h||h==='#'||h.startsWith('#')||h.startsWith('mailto:')||h.startsWith('tel:'))return;
+  if(!h||h==='#')return;
+  if(h.startsWith('#')){
+    var el=document.getElementById(h.slice(1));
+    if(!el){
+      /* Target ID missing — fuzzy-match by comparing link text with section IDs */
+      e.preventDefault();
+      var txt=(a.textContent||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+      var nodes=document.querySelectorAll('section[id],[id]');
+      var best=null;
+      for(var i=0;i<nodes.length;i++){
+        var sid=(nodes[i].id||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+        if(sid&&txt&&(sid.includes(txt.slice(0,5))||txt.includes(sid.slice(0,5)))){best=nodes[i];break;}
+      }
+      if(best)best.scrollIntoView({behavior:'smooth'});
+    }
+    return;
+  }
+  if(h.startsWith('mailto:')||h.startsWith('tel:'))return;
   e.preventDefault();
   if(/^https?:\\/\\//.test(h))window.open(h,'_blank','noopener');
 },true);
@@ -352,6 +373,7 @@ QUALITÄTS-REGELN (keine Ausnahmen):
 - KEIN zusätzliches CSS außer :root Farbvariablen
 - KEINE Emoji-Icons als Grafik — nur monochrome SVG (stroke="currentColor") oder Textsymbole
 - Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" oder externe URLs in der Nav
+- ANCHOR-KONSISTENZ (kritisch): Jeder Nav-Link href="#xyz" MUSS eine Section oder ein Element mit GENAU id="xyz" im Body haben. Prüfe jeden einzelnen #anchor gegen die Section-IDs bevor du ausgibst — kein #anchor ohne passendes id=""
 - KEIN opacity:0 oder display:none auf sichtbarem Content
 - JS nur wenn unbedingt nötig, max 10 Zeilen, Content ohne JS vollständig sichtbar
 - KEINE Platzhalter-Texte — nur echte Inhalte aus den Projektdaten
@@ -419,6 +441,7 @@ TECHNISCHE REGELN (keine Ausnahmen):
 - Behalte "${SENTINEL}" EXAKT im <style>-Tag — CSS wird automatisch eingefügt
 - KEINE Emoji-Icons — nur monochrome SVG (stroke="currentColor") oder Textsymbole
 - Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" in der Nav
+- ANCHOR-KONSISTENZ (kritisch): Jeder Nav-Link href="#xyz" MUSS eine Section mit GENAU id="xyz" im Body haben. Beim Refinement: wenn du Nav-Links änderst, passe auch die Section-IDs an — und umgekehrt. Kein #anchor ohne passendes id=""
 - KEIN opacity:0 oder display:none auf sichtbarem Content
 - KEIN zusätzliches CSS außer :root Farbvariablen
 - JS nur wenn nötig, Content ohne JS vollständig sichtbar`;
