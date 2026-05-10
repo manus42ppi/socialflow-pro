@@ -61,6 +61,12 @@ export function AppProvider({ children }) {
   // Active project in Creation Voodoo — shared between Sidebar and VoodooPage
   const [voodooProjectId, setVoodooProjectId] = useState(null);
 
+  // ── Spark background-job tracker ─────────────────────────────────────────
+  // Allows the user to navigate away while generation / refinement is running.
+  // VoodooPage sets this via setSparkJob; Sidebar reads it to show the pill.
+  // Shape: null | { projectId, projectName, type:"generate"|"refine", chars:0, status:"running"|"done"|"error" }
+  const [sparkJob, setSparkJob] = useState(null);
+
   // ── KV load-guard refs ────────────────────────────────────────────────────
   // Guards prevent writing demo/empty data back to KV before real data is loaded
   const mediaLoaded = useRef(false);
@@ -511,6 +517,9 @@ export function AppProvider({ children }) {
     delProject,
     voodooProjectId,
     setVoodooProjectId,
+    // Spark background job
+    sparkJob,
+    setSparkJob,
     // Workspace
     workspaces: DEMO_WORKSPACES,
     userWorkspaces,

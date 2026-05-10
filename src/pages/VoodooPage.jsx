@@ -203,7 +203,7 @@ export default function VoodooPage() {
 
 // ── Project detail view ───────────────────────────────────────────────────────
 function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
-  const { uploadItem, currentWorkspaceId } = useApp();
+  const { uploadItem, currentWorkspaceId, setSparkJob } = useApp();
 
   const [form, setForm] = useState({ ...project });
   const [tab, setTab] = useState("content"); // "content" | "site"
@@ -229,7 +229,9 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   const [sparkChars, setSparkChars] = useState(0);
   const [copied, setCopied] = useState(false);
   const [refineMsg, setRefineMsg] = useState("");
-  const [pageIssues, setPageIssues] = useState([]);
+  const [pageIssues, setPageIssues] = useState(() =>
+    project.generatedHtml ? validatePage(project.generatedHtml) : []
+  );
 
   const busy = genPhase !== "idle";
 
@@ -287,6 +289,9 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   async function generate(answers = {}) {
     setGenPhase("searching");
     setGenChars(0);
+    // Announce to global sparkJob so the Sidebar pill appears even when
+    // the user navigates away — the async work continues regardless.
+    setSparkJob({ projectId: form.id, projectName: form.name, type: "generate", chars: 0, status: "running" });
 
     // ── Auto image search from media library or stock APIs ─────────────────
     // 1. Use already-selected media items from the project
@@ -317,7 +322,10 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
         images: autoImages,
         extraPrompt: genPromptRef.current.trim(),
         preflightQ,
-        onChunk: (_chunk, full) => setGenChars(full.length),
+        onChunk: (_chunk, full) => {
+          setGenChars(full.length);
+          setSparkJob(j => j ? { ...j, chars: full.length } : j);
+        },
       });
 
       // DOM repair: fix broken anchor links + ensure LINK_GUARD is correct
@@ -341,8 +349,13 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
       onSave(updated);
       setPageIssues(validatePage(html));
       setTab("site");
+      // Signal success — Sidebar pill shows "Fertig" then fades
+      setSparkJob(j => j ? { ...j, status: "done", chars: html.length } : j);
+      setTimeout(() => setSparkJob(j => j?.status === "done" ? null : j), 5000);
     } catch(e) {
       console.error("VoodooPage generate error:", e);
+      setSparkJob(j => j ? { ...j, status: "error" } : j);
+      setTimeout(() => setSparkJob(j => j?.status === "error" ? null : j), 7000);
       alert("Generierung fehlgeschlagen:\n" + e.message);
     }
     setGenPhase("idle");
@@ -357,11 +370,16 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     setSparkLoading(true);
     setSparkChars(0);
     setRefineMsg("");
+    // Global sparkJob — persists across navigation
+    setSparkJob({ projectId: form.id, projectName: form.name, type: "refine", chars: 0, status: "running" });
     try {
       const rawHtml = await refinePage({
         html: form.generatedHtml,
         instruction: p,
-        onChunk: (_c, full) => setSparkChars(full.length),
+        onChunk: (_c, full) => {
+          setSparkChars(full.length);
+          setSparkJob(j => j ? { ...j, chars: full.length } : j);
+        },
       });
       const html = repairPage(rawHtml);
 
@@ -379,9 +397,14 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
       setPageIssues(validatePage(html));
       setRefineMsg("✓ Seite aktualisiert");
       setTimeout(() => setRefineMsg(""), 3000);
+      // Signal success to Sidebar pill
+      setSparkJob(j => j ? { ...j, status: "done", chars: html.length } : j);
+      setTimeout(() => setSparkJob(j => j?.status === "done" ? null : j), 5000);
     } catch(e) {
       console.error("VoodooPage sparkRefine error:", e);
       setRefineMsg("⚠️ Fehler – bitte erneut versuchen");
+      setSparkJob(j => j ? { ...j, status: "error" } : j);
+      setTimeout(() => setSparkJob(j => j?.status === "error" ? null : j), 7000);
     }
     setSparkChars(0);
     setSparkLoading(false);

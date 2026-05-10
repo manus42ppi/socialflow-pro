@@ -1,4 +1,4 @@
-import { Settings, LogOut, Layers, ChevronLeft, ChevronRight, ChevronDown, Plus } from "lucide-react";
+import { Settings, LogOut, Layers, ChevronLeft, ChevronRight, ChevronDown, Plus, Zap, CheckCircle2, AlertCircle } from "lucide-react";
 import { C, T, FONT, IW } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 import { NAV_GROUPS, NAV_UTILITY } from "../../constants/nav.js";
@@ -18,6 +18,7 @@ export default function Sidebar() {
     posts: allPosts, goChNav: onChNav, chFilt: activeCh,
     userWorkspaces, currentWorkspaceId, setCurrentWorkspaceId, currentWorkspace,
     projects: allProjects, voodooProjectId, setVoodooProjectId,
+    sparkJob, setSparkJob,
   } = useApp();
 
   const [wsOpen, setWsOpen] = useState(false);
@@ -540,6 +541,67 @@ export default function Sidebar() {
         />
 
         <div style={{ height: 4 }} />
+
+        {/* ── Spark background-job pill ─────────────────────────────────── */}
+        {sparkJob && (() => {
+          const running = sparkJob.status === "running";
+          const done    = sparkJob.status === "done";
+          const error   = sparkJob.status === "error";
+          const kB      = sparkJob.chars > 0 ? `${(sparkJob.chars / 1024).toFixed(1)} kZ` : "";
+          const color   = done ? T.success500 : error ? T.error600 : C.accent;
+          const bg      = done ? T.successBg  : error ? T.errorBg  : C.accentLight;
+          const Icon    = done ? CheckCircle2 : error ? AlertCircle : Zap;
+          const label   = done ? "Seite fertig!" : error ? "Fehler" : "Spark läuft…";
+
+          return (
+            <button
+              onClick={() => {
+                // Navigate to voodoo and open the running project
+                setVoodooProjectId(sparkJob.projectId);
+                onNav("voodoo");
+                if (done || error) setSparkJob(null);
+              }}
+              title={`${sparkJob.projectName} – ${label}`}
+              style={{
+                width: "100%", border: "none", cursor: "pointer",
+                background: bg, borderRadius: T.rMd,
+                padding: open ? "7px 10px" : "7px 0",
+                display: "flex", alignItems: "center",
+                gap: open ? 7 : 0,
+                justifyContent: open ? "flex-start" : "center",
+                marginBottom: 2, transition: "opacity .2s",
+              }}
+            >
+              {/* Animated icon when running */}
+              <div style={{
+                flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                animation: running ? "spin 1.2s linear infinite" : "none",
+              }}>
+                <Icon size={15} strokeWidth={IW} style={{ color }} />
+              </div>
+
+              {open && (
+                <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 700, color,
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>
+                    {label}{running && kB ? ` · ${kB}` : ""}
+                  </div>
+                  <div style={{
+                    fontSize: 10, color: T.gray500,
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>
+                    {sparkJob.projectName}
+                    {running && <span style={{ marginLeft: 4, color: T.gray400 }}>
+                      {sparkJob.type === "generate" ? "Seite generieren" : "Verfeinern"}
+                    </span>}
+                  </div>
+                </div>
+              )}
+            </button>
+          );
+        })()}
 
         {/* User row */}
         <div style={{
