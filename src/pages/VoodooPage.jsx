@@ -3,10 +3,11 @@ import {
   Wand2, Plus, Trash2, ExternalLink, Copy, Check, Loader,
   BookOpen, Send as SendIcon, Image as ImageIcon, Globe,
   ChevronRight, X, RefreshCw, Sparkles, Link as LinkIcon,
-  FileText, Zap,
+  FileText, Zap, MessageSquare, Search, ArrowRight, SkipForward,
 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
-import { uid, aiCallStream } from "../utils/store.js";
+import { uid, aiCall, aiCallStream, parseJSON } from "../utils/store.js";
+import { stockSearch, skGet } from "../components/StockSearch.jsx";
 import { useApp } from "../context/AppContext.jsx";
 
 // ── Pre-built CSS foundation ─────────────────────────────────────────────────
@@ -48,6 +49,38 @@ h3{font-size:1.02rem;font-weight:700;margin-bottom:6px}
 footer{background:#0f172a;color:#94a3b8;padding:32px clamp(16px,4vw,28px);text-align:center;font-size:.85rem;line-height:2}
 footer a{color:#94a3b8}.footer-g{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
 @media(max-width:600px){.nl{display:none}}`;
+
+// ── Link guard — injected into every generated page ──────────────────────────
+// Prevents the iframe from navigating away when the user clicks a non-anchor
+// link. Anchor (#...) links scroll normally. External URLs open in a new tab.
+const LINK_GUARD = `<script>
+/* Spark link guard – keeps the preview inside the iframe */
+document.addEventListener('click',function(e){
+  var a=e.target.closest('a');if(!a)return;
+  var h=a.getAttribute('href')||'';
+  if(!h||h==='#'||h.startsWith('#')||h.startsWith('mailto:')||h.startsWith('tel:'))return;
+  e.preventDefault();
+  if(/^https?:\\/\\//.test(h))window.open(h,'_blank','noopener');
+},true);
+</script>`;
+
+// ── Shared HTML post-processing ───────────────────────────────────────────────
+function postProcessHtml(raw) {
+  let html = raw.trim();
+  // Strip markdown code fences if the model wraps in them
+  if (html.startsWith("```")) {
+    html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
+  }
+  // Inject link guard before </body> (or append if </body> is missing)
+  if (html.includes("</body>")) {
+    html = html.replace(/<\/body>/i, LINK_GUARD + "\n</body>");
+  } else {
+    html += "\n" + LINK_GUARD + "\n</body>";
+  }
+  // Always close </html>
+  if (!html.includes("</html>")) html += "\n</html>";
+  return html;
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function slugify(str) {
@@ -219,23 +252,34 @@ export default function VoodooPage() {
 
 // ── Project detail view ───────────────────────────────────────────────────────
 function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
+  const { uploadItem, currentWorkspaceId } = useApp();
+
   const [form, setForm] = useState({ ...project });
   const [tab, setTab] = useState("content"); // "content" | "site"
   const [sourceFilter, setSourceFilter] = useState("all");
   const [urlInput, setUrlInput] = useState("");
   const [urlLabel, setUrlLabel] = useState("");
 
-  // Spark / generation state
-  const [generating, setGenerating] = useState(false);
-  const [genChars, setGenChars] = useState(0);   // streaming progress counter
+  // ── Generation phase machine ──────────────────────────────────────────────
+  // "idle" → "preflight-loading" → "preflight" → "searching" → "streaming"
+  const [genPhase, setGenPhase] = useState("idle");
+  const [genChars, setGenChars] = useState(0);
   const [genPrompt, setGenPrompt] = useState("");
   const genPromptRef = useRef("");
+
+  // Pre-flight clarifying questions
+  const [preflightQ, setPreflightQ] = useState([]); // [{id, question, type, choices}]
+  const [preflightA, setPreflightA] = useState({}); // {id: answer}
+
+  // Spark refinement
   const [sparkInput, setSparkInput] = useState("");
   const sparkInputRef = useRef("");
   const [sparkLoading, setSparkLoading] = useState(false);
   const [sparkChars, setSparkChars] = useState(0);
   const [copied, setCopied] = useState(false);
   const [refineMsg, setRefineMsg] = useState("");
+
+  const busy = genPhase !== "idle";
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(project);
 
@@ -289,81 +333,151 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     return parts.join("\n\n---\n\n") || "(Noch keine Inhalte hinzugefügt)";
   }
 
-  // ── Generate landing page ──────────────────────────────────────────────────
-  async function generate() {
-    setGenerating(true);
-    setGenChars(0);
+  // ── Step 1: Pre-flight — Spark asks clarifying questions ─────────────────
+  async function startPreflight() {
+    if (busy || totalSources === 0) return;
+    setGenPhase("preflight-loading");
+    setPreflightA({});
     const ctx = buildContext();
-    const extraPrompt = genPrompt.trim();
-    // The CSS foundation is pre-built — the AI ONLY writes HTML using the
-    // available classes. This keeps output tokens to ~1200-1800 (HTML only),
-    // well within 4000, so the page is always complete.
-    const prompt = `Du bist ein Elite-Webentwickler und Conversion-Designer mit 20 Jahren Erfahrung. Du kennst jede Best Practice für Landing Pages.
-
-DEIN FACHWISSEN – Landing Page Anatomie:
-• NAV: sticky, Logo links, 3-4 Anchor-Links, CTA-Button rechts (class="nav-cta")
-• HERO: Emotionale H1 (Problem→Lösung), kurzer Subtext, 2 Buttons (.btn-p + .btn-o), optional Hero-Bild
-• BENEFITS: 3er-Grid (.g3) mit Icon-Emoji + h3 + kurze Beschreibung – die stärksten 3 Vorteile
-• CONTENT: Kerninhalt aus den Projektdaten, mit Bild-Text-Layout (.img-r) wenn Bilder vorhanden
-• STATS/PROOF: 3-4 Kennzahlen (.g4 mit .stat + .stat-l) die Vertrauen aufbauen
-• CTA-BLOCK: (.cta-b) Abschluss-Conversion – große Überschrift, Subtext, prominenter Button
-• FOOTER: (.footer-g) Links gruppiert + Copyright-Zeile
-
-VERFÜGBARE CSS-KLASSEN (ALLE bereits definiert – kein weiteres CSS nötig):
-Layout: .w (max-width wrapper), .g .g2 .g3 .g4 (grids), .img-r (bild+text nebeneinander)
-Nav: nav, .ni, .logo, .nl, .nav-cta
-Hero: .hero, .btns
-Buttons: .btn .btn-p (primary) .btn-o (outline) .btn-w (weiß auf farbig)
-Sections: section, .alt (hellgrauer Hintergrund), .lbl (Label), h2, .lead
-Cards: .card, .ico, .stat, .stat-l, .tag
-CTA: .cta-b
-Footer: footer, .footer-g
-
-AUFGABE: Erstelle die Landing Page für dieses Projekt.
+    try {
+      const raw = await aiCall([{ role:"user", content:
+        `Analysiere dieses Projekt für eine Landing Page und stelle genau 4 gezielte Rückfragen an den Auftraggeber.
+Fokus: Zielgruppe, gewünschter Stil/Tonalität, wichtigste Conversion-Aktion, und ein Aspekt der in den Inhalten unklar ist.
+Nutze type "choice" mit 3-4 Optionen wo sinnvoll, sonst type "text".
 
 PROJEKT: ${form.name}
-BESCHREIBUNG: ${form.description || "(keeine Beschreibung)"}
+BESCHREIBUNG: ${form.description || "(keine)"}
+INHALTE (Auszug): ${ctx.slice(0,600)}
+
+NUR JSON, kein Markdown:
+{"questions":[{"id":"q1","question":"...","type":"text","choices":null},{"id":"q2","question":"...","type":"choice","choices":["A","B","C"]}]}`
+      }], 600);
+      const data = parseJSON(raw);
+      if (data?.questions?.length) {
+        setPreflightQ(data.questions);
+        setGenPhase("preflight");
+      } else {
+        // No valid questions → skip directly to generation
+        setGenPhase("idle");
+        generate({});
+      }
+    } catch {
+      // Preflight error → generate without answers
+      setGenPhase("idle");
+      generate({});
+    }
+  }
+
+  // ── Step 2: Generate landing page (called after preflight or directly) ────
+  async function generate(answers = {}) {
+    setGenPhase("searching");
+    setGenChars(0);
+
+    // ── Auto image search from media library or stock APIs ─────────────────
+    // 1. Use already-selected media items from the project
+    const selectedMedia = (form.mediaIds||[]).map(id => items.find(x=>x.id===id)).filter(Boolean);
+    let autoImages = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name }));
+
+    // 2. If fewer than 2 project images, search stock APIs
+    if (autoImages.length < 2) {
+      const searchQuery = `${form.name} ${form.description||""}`.trim();
+      const src = skGet("pexels") ? "pexels" : skGet("unsplash") ? "unsplash" : skGet("pixabay") ? "pixabay" : null;
+      if (src && searchQuery) {
+        try {
+          const found = await stockSearch(src, searchQuery, { type:"image", orientation:"landscape" });
+          const fresh = found.slice(0, 4 - autoImages.length);
+          autoImages = [...autoImages, ...fresh.map(f => ({ url: f.url, alt: f.description||f.tags||form.name }))];
+          // Save to media library so user can reuse them
+          fresh.forEach(f => uploadItem({
+            ...f,
+            id: uid(),
+            category: "Spark Auto",
+            workspaceId: currentWorkspaceId || "ws-ppi-media",
+            analyzing: false,
+          }));
+        } catch {}
+      }
+    }
+
+    setGenPhase("streaming");
+
+    const ctx = buildContext();
+    const extraPrompt = genPromptRef.current.trim();
+
+    // Preflight answers formatted as readable context
+    const answersText = preflightQ
+      .map(q => answers[q.id] ? `${q.question}\n→ ${answers[q.id]}` : null)
+      .filter(Boolean).join("\n\n");
+
+    // Images section for the prompt
+    const imagesText = autoImages.length > 0
+      ? `BILDER (genau diese verwenden – keine Platzhalter-URLs):\n${autoImages.map((img,i) =>
+          `Bild ${i+1}: src="${img.url}" alt="${img.alt}"`).join("\n")}`
+      : "BILDER: Keine Bilder verfügbar – nutze Farbflächen, Verläufe oder CSS-Grafiken als Eyecatcher.";
+
+    const prompt =
+`Du bist ein Elite-Webentwickler und Conversion-Designer mit 20 Jahren Erfahrung.
+Du kennst die erfolgreichsten Landing Pages und weißt, was für das Thema "${form.name}" am besten konvertiert.
+
+DESIGN-RECHERCHE:
+Wende dein Fachwissen über die besten Websites in diesem Bereich an: passende Farbpsychologie, Typografie-Persönlichkeit, Layout-Patterns und Conversion-Taktiken für diese Zielgruppe und Branche.
+
+LANDING PAGE ANATOMIE (ALLE Sections müssen vollständig vorhanden sein):
+• NAV: sticky, Logo links, 3-4 interne #anchor-Links, CTA-Button rechts
+• HERO: Starke emotionale H1 (Problem→Lösung), knapper Subtext, 2 CTAs
+• BENEFITS: 3er-Grid, die 3 stärksten Vorteile mit kurzem Text
+• CONTENT: Kerninhalt mit Bildunterstützung wenn Bilder vorhanden
+• STATS: 3-4 starke Kennzahlen die Vertrauen aufbauen
+• CTA-BLOCK: Letzter Conversion-Push mit prominentem Button
+• FOOTER: Gruppierte Links + Copyright
+
+${answersText ? `AUFTRAGGEBER-VORGABEN:\n${answersText}\n` : ""}
+${imagesText}
+
+VERFÜGBARE CSS-KLASSEN (bereits definiert – kein weiteres CSS schreiben):
+Layout: .w .g .g2 .g3 .g4 .img-r
+Nav: nav .ni .logo .nl .nav-cta
+Hero: .hero .btns
+Buttons: .btn .btn-p .btn-o .btn-w
+Content: section .alt .lbl h2 h3 .lead
+Cards: .card .ico .stat .stat-l .tag
+CTA: .cta-b
+Footer: footer .footer-g
+
+PROJEKT: ${form.name}
+BESCHREIBUNG: ${form.description || "(keine)"}
 INHALTE: ${ctx}
 ${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}` : ""}
 
-AUSGABE-FORMAT (EXAKT so):
-1. Beginne mit <!DOCTYPE html>
-2. In <head>: <meta charset>, viewport, <title>, dann <style>:root{--p:#XXXX;--pd:#XXXX;--pl:#XXXX}</style> (NUR Farbanpassung passend zum Thema)
-3. Danach: <style>${PAGE_CSS}</style>
-4. In <body>: sauberes, semantisches HTML mit den CSS-Klassen oben
-5. Ende mit </body></html>
+AUSGABE-FORMAT (EXAKT einhalten):
+1. <!DOCTYPE html>
+2. <head>: charset, viewport, title, <style>:root{--p:#XXX;--pd:#XXX;--pl:#XXX}</style> (nur Farbvariablen passend zum Thema)
+3. <style>${PAGE_CSS}</style>
+4. <body>: vollständiges semantisches HTML mit den CSS-Klassen
+5. </body></html>
 
-REGELN:
-- KEIN zusätzliches CSS außer dem :root Farb-Override – nutze die vorhandenen Klassen
-- KEIN opacity:0, display:none auf initialem Content – alles sofort sichtbar
-- JS nur wenn explizit gewünscht, max 8 Zeilen, Content muss OHNE JS vollständig sichtbar sein
-- Alle Bilder aus Inhalten: <img src="[echte URL]" alt="[beschreibung]">
-- KEINE Platzhalter – nur echte Inhalte aus den Projektdaten
-- Antworte NUR mit dem HTML (<!DOCTYPE html> bis </html>) – KEIN Markdown`;
+QUALITÄTS-REGELN (PFLICHT – keine Ausnahmen):
+- KEIN zusätzliches CSS außer :root Farbvariablen
+- KEIN opacity:0 oder display:none auf sichtbarem Content – alles sofort sichtbar
+- KEINE Emoji-Icons als Design-Element. Nur monochrome SVG (stroke="currentColor") oder reine Textsymbole
+- Navigation: AUSSCHLIESSLICH #anchor-Links – niemals href="/" oder externe URLs in der Nav
+- JS nur wenn unbedingt nötig, max 10 Zeilen, Content OHNE JS vollständig sichtbar
+- KEINE Platzhalter-Texte – nur echte Inhalte aus den Projektdaten
+- Antworte NUR mit HTML (<!DOCTYPE html>…</html>) – KEIN Markdown`;
 
     try {
-      // Streaming: CF Worker forwards SSE directly → no 30s buffer timeout
       const raw = await aiCallStream(
         [{ role:"user", content:prompt }],
-        4000, // 4000 safe with streaming (I/O wait doesn't count toward CPU limit)
+        4000,
         (_chunk, full) => setGenChars(full.length),
       );
 
-      // Strip markdown wrapper if model adds it anyway
-      let html = raw.trim();
-      if (html.startsWith("```")) {
-        html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
-      }
-      // Ensure HTML ends properly (guard against truncation)
-      if (!html.includes("</html>") && !html.includes("</body>")) {
-        html += "\n</body></html>";
-      }
+      const html = postProcessHtml(raw);
       if (!html.startsWith("<!")) {
-        console.error("VoodooPage generate: unexpected response start:", html.slice(0, 200));
+        console.error("VoodooPage generate: unexpected response:", html.slice(0, 200));
         throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
       }
 
-      // Deploy to KV via Cloudflare Function
       const res = await fetch("/deploy-site", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
@@ -380,7 +494,7 @@ REGELN:
       console.error("VoodooPage generate error:", e);
       alert("Generierung fehlgeschlagen:\n" + e.message);
     }
-    setGenerating(false);
+    setGenPhase("idle");
     setGenChars(0);
   }
 
@@ -402,29 +516,25 @@ REGELN:
         : form.generatedHtml; // fallback: page was generated without our CSS
 
       const prompt = `Du bist ein Elite-Webentwickler und Conversion-Designer mit 20 Jahren Erfahrung.
-Du kennst jede Best Practice für Landing Pages und Conversion-Optimierung.
 
-LANDING PAGE ANATOMIE (halte diese Struktur immer vollständig):
-• NAV: sticky, Logo links, Anchor-Links, CTA-Button rechts
-• HERO: emotionale H1, Subtext, 2 Buttons, optional Hero-Bild
-• BENEFITS: 3er-Grid mit Icon + h3 + Beschreibung — die stärksten Vorteile
-• CONTENT: Kerninhalt mit Bild-Text-Layout wenn möglich
-• STATS/PROOF: 3-4 Kennzahlen die Vertrauen aufbauen
-• CTA-BLOCK: Abschluss-Conversion mit prominentem Button
-• FOOTER: Links + Copyright
+LANDING PAGE ANATOMIE (ALLE Sections müssen nach der Änderung vollständig vorhanden bleiben):
+• NAV → HERO → BENEFITS → CONTENT → STATS → CTA-BLOCK → FOOTER
 
 BESTEHENDE SEITE:
 ${compactHtml}
 
 ANWEISUNG: ${p}
 
-REGELN:
-- Antworte NUR mit dem vollständigen, aktualisierten HTML — KEIN Markdown
+PFLICHT-REGELN (gelten IMMER, egal was die Anweisung sagt):
+- Antworte NUR mit vollständigem, aktualisierten HTML — KEIN Markdown
 - Behalte "${SENTINEL}" EXAKT so im <style>-Tag — das CSS wird automatisch eingefügt
-- Ändere NUR was die Anweisung verlangt — alle anderen Sections bleiben vollständig erhalten
-- KEIN zusätzliches CSS außer :root Farbvariablen
+- Ändere NUR was die Anweisung verlangt — alle anderen Sections vollständig erhalten
+- KEINE Emoji-Icons als Design-Element — nur monochrome SVG oder reine Textsymbole
+- Navigation: AUSSCHLIESSLICH #anchor-Links — keine externen URLs oder href="/"
 - KEIN opacity:0, display:none auf sichtbarem Content — alles sofort sichtbar
-- Alle Sections der Landing Page müssen vorhanden sein`;
+- KEIN zusätzliches CSS außer :root Farbvariablen
+- JS nur wenn unbedingt nötig, Content ohne JS vollständig sichtbar
+- Alle 7 Sections müssen vorhanden sein`;
 
       const raw = await aiCallStream(
         [{ role:"user", content: prompt }],
@@ -432,14 +542,8 @@ REGELN:
         (_c, full) => setSparkChars(full.length),
       );
 
-      let html = raw.trim();
-      if (html.startsWith("```")) {
-        html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
-      }
-      // Re-inject the full CSS where the sentinel is
-      html = html.includes(SENTINEL) ? html.replace(SENTINEL, PAGE_CSS) : html;
-      // Closing tag guard
-      if (!html.includes("</html>") && !html.includes("</body>")) html += "\n</body></html>";
+      // Re-inject full CSS, strip markdown, inject link guard, close tags
+      let html = postProcessHtml(raw.includes(SENTINEL) ? raw.replace(SENTINEL, PAGE_CSS) : raw);
       if (!html.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
 
       await fetch("/deploy-site", {
@@ -682,91 +786,189 @@ REGELN:
             )}
           </div>
 
-          {/* ── Right: Generate panel ─────────────────────────────────── */}
+          {/* ── Right: Spark panel (multi-phase) ────────────────────── */}
           <div style={{
             width:300, flexShrink:0, borderLeft:`1px solid ${T.gray200}`,
             background:"#fff", display:"flex", flexDirection:"column", overflow:"hidden",
           }}>
-            <div style={{ padding:"16px", borderBottom:`1px solid ${T.gray100}`, flexShrink:0 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:12 }}>
-                <Sparkles size={14} strokeWidth={IW} color={C.accent}/>
-                <span style={{ fontSize:13, fontWeight:700, color:C.text }}>Spark generiert</span>
-              </div>
-              <div style={{ fontSize:12, color:T.gray500, marginBottom:12, lineHeight:1.5 }}>
-                {totalSources} Quelle{totalSources!==1?"n":""} ausgewählt.{" "}
-                {totalSources===0 ? "Wähle oben Inhalte aus." : "Spark erstellt daraus eine vollständige Landing Page."}
-              </div>
+            <div style={{ overflowY:"auto", flex:1, display:"flex", flexDirection:"column" }}>
 
-              <textarea
-                value={genPrompt}
-                onChange={e => { setGenPrompt(e.target.value); genPromptRef.current=e.target.value; }}
-                placeholder="Zusätzliche Wünsche für die Seite (optional)…"
-                rows={3}
-                style={{
-                  width:"100%", resize:"none", padding:"8px 10px", borderRadius:8,
-                  border:`1.5px solid ${T.gray200}`, fontSize:12, fontFamily:FONT,
-                  outline:"none", color:C.text, boxSizing:"border-box", marginBottom:10,
-                }}
-              />
-
-              <button
-                onClick={generate}
-                disabled={generating || totalSources===0}
-                style={{
-                  width:"100%", padding:"10px 0", borderRadius:8, border:"none",
-                  background: generating||totalSources===0 ? T.gray200 : `linear-gradient(135deg, ${C.accent}, #7C3AED)`,
-                  color: generating||totalSources===0 ? T.gray400 : "#fff",
-                  fontSize:13, fontWeight:700, cursor: generating||totalSources===0 ? "default" : "pointer",
-                  fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                  transition:"all .2s",
-                }}
-              >
-                {generating ? (
-                  <><Loader size={14} strokeWidth={2} style={{animation:"spin .8s linear infinite"}}/>
-                    {genChars > 0 ? `${(genChars/1000).toFixed(1)} k…` : "Verbinde…"}</>
-                ) : (
-                  <><Wand2 size={14} strokeWidth={2}/> Seite generieren</>
-                )}
-              </button>
-
-              {form.status==="live" && (
-                <button
-                  onClick={() => setTab("site")}
-                  style={{
-                    width:"100%", marginTop:8, padding:"8px 0", borderRadius:8,
-                    border:`1px solid ${T.gray200}`, background:"#fff",
-                    color:T.gray600, fontSize:12, fontWeight:600, cursor:"pointer",
-                    fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-                  }}
-                >
-                  <Zap size={12} strokeWidth={2}/> Live-Seite ansehen
-                </button>
+              {/* ── PHASE: idle ── */}
+              {genPhase === "idle" && (
+                <div style={{ padding:"16px", borderBottom:`1px solid ${T.gray100}` }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
+                    <Sparkles size={14} strokeWidth={IW} color={C.accent}/>
+                    <span style={{ fontSize:13, fontWeight:700, color:C.text }}>Spark generiert</span>
+                  </div>
+                  <div style={{ fontSize:12, color:T.gray500, marginBottom:12, lineHeight:1.5 }}>
+                    {totalSources===0
+                      ? "Wähle links Inhalte aus, dann stellt Spark gezielte Rückfragen und erstellt deine Landing Page."
+                      : `${totalSources} Quelle${totalSources!==1?"n":""} ausgewählt. Spark stellt dir kurze Rückfragen und generiert dann die optimale Seite.`}
+                  </div>
+                  <textarea
+                    value={genPrompt}
+                    onChange={e => { setGenPrompt(e.target.value); genPromptRef.current=e.target.value; }}
+                    placeholder="Besondere Wünsche für die Seite (optional)…"
+                    rows={2}
+                    style={{
+                      width:"100%", resize:"none", padding:"8px 10px", borderRadius:8,
+                      border:`1.5px solid ${T.gray200}`, fontSize:12, fontFamily:FONT,
+                      outline:"none", color:C.text, boxSizing:"border-box", marginBottom:10,
+                    }}
+                  />
+                  <button
+                    onClick={startPreflight}
+                    disabled={totalSources===0}
+                    style={{
+                      width:"100%", padding:"10px 0", borderRadius:8, border:"none",
+                      background: totalSources===0 ? T.gray200 : `linear-gradient(135deg, ${C.accent}, #7C3AED)`,
+                      color: totalSources===0 ? T.gray400 : "#fff",
+                      fontSize:13, fontWeight:700, cursor: totalSources===0 ? "default" : "pointer",
+                      fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                      transition:"all .2s",
+                    }}>
+                    <MessageSquare size={14} strokeWidth={2}/>
+                    Spark starten
+                  </button>
+                  {form.status==="live" && (
+                    <button onClick={() => setTab("site")} style={{
+                      width:"100%", marginTop:8, padding:"8px 0", borderRadius:8,
+                      border:`1px solid ${T.gray200}`, background:"#fff",
+                      color:T.gray600, fontSize:12, fontWeight:600, cursor:"pointer",
+                      fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                    }}>
+                      <Zap size={12} strokeWidth={2}/> Live-Seite ansehen
+                    </button>
+                  )}
+                </div>
               )}
+
+              {/* ── PHASE: preflight-loading ── */}
+              {genPhase === "preflight-loading" && (
+                <div style={{ padding:"24px 16px", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
+                  <Loader size={22} strokeWidth={1.5} color={C.accent} style={{animation:"spin .8s linear infinite"}}/>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:4 }}>Spark analysiert dein Projekt…</div>
+                    <div style={{ fontSize:11, color:T.gray400 }}>Gleich kommen ein paar kurze Fragen</div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── PHASE: preflight — Q&A ── */}
+              {genPhase === "preflight" && (
+                <div style={{ padding:"16px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                    <MessageSquare size={14} strokeWidth={IW} color={C.accent}/>
+                    <span style={{ fontSize:13, fontWeight:700, color:C.text }}>Spark fragt nach</span>
+                  </div>
+                  <p style={{ fontSize:11, color:T.gray500, margin:"0 0 14px", lineHeight:1.5 }}>
+                    Beantworte kurz diese Fragen für ein optimales Ergebnis.
+                  </p>
+                  {preflightQ.map((q, qi) => (
+                    <div key={q.id} style={{ marginBottom:14 }}>
+                      <div style={{ fontSize:12, fontWeight:600, color:C.text, marginBottom:6, lineHeight:1.4 }}>
+                        {qi+1}. {q.question}
+                      </div>
+                      {q.type === "choice" ? (
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                          {(q.choices||[]).map(c => {
+                            const sel = preflightA[q.id] === c;
+                            return (
+                              <button key={c} onClick={() => setPreflightA(prev => ({...prev, [q.id]: sel ? undefined : c}))} style={{
+                                padding:"5px 10px", borderRadius:8, fontSize:11, fontWeight:600,
+                                border:`1.5px solid ${sel ? C.accent : T.gray200}`,
+                                background: sel ? C.accent+"14" : "#fff",
+                                color: sel ? C.accent : T.gray600,
+                                cursor:"pointer", fontFamily:FONT, transition:"all .12s",
+                              }}>{c}</button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <input
+                          value={preflightA[q.id]||""}
+                          onChange={e => setPreflightA(prev => ({...prev, [q.id]: e.target.value}))}
+                          placeholder="Antwort…"
+                          style={{
+                            width:"100%", padding:"6px 9px", borderRadius:7, boxSizing:"border-box",
+                            border:`1.5px solid ${preflightA[q.id] ? C.accent+"55" : T.gray200}`,
+                            fontSize:12, fontFamily:FONT, outline:"none", color:C.text,
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                  <div style={{ display:"flex", gap:6, marginTop:4 }}>
+                    <button
+                      onClick={() => generate(preflightA)}
+                      style={{
+                        flex:1, padding:"10px 0", borderRadius:8, border:"none",
+                        background:`linear-gradient(135deg, ${C.accent}, #7C3AED)`,
+                        color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer",
+                        fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:7,
+                      }}>
+                      <ArrowRight size={14} strokeWidth={2.5}/> Generieren
+                    </button>
+                    <button
+                      onClick={() => { generate({}); }}
+                      title="Überspringen und ohne Antworten generieren"
+                      style={{
+                        padding:"10px 12px", borderRadius:8,
+                        border:`1px solid ${T.gray200}`, background:"#fff",
+                        color:T.gray500, fontSize:11, cursor:"pointer", fontFamily:FONT,
+                      }}>
+                      <SkipForward size={12} strokeWidth={2}/>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── PHASE: searching ── */}
+              {genPhase === "searching" && (
+                <div style={{ padding:"24px 16px", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
+                  <Search size={22} strokeWidth={1.5} color={C.accent} style={{animation:"pulse 1.4s ease-in-out infinite"}}/>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:4 }}>Bilder werden gesucht…</div>
+                    <div style={{ fontSize:11, color:T.gray400 }}>Spark recherchiert passende Fotos</div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── PHASE: streaming ── */}
+              {genPhase === "streaming" && (
+                <div style={{ padding:"24px 16px", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
+                  <Loader size={22} strokeWidth={1.5} color={C.accent} style={{animation:"spin .8s linear infinite"}}/>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:4 }}>
+                      {genChars > 0 ? `${(genChars/1000).toFixed(1)} k Zeichen…` : "Spark schreibt…"}
+                    </div>
+                    <div style={{ fontSize:11, color:T.gray400 }}>Landing Page wird generiert</div>
+                  </div>
+                  {genChars > 0 && (
+                    <div style={{ width:"100%", height:4, background:T.gray100, borderRadius:2, overflow:"hidden" }}>
+                      <div style={{
+                        height:"100%", borderRadius:2, transition:"width .3s",
+                        background:`linear-gradient(90deg, ${C.accent}, #7C3AED)`,
+                        width:`${Math.min(100, (genChars/4000)*100)}%`,
+                      }}/>
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
 
-            {/* Slug editor */}
-            <div style={{ padding:"12px 16px", borderBottom:`1px solid ${T.gray100}` }}>
-              <label style={{ fontSize:10, fontWeight:700, color:T.gray400, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:4 }}>URL-Slug</label>
-              <div style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:T.gray400, marginBottom:6 }}>
-                <code style={{ fontSize:11 }}>…/site/</code>
+            {/* Slug editor — always visible */}
+            {genPhase === "idle" && (
+              <div style={{ padding:"12px 16px", borderTop:`1px solid ${T.gray100}` }}>
+                <label style={{ fontSize:10, fontWeight:700, color:T.gray400, textTransform:"uppercase", letterSpacing:".06em", display:"block", marginBottom:4 }}>URL-Slug</label>
+                <input
+                  value={form.slug}
+                  onChange={e => upd({ slug: slugify(e.target.value) })}
+                  style={{ width:"100%", padding:"6px 9px", borderRadius:7, border:`1px solid ${T.gray200}`, fontSize:12, fontFamily:"monospace", outline:"none", boxSizing:"border-box" }}
+                />
               </div>
-              <input
-                value={form.slug}
-                onChange={e => upd({ slug: slugify(e.target.value) })}
-                style={{ width:"100%", padding:"6px 9px", borderRadius:7, border:`1px solid ${T.gray200}`, fontSize:12, fontFamily:"monospace", outline:"none", boxSizing:"border-box" }}
-              />
-            </div>
-
-            <div style={{ padding:"12px 16px", flex:1 }}>
-              <p style={{ fontSize:11, color:T.gray400, lineHeight:1.5, margin:0 }}>
-                <strong style={{ color:T.gray600 }}>Wie es funktioniert:</strong><br/>
-                1. Inhalte aus Storys, Posts und Medien auswählen.<br/>
-                2. Optionale Wünsche eintragen.<br/>
-                3. Spark generiert eine vollständige Landing Page.<br/>
-                4. Die Seite wird sofort live unter deinem Slug deployed.<br/>
-                5. Im Tab "Live-Seite" kannst du sie weiter verfeinern.
-              </p>
-            </div>
+            )}
           </div>
         </div>
       )}
