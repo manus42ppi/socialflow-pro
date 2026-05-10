@@ -6,99 +6,11 @@ import {
   FileText, Zap, MessageSquare, Search, ArrowRight, SkipForward,
 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
-import { uid, aiCall, aiCallStream, parseJSON } from "../utils/store.js";
-import { stockSearch, skGet } from "../components/StockSearch.jsx";
+import { uid } from "../utils/store.js";
+import {
+  slugify, buildContext, runPreflight, searchImages, generatePage, refinePage,
+} from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
-
-// ── Pre-built CSS foundation ─────────────────────────────────────────────────
-// The AI gets this as a starting point so it doesn't waste tokens re-writing
-// CSS from scratch. By using these classes the AI only needs to write HTML
-// body content (~1000-1500 tokens) instead of CSS+HTML (3000-4000 tokens).
-// The AI customises only the :root colour variables to match the topic.
-const PAGE_CSS = `*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--p:#2563EB;--pd:#1E3A8A;--pl:#EFF6FF;--bg:#fff;--s:#F8FAFC;--t:#0f172a;--m:#64748b;--r:8px;--sh:0 2px 14px rgba(0,0,0,.08)}
-body{font-family:system-ui,-apple-system,sans-serif;color:var(--t);background:var(--bg);line-height:1.65}
-a{text-decoration:none;color:inherit}img{max-width:100%;height:auto;border-radius:6px}ul{list-style:none}
-.w{max-width:1100px;margin:0 auto;padding:0 clamp(16px,4vw,28px)}
-nav{position:sticky;top:0;z-index:9;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #e2e8f0}
-.ni{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:14px clamp(16px,4vw,28px)}
-.logo{font-weight:900;font-size:1.15rem;color:var(--p)}.nl{display:flex;gap:6px;align-items:center}
-.nl a{padding:5px 12px;border-radius:6px;color:var(--m);font-size:.875rem;font-weight:500}.nl a:hover{background:#f1f5f9;color:var(--t)}
-.nav-cta{padding:8px 16px!important;background:var(--p);color:#fff!important;border-radius:var(--r);font-weight:700!important}.nav-cta:hover{background:var(--pd)!important}
-.hero{padding:clamp(60px,10vw,96px) clamp(16px,4vw,28px);text-align:center;background:linear-gradient(140deg,var(--pl)0%,#f0fdf4 100%)}
-.hero h1{font-size:clamp(2.1rem,5vw,3.6rem);font-weight:900;line-height:1.08;letter-spacing:-.03em;margin-bottom:18px;color:var(--t)}
-.hero p{font-size:clamp(1rem,2.2vw,1.18rem);color:var(--m);max-width:560px;margin:0 auto 32px}
-.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 26px;border-radius:var(--r);font-weight:700;font-size:.97rem;cursor:pointer;transition:all .18s;border:2px solid transparent}
-.btn-p{background:var(--p);color:#fff}.btn-p:hover{background:var(--pd);transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.3)}
-.btn-o{border-color:var(--p);color:var(--p)}.btn-o:hover{background:var(--pl)}
-section{padding:clamp(52px,8vw,80px) clamp(16px,4vw,28px)}.alt{background:var(--s)}
-.lbl{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--p);margin-bottom:10px}
-h2{font-size:clamp(1.55rem,3.2vw,2.3rem);font-weight:800;line-height:1.15;margin-bottom:10px}
-h3{font-size:1.02rem;font-weight:700;margin-bottom:6px}
-.lead{color:var(--m);font-size:1rem;max-width:540px;margin-bottom:36px;line-height:1.7}
-.g{display:grid;gap:20px}.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.card{background:#fff;border-radius:var(--r);padding:24px;box-shadow:var(--sh);border:1px solid #e8edf2}
-.card .ico{font-size:1.7rem;margin-bottom:12px}.card p{color:var(--m);font-size:.9rem;margin-top:5px;line-height:1.6}
-.stat{font-size:2.4rem;font-weight:900;color:var(--p);display:block;line-height:1}.stat-l{font-size:.82rem;color:var(--m);margin-top:3px}
-.cta-b{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:14px;padding:clamp(36px,6vw,56px) clamp(20px,4vw,40px);text-align:center}
-.cta-b h2{color:#fff;margin-bottom:10px}.cta-b p{color:rgba(255,255,255,.82);margin-bottom:26px;max-width:480px;margin-left:auto;margin-right:auto}
-.btn-w{background:#fff;color:var(--p)}.btn-w:hover{opacity:.9;transform:translateY(-1px)}
-.img-r{display:grid;gap:24px;align-items:center}@media(min-width:768px){.img-r{grid-template-columns:1fr 1fr}}
-.tag{display:inline-block;background:var(--pl);color:var(--p);border-radius:20px;padding:3px 11px;font-size:.78rem;font-weight:700;margin-right:6px;margin-bottom:6px}
-footer{background:#0f172a;color:#94a3b8;padding:32px clamp(16px,4vw,28px);text-align:center;font-size:.85rem;line-height:2}
-footer a{color:#94a3b8}.footer-g{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
-@media(max-width:600px){.nl{display:none}}`;
-
-// ── Link guard — injected into every generated page ──────────────────────────
-// Prevents the iframe from navigating away when the user clicks a non-anchor
-// link. Anchor (#...) links scroll normally. External URLs open in a new tab.
-const LINK_GUARD = `<script>
-/* Spark link guard – keeps the preview inside the iframe */
-document.addEventListener('click',function(e){
-  var a=e.target.closest('a');if(!a)return;
-  var h=a.getAttribute('href')||'';
-  if(!h||h==='#'||h.startsWith('#')||h.startsWith('mailto:')||h.startsWith('tel:'))return;
-  e.preventDefault();
-  if(/^https?:\\/\\//.test(h))window.open(h,'_blank','noopener');
-},true);
-</script>`;
-
-// ── Shared HTML post-processing ───────────────────────────────────────────────
-function postProcessHtml(raw) {
-  let html = raw.trim();
-  // Strip markdown code fences if the model wraps in them
-  if (html.startsWith("```")) {
-    html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
-  }
-  // Inject link guard before </body> (or append if </body> is missing)
-  if (html.includes("</body>")) {
-    html = html.replace(/<\/body>/i, LINK_GUARD + "\n</body>");
-  } else {
-    html += "\n" + LINK_GUARD + "\n</body>";
-  }
-  // Always close </html>
-  if (!html.includes("</html>")) html += "\n</html>";
-  return html;
-}
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-function slugify(str) {
-  return str.toLowerCase().trim()
-    .replace(/[äÄ]/g,"ae").replace(/[öÖ]/g,"oe").replace(/[üÜ]/g,"ue").replace(/ß/g,"ss")
-    .replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60) || "projekt";
-}
-
-function blocksToPlain(blocks) {
-  if (!blocks?.length) return "";
-  const lines = [];
-  for (const b of blocks) {
-    const t = (b.content||[]).map(c=>c.text||"").join("");
-    if (t.trim()) lines.push(t.trim());
-    if (b.children?.length) lines.push(blocksToPlain(b.children));
-  }
-  return lines.join(" ");
-}
 
 // Dynamic — uses the same origin as the running app so the link always
 // points to a deployment that has functions/site/[slug].js available.
@@ -308,53 +220,16 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   }
   function removeUrl(id) { upd({ externalUrls: (form.externalUrls||[]).filter(u=>u.id!==id) }); }
 
-  // ── Collect content for AI ─────────────────────────────────────────────────
-  function buildContext() {
-    const parts = [];
-    (form.storyIds||[]).forEach(id => {
-      const s = stories.find(x=>x.id===id);
-      if (!s) return;
-      const text = blocksToPlain(s.blocks||[]).slice(0,1500);
-      parts.push(`## Story: "${s.title}"\n${s.subtitle||""}\n${text}`);
-    });
-    (form.postIds||[]).forEach(id => {
-      const p = posts.find(x=>x.id===id);
-      if (!p) return;
-      parts.push(`## Post: "${p.title}"\n${(p.content||"").slice(0,600)}`);
-    });
-    (form.mediaIds||[]).forEach(id => {
-      const m = items.find(x=>x.id===id);
-      if (!m) return;
-      parts.push(`## Bild: "${m.name}"\nURL: ${m.url}\nBeschreibung: ${m.description||m.altText||""}`);
-    });
-    (form.externalUrls||[]).forEach(u => {
-      parts.push(`## Externe URL: "${u.label}"\n${u.url}`);
-    });
-    return parts.join("\n\n---\n\n") || "(Noch keine Inhalte hinzugefügt)";
-  }
-
   // ── Step 1: Pre-flight — Spark asks clarifying questions ─────────────────
   async function startPreflight() {
     if (busy || totalSources === 0) return;
     setGenPhase("preflight-loading");
     setPreflightA({});
-    const ctx = buildContext();
+    const ctx = buildContext(form, stories, posts, items);
     try {
-      const raw = await aiCall([{ role:"user", content:
-        `Analysiere dieses Projekt für eine Landing Page und stelle genau 4 gezielte Rückfragen an den Auftraggeber.
-Fokus: Zielgruppe, gewünschter Stil/Tonalität, wichtigste Conversion-Aktion, und ein Aspekt der in den Inhalten unklar ist.
-Nutze type "choice" mit 3-4 Optionen wo sinnvoll, sonst type "text".
-
-PROJEKT: ${form.name}
-BESCHREIBUNG: ${form.description || "(keine)"}
-INHALTE (Auszug): ${ctx.slice(0,600)}
-
-NUR JSON, kein Markdown:
-{"questions":[{"id":"q1","question":"...","type":"text","choices":null},{"id":"q2","question":"...","type":"choice","choices":["A","B","C"]}]}`
-      }], 600);
-      const data = parseJSON(raw);
-      if (data?.questions?.length) {
-        setPreflightQ(data.questions);
+      const questions = await runPreflight(form.name, form.description, ctx);
+      if (questions.length) {
+        setPreflightQ(questions);
         setGenPhase("preflight");
       } else {
         // No valid questions → skip directly to generation
@@ -378,101 +253,33 @@ NUR JSON, kein Markdown:
     const selectedMedia = (form.mediaIds||[]).map(id => items.find(x=>x.id===id)).filter(Boolean);
     let autoImages = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name }));
 
-    // 2. If fewer than 2 project images, search stock APIs
+    // 2. If fewer than 2 project images, search stock APIs and save to library
     if (autoImages.length < 2) {
       const searchQuery = `${form.name} ${form.description||""}`.trim();
-      const src = skGet("pexels") ? "pexels" : skGet("unsplash") ? "unsplash" : skGet("pixabay") ? "pixabay" : null;
-      if (src && searchQuery) {
-        try {
-          const found = await stockSearch(src, searchQuery, { type:"image", orientation:"landscape" });
-          const fresh = found.slice(0, 4 - autoImages.length);
-          autoImages = [...autoImages, ...fresh.map(f => ({ url: f.url, alt: f.description||f.tags||form.name }))];
-          // Save to media library so user can reuse them
-          fresh.forEach(f => uploadItem({
-            ...f,
-            id: uid(),
-            category: "Spark Auto",
-            workspaceId: currentWorkspaceId || "ws-ppi-media",
-            analyzing: false,
-          }));
-        } catch {}
-      }
+      const found = await searchImages(
+        searchQuery,
+        4 - autoImages.length,
+        uploadItem,
+        currentWorkspaceId,
+      );
+      autoImages = [...autoImages, ...found];
     }
 
     setGenPhase("streaming");
 
-    const ctx = buildContext();
-    const extraPrompt = genPromptRef.current.trim();
-
-    // Preflight answers formatted as readable context
-    const answersText = preflightQ
-      .map(q => answers[q.id] ? `${q.question}\n→ ${answers[q.id]}` : null)
-      .filter(Boolean).join("\n\n");
-
-    // Images section for the prompt
-    const imagesText = autoImages.length > 0
-      ? `BILDER (genau diese verwenden – keine Platzhalter-URLs):\n${autoImages.map((img,i) =>
-          `Bild ${i+1}: src="${img.url}" alt="${img.alt}"`).join("\n")}`
-      : "BILDER: Keine Bilder verfügbar – nutze Farbflächen, Verläufe oder CSS-Grafiken als Eyecatcher.";
-
-    const prompt =
-`Du bist ein Elite-Webentwickler und Conversion-Designer mit 20 Jahren Erfahrung.
-Du kennst die erfolgreichsten Landing Pages und weißt, was für das Thema "${form.name}" am besten konvertiert.
-
-DESIGN-RECHERCHE:
-Wende dein Fachwissen über die besten Websites in diesem Bereich an: passende Farbpsychologie, Typografie-Persönlichkeit, Layout-Patterns und Conversion-Taktiken für diese Zielgruppe und Branche.
-
-LANDING PAGE ANATOMIE (ALLE Sections müssen vollständig vorhanden sein):
-• NAV: sticky, Logo links, 3-4 interne #anchor-Links, CTA-Button rechts
-• HERO: Starke emotionale H1 (Problem→Lösung), knapper Subtext, 2 CTAs
-• BENEFITS: 3er-Grid, die 3 stärksten Vorteile mit kurzem Text
-• CONTENT: Kerninhalt mit Bildunterstützung wenn Bilder vorhanden
-• STATS: 3-4 starke Kennzahlen die Vertrauen aufbauen
-• CTA-BLOCK: Letzter Conversion-Push mit prominentem Button
-• FOOTER: Gruppierte Links + Copyright
-
-${answersText ? `AUFTRAGGEBER-VORGABEN:\n${answersText}\n` : ""}
-${imagesText}
-
-VERFÜGBARE CSS-KLASSEN (bereits definiert – kein weiteres CSS schreiben):
-Layout: .w .g .g2 .g3 .g4 .img-r
-Nav: nav .ni .logo .nl .nav-cta
-Hero: .hero .btns
-Buttons: .btn .btn-p .btn-o .btn-w
-Content: section .alt .lbl h2 h3 .lead
-Cards: .card .ico .stat .stat-l .tag
-CTA: .cta-b
-Footer: footer .footer-g
-
-PROJEKT: ${form.name}
-BESCHREIBUNG: ${form.description || "(keine)"}
-INHALTE: ${ctx}
-${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}` : ""}
-
-AUSGABE-FORMAT (EXAKT einhalten):
-1. <!DOCTYPE html>
-2. <head>: charset, viewport, title, <style>:root{--p:#XXX;--pd:#XXX;--pl:#XXX}</style> (nur Farbvariablen passend zum Thema)
-3. <style>${PAGE_CSS}</style>
-4. <body>: vollständiges semantisches HTML mit den CSS-Klassen
-5. </body></html>
-
-QUALITÄTS-REGELN (PFLICHT – keine Ausnahmen):
-- KEIN zusätzliches CSS außer :root Farbvariablen
-- KEIN opacity:0 oder display:none auf sichtbarem Content – alles sofort sichtbar
-- KEINE Emoji-Icons als Design-Element. Nur monochrome SVG (stroke="currentColor") oder reine Textsymbole
-- Navigation: AUSSCHLIESSLICH #anchor-Links – niemals href="/" oder externe URLs in der Nav
-- JS nur wenn unbedingt nötig, max 10 Zeilen, Content OHNE JS vollständig sichtbar
-- KEINE Platzhalter-Texte – nur echte Inhalte aus den Projektdaten
-- Antworte NUR mit HTML (<!DOCTYPE html>…</html>) – KEIN Markdown`;
+    const ctx = buildContext(form, stories, posts, items);
 
     try {
-      const raw = await aiCallStream(
-        [{ role:"user", content:prompt }],
-        4000,
-        (_chunk, full) => setGenChars(full.length),
-      );
+      const html = await generatePage({
+        form,
+        ctx,
+        answers,
+        images: autoImages,
+        extraPrompt: genPromptRef.current.trim(),
+        preflightQ,
+        onChunk: (_chunk, full) => setGenChars(full.length),
+      });
 
-      const html = postProcessHtml(raw);
       if (!html.startsWith("<!")) {
         console.error("VoodooPage generate: unexpected response:", html.slice(0, 200));
         throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
@@ -507,43 +314,12 @@ QUALITÄTS-REGELN (PFLICHT – keine Ausnahmen):
     setSparkChars(0);
     setRefineMsg("");
     try {
-      // Strip PAGE_CSS before sending to AI — it's ~3 KB that the AI would have
-      // to read AND reproduce, eating ~2000 tokens in both directions.
-      // We replace it with a sentinel the AI keeps verbatim, then inject it back.
-      const SENTINEL = "/* PAGE_CSS_PLACEHOLDER */";
-      const compactHtml = form.generatedHtml.includes(PAGE_CSS)
-        ? form.generatedHtml.replace(PAGE_CSS, SENTINEL)
-        : form.generatedHtml; // fallback: page was generated without our CSS
+      const html = await refinePage({
+        html: form.generatedHtml,
+        instruction: p,
+        onChunk: (_c, full) => setSparkChars(full.length),
+      });
 
-      const prompt = `Du bist ein Elite-Webentwickler und Conversion-Designer mit 20 Jahren Erfahrung.
-
-LANDING PAGE ANATOMIE (ALLE Sections müssen nach der Änderung vollständig vorhanden bleiben):
-• NAV → HERO → BENEFITS → CONTENT → STATS → CTA-BLOCK → FOOTER
-
-BESTEHENDE SEITE:
-${compactHtml}
-
-ANWEISUNG: ${p}
-
-PFLICHT-REGELN (gelten IMMER, egal was die Anweisung sagt):
-- Antworte NUR mit vollständigem, aktualisierten HTML — KEIN Markdown
-- Behalte "${SENTINEL}" EXAKT so im <style>-Tag — das CSS wird automatisch eingefügt
-- Ändere NUR was die Anweisung verlangt — alle anderen Sections vollständig erhalten
-- KEINE Emoji-Icons als Design-Element — nur monochrome SVG oder reine Textsymbole
-- Navigation: AUSSCHLIESSLICH #anchor-Links — keine externen URLs oder href="/"
-- KEIN opacity:0, display:none auf sichtbarem Content — alles sofort sichtbar
-- KEIN zusätzliches CSS außer :root Farbvariablen
-- JS nur wenn unbedingt nötig, Content ohne JS vollständig sichtbar
-- Alle 7 Sections müssen vorhanden sein`;
-
-      const raw = await aiCallStream(
-        [{ role:"user", content: prompt }],
-        4000,
-        (_c, full) => setSparkChars(full.length),
-      );
-
-      // Re-inject full CSS, strip markdown, inject link guard, close tags
-      let html = postProcessHtml(raw.includes(SENTINEL) ? raw.replace(SENTINEL, PAGE_CSS) : raw);
       if (!html.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
 
       await fetch("/deploy-site", {

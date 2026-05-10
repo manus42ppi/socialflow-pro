@@ -6,11 +6,13 @@ export const fmtDate = d => d ? new Date(d).toLocaleDateString("de-DE",{weekday:
 export const fpos = m => m?.focusPoint ? `${m.focusPoint.x}% ${m.focusPoint.y}%` : "center";
 
 // ── AI SERVICE (via Cloudflare Function Proxy) ────────────────────────────
-export async function aiCall(messages, max_tokens=800) {
+export async function aiCall(messages, max_tokens=800, tools=null) {
+  const body = {model:"claude-sonnet-4-6",max_tokens,messages};
+  if (tools?.length) body.tools = tools;
   const r = await fetch("/ai",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens,messages}),
+    body:JSON.stringify(body),
   });
   const data = await r.json();
   if(!r.ok) throw new Error(data?.error?.message||`HTTP ${r.status}`);
@@ -22,11 +24,13 @@ export const parseJSON = raw => { try{return JSON.parse(raw.replace(/```json|```
 // Calls onChunk(newChunk, fullTextSoFar) after each token.
 // Returns the complete text when the stream ends.
 // Uses stream:true so the Worker bypasses the 30s buffer timeout.
-export async function aiCallStream(messages, max_tokens = 800, onChunk = null) {
+export async function aiCallStream(messages, max_tokens = 800, onChunk = null, tools = null) {
+  const body = { model: "claude-sonnet-4-6", max_tokens, messages, stream: true };
+  if (tools?.length) body.tools = tools;
   const r = await fetch("/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens, messages, stream: true }),
+    body: JSON.stringify(body),
   });
   if (!r.ok) {
     const data = await r.json().catch(() => ({}));
