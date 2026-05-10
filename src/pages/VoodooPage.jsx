@@ -9,6 +9,46 @@ import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { uid, aiCallStream } from "../utils/store.js";
 import { useApp } from "../context/AppContext.jsx";
 
+// ── Pre-built CSS foundation ─────────────────────────────────────────────────
+// The AI gets this as a starting point so it doesn't waste tokens re-writing
+// CSS from scratch. By using these classes the AI only needs to write HTML
+// body content (~1000-1500 tokens) instead of CSS+HTML (3000-4000 tokens).
+// The AI customises only the :root colour variables to match the topic.
+const PAGE_CSS = `*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--p:#2563EB;--pd:#1E3A8A;--pl:#EFF6FF;--bg:#fff;--s:#F8FAFC;--t:#0f172a;--m:#64748b;--r:8px;--sh:0 2px 14px rgba(0,0,0,.08)}
+body{font-family:system-ui,-apple-system,sans-serif;color:var(--t);background:var(--bg);line-height:1.65}
+a{text-decoration:none;color:inherit}img{max-width:100%;height:auto;border-radius:6px}ul{list-style:none}
+.w{max-width:1100px;margin:0 auto;padding:0 clamp(16px,4vw,28px)}
+nav{position:sticky;top:0;z-index:9;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #e2e8f0}
+.ni{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:14px clamp(16px,4vw,28px)}
+.logo{font-weight:900;font-size:1.15rem;color:var(--p)}.nl{display:flex;gap:6px;align-items:center}
+.nl a{padding:5px 12px;border-radius:6px;color:var(--m);font-size:.875rem;font-weight:500}.nl a:hover{background:#f1f5f9;color:var(--t)}
+.nav-cta{padding:8px 16px!important;background:var(--p);color:#fff!important;border-radius:var(--r);font-weight:700!important}.nav-cta:hover{background:var(--pd)!important}
+.hero{padding:clamp(60px,10vw,96px) clamp(16px,4vw,28px);text-align:center;background:linear-gradient(140deg,var(--pl)0%,#f0fdf4 100%)}
+.hero h1{font-size:clamp(2.1rem,5vw,3.6rem);font-weight:900;line-height:1.08;letter-spacing:-.03em;margin-bottom:18px;color:var(--t)}
+.hero p{font-size:clamp(1rem,2.2vw,1.18rem);color:var(--m);max-width:560px;margin:0 auto 32px}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 26px;border-radius:var(--r);font-weight:700;font-size:.97rem;cursor:pointer;transition:all .18s;border:2px solid transparent}
+.btn-p{background:var(--p);color:#fff}.btn-p:hover{background:var(--pd);transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.3)}
+.btn-o{border-color:var(--p);color:var(--p)}.btn-o:hover{background:var(--pl)}
+section{padding:clamp(52px,8vw,80px) clamp(16px,4vw,28px)}.alt{background:var(--s)}
+.lbl{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--p);margin-bottom:10px}
+h2{font-size:clamp(1.55rem,3.2vw,2.3rem);font-weight:800;line-height:1.15;margin-bottom:10px}
+h3{font-size:1.02rem;font-weight:700;margin-bottom:6px}
+.lead{color:var(--m);font-size:1rem;max-width:540px;margin-bottom:36px;line-height:1.7}
+.g{display:grid;gap:20px}.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:#fff;border-radius:var(--r);padding:24px;box-shadow:var(--sh);border:1px solid #e8edf2}
+.card .ico{font-size:1.7rem;margin-bottom:12px}.card p{color:var(--m);font-size:.9rem;margin-top:5px;line-height:1.6}
+.stat{font-size:2.4rem;font-weight:900;color:var(--p);display:block;line-height:1}.stat-l{font-size:.82rem;color:var(--m);margin-top:3px}
+.cta-b{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:14px;padding:clamp(36px,6vw,56px) clamp(20px,4vw,40px);text-align:center}
+.cta-b h2{color:#fff;margin-bottom:10px}.cta-b p{color:rgba(255,255,255,.82);margin-bottom:26px;max-width:480px;margin-left:auto;margin-right:auto}
+.btn-w{background:#fff;color:var(--p)}.btn-w:hover{opacity:.9;transform:translateY(-1px)}
+.img-r{display:grid;gap:24px;align-items:center}@media(min-width:768px){.img-r{grid-template-columns:1fr 1fr}}
+.tag{display:inline-block;background:var(--pl);color:var(--p);border-radius:20px;padding:3px 11px;font-size:.78rem;font-weight:700;margin-right:6px;margin-bottom:6px}
+footer{background:#0f172a;color:#94a3b8;padding:32px clamp(16px,4vw,28px);text-align:center;font-size:.85rem;line-height:2}
+footer a{color:#94a3b8}.footer-g{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+@media(max-width:600px){.nl{display:none}}`;
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 function slugify(str) {
   return str.toLowerCase().trim()
@@ -286,26 +326,51 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     setGenChars(0);
     const ctx = buildContext();
     const extraPrompt = genPrompt.trim();
-    const prompt = `Du bist ein professioneller Web-Designer. Erstelle eine vollständige, mobilresponsive Landing Page als selbst-enthaltene HTML-Datei.
+    // The CSS foundation is pre-built — the AI ONLY writes HTML using the
+    // available classes. This keeps output tokens to ~1200-1800 (HTML only),
+    // well within 4000, so the page is always complete.
+    const prompt = `Du bist ein Elite-Webentwickler und Conversion-Designer mit 20 Jahren Erfahrung. Du kennst jede Best Practice für Landing Pages.
 
-PROJEKTNAME: ${form.name}
-BESCHREIBUNG: ${form.description || "(keine Beschreibung)"}
+DEIN FACHWISSEN – Landing Page Anatomie:
+• NAV: sticky, Logo links, 3-4 Anchor-Links, CTA-Button rechts (class="nav-cta")
+• HERO: Emotionale H1 (Problem→Lösung), kurzer Subtext, 2 Buttons (.btn-p + .btn-o), optional Hero-Bild
+• BENEFITS: 3er-Grid (.g3) mit Icon-Emoji + h3 + kurze Beschreibung – die stärksten 3 Vorteile
+• CONTENT: Kerninhalt aus den Projektdaten, mit Bild-Text-Layout (.img-r) wenn Bilder vorhanden
+• STATS/PROOF: 3-4 Kennzahlen (.g4 mit .stat + .stat-l) die Vertrauen aufbauen
+• CTA-BLOCK: (.cta-b) Abschluss-Conversion – große Überschrift, Subtext, prominenter Button
+• FOOTER: (.footer-g) Links gruppiert + Copyright-Zeile
 
-INHALTE:
-${ctx}
+VERFÜGBARE CSS-KLASSEN (ALLE bereits definiert – kein weiteres CSS nötig):
+Layout: .w (max-width wrapper), .g .g2 .g3 .g4 (grids), .img-r (bild+text nebeneinander)
+Nav: nav, .ni, .logo, .nl, .nav-cta
+Hero: .hero, .btns
+Buttons: .btn .btn-p (primary) .btn-o (outline) .btn-w (weiß auf farbig)
+Sections: section, .alt (hellgrauer Hintergrund), .lbl (Label), h2, .lead
+Cards: .card, .ico, .stat, .stat-l, .tag
+CTA: .cta-b
+Footer: footer, .footer-g
 
-${extraPrompt ? `WÜNSCHE:\n${extraPrompt}\n\n` : ""}PFLICHT-REGELN (KRITISCH – unbedingt einhalten):
-- HELLER Hintergrund (weiß, hellgrau oder pastellfarben) – NIEMALS schwarz oder dunkel als body-Hintergrund
-- Text muss IMMER deutlich sichtbar sein (dunkle Schrift auf hellem Grund)
-- KEIN CSS opacity:0 oder visibility:hidden auf dem initialen Content – alles sofort sichtbar
-- Interaktivität NUR als progressive Verbesserung: ohne JS muss der gesamte Content lesbar sein
-- Vollständig inline-CSS, kein CDN, kein externes Stylesheet
-- Vanilla JS nur für kleine UI-Extras (Hamburger, Smooth Scroll) – KEIN JS für Content-Sichtbarkeit
-- Mobile-first, Navigation mit Anchor-Links, Hero + CTA + mindestens 3 Content-Sektionen + Footer
-- Alle Bilder aus den Inhalten per <img src="..."> direkt einbinden
-- Keine Platzhalter – nur echte Inhalte aus den Projektdaten
-- Schließe ALLE HTML-Tags vollständig ab (</body></html> am Ende)
-- Antworte NUR mit dem HTML (beginnend <!DOCTYPE html>) – KEIN Markdown, kein Kommentar drumherum`;
+AUFGABE: Erstelle die Landing Page für dieses Projekt.
+
+PROJEKT: ${form.name}
+BESCHREIBUNG: ${form.description || "(keeine Beschreibung)"}
+INHALTE: ${ctx}
+${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}` : ""}
+
+AUSGABE-FORMAT (EXAKT so):
+1. Beginne mit <!DOCTYPE html>
+2. In <head>: <meta charset>, viewport, <title>, dann <style>:root{--p:#XXXX;--pd:#XXXX;--pl:#XXXX}</style> (NUR Farbanpassung passend zum Thema)
+3. Danach: <style>${PAGE_CSS}</style>
+4. In <body>: sauberes, semantisches HTML mit den CSS-Klassen oben
+5. Ende mit </body></html>
+
+REGELN:
+- KEIN zusätzliches CSS außer dem :root Farb-Override – nutze die vorhandenen Klassen
+- KEIN opacity:0, display:none auf initialem Content – alles sofort sichtbar
+- JS nur wenn explizit gewünscht, max 8 Zeilen, Content muss OHNE JS vollständig sichtbar sein
+- Alle Bilder aus Inhalten: <img src="[echte URL]" alt="[beschreibung]">
+- KEINE Platzhalter – nur echte Inhalte aus den Projektdaten
+- Antworte NUR mit dem HTML (<!DOCTYPE html> bis </html>) – KEIN Markdown`;
 
     try {
       // Streaming: CF Worker forwards SSE directly → no 30s buffer timeout
