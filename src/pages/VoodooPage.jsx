@@ -8,13 +8,52 @@ import {
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { uid } from "../utils/store.js";
 import {
-  slugify, buildContext, runPreflight, searchImages, generatePage, refinePage, validatePage,
+  slugify, buildContext, runPreflight, searchImages,
+  generatePage, refinePage, validatePage, postProcessHtml,
 } from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
 
 // Dynamic — uses the same origin as the running app so the link always
 // points to a deployment that has functions/site/[slug].js available.
 const getSiteUrl = (slug) => `${window.location.origin}/site/${slug}`;
+
+// ── Post-generation HTML repair ───────────────────────────────────────────────
+// Uses the browser's DOMParser to parse the AI-generated HTML and fix the most
+// common structural problems programmatically — no extra AI call needed.
+//
+// Repairs performed:
+//   1. Broken nav anchors: href="#xyz" with no matching id="xyz" → assigns the
+//      missing id to the next available <section> in document order.
+//   2. Re-runs postProcessHtml (idempotent) so the current LINK_GUARD is always
+//      correctly placed regardless of what DOMParser did to whitespace/order.
+//
+// Falls back to the original HTML on any parse error (safe, never throws).
+function repairPage(html) {
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    // Collect all anchor links targeting #ids and all <section> elements
+    const anchors  = [...doc.querySelectorAll('a[href^="#"]')];
+    const sections = [...doc.querySelectorAll("section")];
+    let si = 0;
+
+    anchors.forEach(a => {
+      const id = a.getAttribute("href").slice(1);
+      if (!id || doc.getElementById(id)) return; // skip empty or already-valid
+      // Advance past sections that already have an id
+      while (si < sections.length && sections[si].id) si++;
+      if (si < sections.length) { sections[si].id = id; si++; }
+    });
+
+    // outerHTML gives <html>…</html> — prepend DOCTYPE, then re-run postProcessHtml
+    // which is idempotent and ensures the fresh LINK_GUARD is correctly placed.
+    const serialized = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+    return postProcessHtml(serialized);
+  } catch {
+    // Parse failure — postProcessHtml at least ensures guard + closing tags are correct
+    return postProcessHtml(html);
+  }
+}
 
 // ── sub-components ────────────────────────────────────────────────────────────
 function SectionLabel({ children }) {
@@ -271,7 +310,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     const ctx = buildContext(form, stories, posts, items);
 
     try {
-      const html = await generatePage({
+      const rawHtml = await generatePage({
         form,
         ctx,
         answers,
@@ -281,8 +320,11 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
         onChunk: (_chunk, full) => setGenChars(full.length),
       });
 
+      // DOM repair: fix broken anchor links + ensure LINK_GUARD is correct
+      const html = repairPage(rawHtml);
+
       if (!html.startsWith("<!")) {
-        console.error("VoodooPage generate: unexpected response:", html.slice(0, 200));
+        console.error("VoodooPage generate: unexpected response:", rawHtml.slice(0, 200));
         throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
       }
 
@@ -316,11 +358,12 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     setSparkChars(0);
     setRefineMsg("");
     try {
-      const html = await refinePage({
+      const rawHtml = await refinePage({
         html: form.generatedHtml,
         instruction: p,
         onChunk: (_c, full) => setSparkChars(full.length),
       });
+      const html = repairPage(rawHtml);
 
       if (!html.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
 
