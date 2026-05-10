@@ -5,7 +5,7 @@
 // are NOT tested here — they require API access.
 
 import { describe, it, expect } from "vitest";
-import { slugify, blocksToPlain, postProcessHtml, buildContext, LINK_GUARD } from "../utils/spark.js";
+import { slugify, blocksToPlain, postProcessHtml, buildContext, validatePage, LINK_GUARD } from "../utils/spark.js";
 
 // ── slugify ──────────────────────────────────────────────────────────────────
 describe("slugify", () => {
@@ -180,6 +180,94 @@ describe("postProcessHtml", () => {
   it("does not strip anything when response starts correctly", () => {
     const result = postProcessHtml(MINIMAL_HTML);
     expect(result.trimStart()).toMatch(/^<!DOCTYPE html>/i);
+  });
+});
+
+// ── postProcessHtml — guard idempotency ───────────────────────────────────────
+describe("postProcessHtml — LINK_GUARD idempotency", () => {
+  it("removes a stale v1 link guard before injecting new one", () => {
+    // Simulate a page that already has the guard from a previous generation
+    const staleGuard = `<script>\n/* Spark link guard – keeps the preview inside the iframe */\ndocument.addEventListener('click',function(e){},true);\n</script>`;
+    const pageWithStaleGuard = `<!DOCTYPE html><html><body><p>Hi</p>${staleGuard}</body></html>`;
+    const result = postProcessHtml(pageWithStaleGuard);
+    // Should have exactly one guard (the fresh one), not two
+    const count = (result.match(/Spark link guard/g) || []).length;
+    expect(count).toBe(1);
+  });
+
+  it("injecting twice via postProcessHtml still yields exactly one guard", () => {
+    const once = postProcessHtml("<!DOCTYPE html><html><body><p>Hi</p></body></html>");
+    const twice = postProcessHtml(once);
+    const count = (twice.match(/Spark link guard/g) || []).length;
+    expect(count).toBe(1);
+  });
+});
+
+// ── validatePage ──────────────────────────────────────────────────────────────
+describe("validatePage", () => {
+  const GOOD_PAGE = `<!DOCTYPE html><html><body>
+    <nav id="top"><a href="#hero">Hero</a><a href="#benefits">Benefits</a></nav>
+    <section id="hero"><h1>Title</h1></section>
+    <section id="benefits"><p>Benefits</p></section>
+    <section id="content"><p>Content</p></section>
+    <section id="stats"><p>Stats</p></section>
+    <section id="cta"><p>CTA</p></section>
+    <footer id="footer"><p>Footer</p></footer>
+  </body></html>`;
+
+  it("returns empty array for a valid page", () => {
+    expect(validatePage(GOOD_PAGE)).toEqual([]);
+  });
+
+  it("returns empty array for null/empty input", () => {
+    expect(validatePage(null)).toEqual([]);
+    expect(validatePage("")).toEqual([]);
+  });
+
+  it("detects script code leaking as visible text", () => {
+    const leaked = `<!DOCTYPE html><html><body>
+      <section id="hero"><p>document.addEventListener('click',function(e){})</p></section>
+      <section id="a"></section><section id="b"></section>
+      <section id="c"></section><section id="d"></section>
+    </body></html>`;
+    const issues = validatePage(leaked);
+    expect(issues.some(i => i.type === "error")).toBe(true);
+  });
+
+  it("does NOT flag script code inside a proper <script> tag", () => {
+    const withScript = GOOD_PAGE.replace("</body>", `<script>document.addEventListener('click',function(e){})</script></body>`);
+    expect(validatePage(withScript)).toEqual([]);
+  });
+
+  it("detects broken nav anchor (href without matching id)", () => {
+    const broken = GOOD_PAGE.replace('href="#benefits"', 'href="#nonexistent"');
+    const issues = validatePage(broken);
+    expect(issues.some(i => i.msg.includes("#nonexistent"))).toBe(true);
+  });
+
+  it("does NOT flag anchors that have matching ids", () => {
+    const issues = validatePage(GOOD_PAGE);
+    expect(issues.some(i => i.msg.includes("Nav-Link"))).toBe(false);
+  });
+
+  it("detects too few sections", () => {
+    const sparse = `<!DOCTYPE html><html><body>
+      <nav id="top"></nav>
+      <section id="hero"></section>
+      <footer id="footer"></footer>
+    </body></html>`;
+    const issues = validatePage(sparse);
+    expect(issues.some(i => i.msg.includes("Section"))).toBe(true);
+  });
+
+  it("returns error type for script leak and warn for anchor/section issues", () => {
+    const leaked = `<!DOCTYPE html><html><body>
+      <p>document.addEventListener clicked</p>
+      <section id="s1"></section><section id="s2"></section>
+    </body></html>`;
+    const issues = validatePage(leaked);
+    const hasError = issues.some(i => i.type === "error");
+    expect(hasError).toBe(true);
   });
 });
 

@@ -161,6 +161,10 @@ export function blocksToPlain(blocks) {
   return lines.join(" ");
 }
 
+// Matches any version of the Spark link guard script block.
+// Used to strip stale guards before re-injecting the current version.
+const GUARD_RE = /<script>\s*\/\*\s*Spark link guard[\s\S]*?<\/script>\s*/i;
+
 /**
  * Post-process raw AI HTML output into a safe, complete page.
  *
@@ -168,8 +172,9 @@ export function blocksToPlain(blocks) {
  *   1. Strip markdown ``` code fences (model sometimes wraps output)
  *   2. Find the real HTML start — strip any prefix text the model emitted
  *      before <!DOCTYPE html> (e.g. introductory sentences, persona echoes)
- *   3. Inject LINK_GUARD before </body>  (or append if </body> is missing)
- *   4. Ensure the document ends with </html>
+ *   3. Remove any previously injected link guard (idempotent for refinements)
+ *   4. Inject current LINK_GUARD before </body>  (or append if missing)
+ *   5. Ensure the document ends with </html>
  *
  * This is the single shared post-processor for both generate and refine.
  */
@@ -183,23 +188,62 @@ export function postProcessHtml(raw) {
 
   // 2. Find the real HTML start — model sometimes prepends explanation text.
   //    e.g. "Hier ist die überarbeitete Seite:\n\n<!DOCTYPE html>…"
-  //    We locate the first <!DOCTYPE html> and discard everything before it.
   const doctypeIdx = html.search(/<!DOCTYPE\s+html/i);
   if (doctypeIdx > 0) {
     html = html.slice(doctypeIdx);
   }
 
-  // 3. Inject link guard
+  // 3. Remove any stale link guard so we never duplicate it
+  html = html.replace(GUARD_RE, "");
+
+  // 4. Inject current link guard
   if (html.includes("</body>")) {
     html = html.replace(/<\/body>/i, LINK_GUARD + "\n</body>");
   } else {
     html += "\n" + LINK_GUARD + "\n</body>";
   }
 
-  // 4. Close document
+  // 5. Close document
   if (!html.includes("</html>")) html += "\n</html>";
 
   return html;
+}
+
+/**
+ * Validate a generated HTML page for common Spark issues.
+ * Returns an array of {type:"error"|"warn", msg:string}.
+ * Empty array = all checks passed.
+ *
+ * Checks performed:
+ *   1. Script code leaking into visible content (guard not inside <script> tag)
+ *   2. Nav anchor → section ID consistency (broken #links)
+ *   3. Minimum section count (≥ 5 of the expected 7)
+ */
+export function validatePage(html) {
+  if (!html) return [];
+  const issues = [];
+
+  // 1. Script content visible as text (guard code outside <script> tags)
+  const withoutScripts = html.replace(/<script[\s\S]*?<\/script>/gi, "<!-- script -->");
+  if (/document\.addEventListener|Spark link guard/.test(withoutScripts)) {
+    issues.push({ type: "error", msg: "Script-Code als sichtbarer Text — Seite einmal neu verfeinern um den Fehler zu beheben" });
+  }
+
+  // 2. Nav anchor → section ID consistency
+  const navHrefs = [...html.matchAll(/href="#([^"#\s]+)"/g)].map(m => m[1]);
+  const pageIds  = new Set([...html.matchAll(/\s+id="([^"]+)"/g)].map(m => m[1]));
+  const broken   = [...new Set(navHrefs)].filter(id => !pageIds.has(id));
+  if (broken.length > 0) {
+    issues.push({ type: "warn", msg: `${broken.length} Nav-Link(s) ohne passende Section-ID: ${broken.map(b => "#" + b).join(", ")}` });
+  }
+
+  // 3. Minimum section count
+  const sectionCount = (html.match(/<section[\s>]/gi) || []).length;
+  if (sectionCount < 5) {
+    issues.push({ type: "warn", msg: `Nur ${sectionCount} Sections gefunden — mindestens 7 erwartet` });
+  }
+
+  return issues;
 }
 
 /**
@@ -406,9 +450,12 @@ QUALITÄTS-REGELN (keine Ausnahmen):
  */
 export async function refinePage({ html, instruction, onChunk }) {
   const SENTINEL = "/* PAGE_CSS_PLACEHOLDER */";
-  const compactHtml = html.includes(PAGE_CSS)
-    ? html.replace(PAGE_CSS, SENTINEL)
-    : html; // fallback: page generated without our CSS (keep as-is)
+  // Strip PAGE_CSS (sentinel trick) AND the link guard script — the AI must
+  // never see the guard code, otherwise it can reproduce it as visible text content.
+  // Both are re-injected by postProcessHtml() after the stream completes.
+  const compactHtml = html
+    .replace(PAGE_CSS, SENTINEL)
+    .replace(GUARD_RE, "");
 
   // ⚠️  Output-Pflicht steht ZUERST — bevor das Modell irgendetwas anderes liest.
   // Das verhindert, dass das Modell einen einleitenden Satz vor <!DOCTYPE html> ausgibt.

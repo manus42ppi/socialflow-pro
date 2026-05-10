@@ -8,7 +8,7 @@ import {
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { uid } from "../utils/store.js";
 import {
-  slugify, buildContext, runPreflight, searchImages, generatePage, refinePage,
+  slugify, buildContext, runPreflight, searchImages, generatePage, refinePage, validatePage,
 } from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
 
@@ -190,6 +190,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   const [sparkChars, setSparkChars] = useState(0);
   const [copied, setCopied] = useState(false);
   const [refineMsg, setRefineMsg] = useState("");
+  const [pageIssues, setPageIssues] = useState([]);
 
   const busy = genPhase !== "idle";
 
@@ -296,6 +297,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
       const updated = { ...form, generatedHtml: html, lastGeneratedAt: new Date().toISOString(), status:"live" };
       setForm(updated);
       onSave(updated);
+      setPageIssues(validatePage(html));
       setTab("site");
     } catch(e) {
       console.error("VoodooPage generate error:", e);
@@ -331,6 +333,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
       const updated = { ...form, generatedHtml: html, lastGeneratedAt: new Date().toISOString() };
       setForm(updated);
       onSave(updated);
+      setPageIssues(validatePage(html));
       setRefineMsg("✓ Seite aktualisiert");
       setTimeout(() => setRefineMsg(""), 3000);
     } catch(e) {
@@ -781,6 +784,30 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
                     <RefreshCw size={14} strokeWidth={2}/>
                   </button>
                 </div>
+                {/* Validation banner — shown when validatePage() found issues */}
+                {pageIssues.length > 0 && (
+                  <div style={{ flexShrink:0, borderBottom:`1px solid ${T.gray200}` }}>
+                    {pageIssues.map((issue, i) => (
+                      <div key={i} style={{
+                        display:"flex", alignItems:"flex-start", gap:8,
+                        padding:"7px 16px",
+                        background: issue.type === "error" ? "#FFF1F0" : "#FFFBEB",
+                        borderLeft: `3px solid ${issue.type === "error" ? "#EF4444" : "#F59E0B"}`,
+                        fontFamily:FONT, fontSize:12, color: issue.type === "error" ? "#B91C1C" : "#92400E",
+                        lineHeight:1.4,
+                      }}>
+                        <span style={{ flexShrink:0, marginTop:1 }}>{issue.type === "error" ? "✕" : "⚠"}</span>
+                        <span>{issue.msg}</span>
+                        {i === pageIssues.length - 1 && (
+                          <button onClick={() => setPageIssues([])} style={{
+                            marginLeft:"auto", flexShrink:0, background:"none", border:"none",
+                            cursor:"pointer", color:"inherit", opacity:.6, padding:"0 2px", fontSize:14,
+                          }}>×</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {/* srcDoc renders HTML directly — no server round-trip needed.
                     No sandbox: the generated HTML is our own content and needs
                     full JS access to render interactive elements correctly. */}
