@@ -156,6 +156,31 @@ describe("postProcessHtml", () => {
     const count = (result.match(/Spark link guard/g) || []).length;
     expect(count).toBe(1);
   });
+
+  it("strips prefix text before <!DOCTYPE html> (model intro sentences)", () => {
+    const withPrefix = "Hier ist die überarbeitete Seite:\n\n" + MINIMAL_HTML;
+    const result = postProcessHtml(withPrefix);
+    expect(result.trimStart()).toMatch(/^<!DOCTYPE html>/i);
+    expect(result).not.toContain("Hier ist die");
+  });
+
+  it("strips prefix text even when model echoes persona", () => {
+    const prefix = "Als Werbetexter und Webdesigner habe ich folgende Änderungen vorgenommen:\n\n";
+    const result = postProcessHtml(prefix + MINIMAL_HTML);
+    expect(result.trimStart()).toMatch(/^<!DOCTYPE html>/i);
+  });
+
+  it("handles uppercase DOCTYPE in prefix strip", () => {
+    const withPrefix = "Updated:\n<!DOCTYPE HTML><html><body></body></html>";
+    const result = postProcessHtml(withPrefix);
+    expect(result.trimStart()).toMatch(/^<!DOCTYPE HTML>/i);
+    expect(result).not.toContain("Updated:");
+  });
+
+  it("does not strip anything when response starts correctly", () => {
+    const result = postProcessHtml(MINIMAL_HTML);
+    expect(result.trimStart()).toMatch(/^<!DOCTYPE html>/i);
+  });
 });
 
 // ── buildContext ──────────────────────────────────────────────────────────────

@@ -145,8 +145,10 @@ export function blocksToPlain(blocks) {
  *
  * Steps performed (in order):
  *   1. Strip markdown ``` code fences (model sometimes wraps output)
- *   2. Inject LINK_GUARD before </body>  (or append if </body> missing)
- *   3. Ensure the document ends with </html>
+ *   2. Find the real HTML start — strip any prefix text the model emitted
+ *      before <!DOCTYPE html> (e.g. introductory sentences, persona echoes)
+ *   3. Inject LINK_GUARD before </body>  (or append if </body> is missing)
+ *   4. Ensure the document ends with </html>
  *
  * This is the single shared post-processor for both generate and refine.
  */
@@ -158,14 +160,22 @@ export function postProcessHtml(raw) {
     html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
   }
 
-  // 2. Inject link guard
+  // 2. Find the real HTML start — model sometimes prepends explanation text.
+  //    e.g. "Hier ist die überarbeitete Seite:\n\n<!DOCTYPE html>…"
+  //    We locate the first <!DOCTYPE html> and discard everything before it.
+  const doctypeIdx = html.search(/<!DOCTYPE\s+html/i);
+  if (doctypeIdx > 0) {
+    html = html.slice(doctypeIdx);
+  }
+
+  // 3. Inject link guard
   if (html.includes("</body>")) {
     html = html.replace(/<\/body>/i, LINK_GUARD + "\n</body>");
   } else {
     html += "\n" + LINK_GUARD + "\n</body>";
   }
 
-  // 3. Close document
+  // 4. Close document
   if (!html.includes("</html>")) html += "\n</html>";
 
   return html;
@@ -378,35 +388,46 @@ export async function refinePage({ html, instruction, onChunk }) {
     ? html.replace(PAGE_CSS, SENTINEL)
     : html; // fallback: page generated without our CSS (keep as-is)
 
+  // ⚠️  Output-Pflicht steht ZUERST — bevor das Modell irgendetwas anderes liest.
+  // Das verhindert, dass das Modell einen einleitenden Satz vor <!DOCTYPE html> ausgibt.
+  // SPARK_PERSONA kommt NACH dem HTML, nicht davor — so bleibt die Aufgabe im Fokus.
+  // max_tokens=8000: Die vollständige Seite kann bis zu 4000 Token lang sein; beim
+  // Refinement muss das Modell sie komplett ausgeben + ggf. neue Sections ergänzen.
+  // Kein WEB_SEARCH_TOOL: Refinement ist eine gezielte Änderungsoperation, keine
+  // Recherche-Aufgabe — das Tool erhöht hier nur Latenz und Unberechenbarkeit.
+
   const prompt =
-`${SPARK_PERSONA}
+`AUSGABE-PFLICHT (absolut, keine Ausnahme):
+Deine Antwort beginnt mit <!DOCTYPE html> — KEIN einleitender Satz, KEINE Erklärung, KEIN Markdown.
+Die letzte Zeile ist </html>. Dazwischen steht ausschließlich vollständiges, valides HTML.
 
-Nutze die integrierte Websuche wenn die Anweisung aktuelle Design-Trends oder Marktrecherche erfordert.
-
-LANDING PAGE ANATOMIE (alle 7 Sections müssen nach der Änderung vollständig vorhanden bleiben):
-NAV → HERO → BENEFITS → CONTENT → STATS → CTA-BLOCK → FOOTER
+AUFGABE: Verfeinere die folgende Landing Page gemäß der Anweisung.
+Ändere NUR was die Anweisung verlangt — alle anderen Sections bleiben vollständig erhalten.
 
 BESTEHENDE SEITE:
 ${compactHtml}
 
 ANWEISUNG: ${instruction}
 
-PFLICHT-REGELN (keine Ausnahmen):
-- Antworte NUR mit vollständigem, aktualisiertem HTML — kein Markdown
+DEIN EXPERTISE-PROFIL (wende es auf jede Änderung an):
+${SPARK_PERSONA}
+
+LANDING PAGE ANATOMIE (alle 7 Sections müssen vorhanden bleiben):
+NAV → HERO → BENEFITS → CONTENT → STATS → CTA-BLOCK → FOOTER
+
+TECHNISCHE REGELN (keine Ausnahmen):
 - Behalte "${SENTINEL}" EXAKT im <style>-Tag — CSS wird automatisch eingefügt
-- Ändere NUR was die Anweisung verlangt — alle anderen Sections vollständig erhalten
 - KEINE Emoji-Icons — nur monochrome SVG (stroke="currentColor") oder Textsymbole
 - Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" in der Nav
 - KEIN opacity:0 oder display:none auf sichtbarem Content
 - KEIN zusätzliches CSS außer :root Farbvariablen
-- JS nur wenn nötig, Content ohne JS vollständig sichtbar
-- Alle 7 Sections müssen vorhanden sein`;
+- JS nur wenn nötig, Content ohne JS vollständig sichtbar`;
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    4000,
+    8000,   // Vollständige Seite + Ergänzungen brauchen mehr als 4000 Token
     onChunk,
-    [WEB_SEARCH_TOOL],
+    // Kein WEB_SEARCH_TOOL: Refinement braucht keine Live-Recherche
   );
 
   // Re-inject CSS before post-processing
