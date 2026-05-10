@@ -294,19 +294,24 @@ BESCHREIBUNG: ${form.description || "(keine Beschreibung)"}
 INHALTE:
 ${ctx}
 
-${extraPrompt ? `WÜNSCHE:\n${extraPrompt}\n\n` : ""}REGELN:
-- Vollständig inline-CSS, kein CDN
-- Vanilla JS nur für Hamburger-Menü erlaubt
-- Mobile-first, Navigation mit Anchor-Links, Hero + CTA + Footer
-- Alle Bilder aus den Inhalten per img src einbinden
+${extraPrompt ? `WÜNSCHE:\n${extraPrompt}\n\n` : ""}PFLICHT-REGELN (KRITISCH – unbedingt einhalten):
+- HELLER Hintergrund (weiß, hellgrau oder pastellfarben) – NIEMALS schwarz oder dunkel als body-Hintergrund
+- Text muss IMMER deutlich sichtbar sein (dunkle Schrift auf hellem Grund)
+- KEIN CSS opacity:0 oder visibility:hidden auf dem initialen Content – alles sofort sichtbar
+- Interaktivität NUR als progressive Verbesserung: ohne JS muss der gesamte Content lesbar sein
+- Vollständig inline-CSS, kein CDN, kein externes Stylesheet
+- Vanilla JS nur für kleine UI-Extras (Hamburger, Smooth Scroll) – KEIN JS für Content-Sichtbarkeit
+- Mobile-first, Navigation mit Anchor-Links, Hero + CTA + mindestens 3 Content-Sektionen + Footer
+- Alle Bilder aus den Inhalten per <img src="..."> direkt einbinden
 - Keine Platzhalter – nur echte Inhalte aus den Projektdaten
-- Antworte NUR mit dem HTML (beginnend <!DOCTYPE html>) – KEIN Markdown`;
+- Schließe ALLE HTML-Tags vollständig ab (</body></html> am Ende)
+- Antworte NUR mit dem HTML (beginnend <!DOCTYPE html>) – KEIN Markdown, kein Kommentar drumherum`;
 
     try {
-      // Use streaming so the CF Worker doesn't hit the 30s buffer timeout
+      // Streaming: CF Worker forwards SSE directly → no 30s buffer timeout
       const raw = await aiCallStream(
         [{ role:"user", content:prompt }],
-        3000,
+        4000, // 4000 safe with streaming (I/O wait doesn't count toward CPU limit)
         (_chunk, full) => setGenChars(full.length),
       );
 
@@ -315,10 +320,15 @@ ${extraPrompt ? `WÜNSCHE:\n${extraPrompt}\n\n` : ""}REGELN:
       if (html.startsWith("```")) {
         html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
       }
+      // Ensure HTML ends properly (guard against truncation)
+      if (!html.includes("</html>") && !html.includes("</body>")) {
+        html += "\n</body></html>";
+      }
       if (!html.startsWith("<!")) {
-        console.error("VoodooPage generate: unexpected response:", html.slice(0, 200));
+        console.error("VoodooPage generate: unexpected response start:", html.slice(0, 300));
         throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
       }
+      console.log("Generated HTML preview:", html.slice(0, 200), "...", html.slice(-100));
 
       // Deploy to KV via Cloudflare Function
       const res = await fetch("/deploy-site", {
@@ -355,12 +365,13 @@ ${extraPrompt ? `WÜNSCHE:\n${extraPrompt}\n\n` : ""}REGELN:
         { role:"user", content: sys },
         { role:"assistant", content: form.generatedHtml },
         { role:"user", content: p },
-      ], 3000, (_c, full) => setSparkChars(full.length));
+      ], 4000, (_c, full) => setSparkChars(full.length));
 
       let html = raw.trim();
       if (html.startsWith("```")) {
         html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
       }
+      if (!html.includes("</html>") && !html.includes("</body>")) html += "\n</body></html>";
       if (!html.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
 
       await fetch("/deploy-site", {
@@ -723,12 +734,12 @@ ${extraPrompt ? `WÜNSCHE:\n${extraPrompt}\n\n` : ""}REGELN:
                     <RefreshCw size={14} strokeWidth={2}/>
                   </button>
                 </div>
-                {/* srcDoc renders the HTML directly — no round-trip to the server needed,
-                    works on any deployment (preview or production) immediately after generation */}
+                {/* srcDoc renders HTML directly — no server round-trip needed.
+                    No sandbox: the generated HTML is our own content and needs
+                    full JS access to render interactive elements correctly. */}
                 <iframe
                   key={form._previewKey || form.lastGeneratedAt}
                   srcDoc={form.generatedHtml || ""}
-                  sandbox="allow-scripts allow-same-origin"
                   style={{ flex:1, border:"none", width:"100%" }}
                   title="Landing Page Vorschau"
                 />
