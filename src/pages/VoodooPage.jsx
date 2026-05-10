@@ -390,10 +390,9 @@ REGELN:
         html += "\n</body></html>";
       }
       if (!html.startsWith("<!")) {
-        console.error("VoodooPage generate: unexpected response start:", html.slice(0, 300));
+        console.error("VoodooPage generate: unexpected response start:", html.slice(0, 200));
         throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
       }
-      console.log("Generated HTML preview:", html.slice(0, 200), "...", html.slice(-100));
 
       // Deploy to KV via Cloudflare Function
       const res = await fetch("/deploy-site", {
@@ -425,17 +424,52 @@ REGELN:
     setSparkChars(0);
     setRefineMsg("");
     try {
-      const sys = `Du bist ein professioneller Web-Developer. Hier ist eine bestehende Landing Page. Verbessere sie gemäß der Anweisung. Antworte NUR mit dem vollständigen aktualisierten HTML (beginnend <!DOCTYPE html>) – KEIN Markdown.`;
-      const raw = await aiCallStream([
-        { role:"user", content: sys },
-        { role:"assistant", content: form.generatedHtml },
-        { role:"user", content: p },
-      ], 4000, (_c, full) => setSparkChars(full.length));
+      // Strip PAGE_CSS before sending to AI — it's ~3 KB that the AI would have
+      // to read AND reproduce, eating ~2000 tokens in both directions.
+      // We replace it with a sentinel the AI keeps verbatim, then inject it back.
+      const SENTINEL = "/* PAGE_CSS_PLACEHOLDER */";
+      const compactHtml = form.generatedHtml.includes(PAGE_CSS)
+        ? form.generatedHtml.replace(PAGE_CSS, SENTINEL)
+        : form.generatedHtml; // fallback: page was generated without our CSS
+
+      const prompt = `Du bist ein Elite-Webentwickler und Conversion-Designer mit 20 Jahren Erfahrung.
+Du kennst jede Best Practice für Landing Pages und Conversion-Optimierung.
+
+LANDING PAGE ANATOMIE (halte diese Struktur immer vollständig):
+• NAV: sticky, Logo links, Anchor-Links, CTA-Button rechts
+• HERO: emotionale H1, Subtext, 2 Buttons, optional Hero-Bild
+• BENEFITS: 3er-Grid mit Icon + h3 + Beschreibung — die stärksten Vorteile
+• CONTENT: Kerninhalt mit Bild-Text-Layout wenn möglich
+• STATS/PROOF: 3-4 Kennzahlen die Vertrauen aufbauen
+• CTA-BLOCK: Abschluss-Conversion mit prominentem Button
+• FOOTER: Links + Copyright
+
+BESTEHENDE SEITE:
+${compactHtml}
+
+ANWEISUNG: ${p}
+
+REGELN:
+- Antworte NUR mit dem vollständigen, aktualisierten HTML — KEIN Markdown
+- Behalte "${SENTINEL}" EXAKT so im <style>-Tag — das CSS wird automatisch eingefügt
+- Ändere NUR was die Anweisung verlangt — alle anderen Sections bleiben vollständig erhalten
+- KEIN zusätzliches CSS außer :root Farbvariablen
+- KEIN opacity:0, display:none auf sichtbarem Content — alles sofort sichtbar
+- Alle Sections der Landing Page müssen vorhanden sein`;
+
+      const raw = await aiCallStream(
+        [{ role:"user", content: prompt }],
+        4000,
+        (_c, full) => setSparkChars(full.length),
+      );
 
       let html = raw.trim();
       if (html.startsWith("```")) {
         html = html.replace(/^```[a-z]*\r?\n?/i, "").replace(/\r?\n?```\s*$/, "").trim();
       }
+      // Re-inject the full CSS where the sentinel is
+      html = html.includes(SENTINEL) ? html.replace(SENTINEL, PAGE_CSS) : html;
+      // Closing tag guard
       if (!html.includes("</html>") && !html.includes("</body>")) html += "\n</body></html>";
       if (!html.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
 
@@ -450,7 +484,8 @@ REGELN:
       onSave(updated);
       setRefineMsg("✓ Seite aktualisiert");
       setTimeout(() => setRefineMsg(""), 3000);
-    } catch {
+    } catch(e) {
+      console.error("VoodooPage sparkRefine error:", e);
       setRefineMsg("⚠️ Fehler – bitte erneut versuchen");
     }
     setSparkChars(0);
