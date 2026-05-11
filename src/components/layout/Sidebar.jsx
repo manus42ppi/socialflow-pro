@@ -556,8 +556,9 @@ export default function Sidebar() {
           return (
             <button
               onClick={() => {
-                // Navigate to voodoo and open the running project
+                // Navigate to voodoo, open the project, and switch to its workspace
                 setVoodooProjectId(sparkJob.projectId);
+                if (sparkJob.workspaceId) setCurrentWorkspaceId(sparkJob.workspaceId);
                 onNav("voodoo");
                 if (done || error) setSparkJob(null);
               }}

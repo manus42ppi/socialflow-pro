@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Wand2, Plus, Trash2, ExternalLink, Copy, Check, Loader,
   BookOpen, Send as SendIcon, Image as ImageIcon, Globe,
@@ -116,11 +116,15 @@ export default function VoodooPage() {
     currentWorkspaceId, voodooProjectId, setVoodooProjectId,
   } = useApp();
 
+  // Workspace-filtered list for the project chooser / create flow
   const wsProjects = projects.filter(p =>
     !currentWorkspaceId || p.workspaceId === currentWorkspaceId
   );
 
-  const project = wsProjects.find(p => p.id === voodooProjectId) || null;
+  // The active project is looked up across ALL projects — not just the current
+  // workspace — so navigating to a different Mandant while Spark is running does
+  // NOT unmount ProjectDetail and lose the in-progress generation or form state.
+  const project = projects.find(p => p.id === voodooProjectId) || null;
 
   // ── Inline create form (shown when no project is selected) ─────────────────
   const [newName, setNewName] = useState("");
@@ -257,6 +261,28 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   // Shown during the auto-repair loop ("Repariere... 1/2")
   const [repairStatus, setRepairStatus] = useState("");
 
+  // ── Sync from AppContext when background generation completes ─────────────
+  // generate() and sparkRefine() call onSave() even when this component is
+  // mounted but the user has navigated away and back. When AppContext updates
+  // the project (new generatedHtml, status, lastGeneratedAt), we need to pull
+  // those changes into local form state — useState() only reads the initial
+  // value, so we must sync explicitly on prop change.
+  useEffect(() => {
+    if (!project.generatedHtml) return;
+    setForm(f => {
+      // Only sync AI-pipeline fields, never overwrite user edits in other fields
+      if (f.generatedHtml === project.generatedHtml) return f; // already up-to-date
+      return { ...f,
+        generatedHtml:   project.generatedHtml,
+        lastGeneratedAt: project.lastGeneratedAt,
+        status:          project.status,
+      };
+    });
+    setPageIssues(validatePage(project.generatedHtml));
+    setTab("site"); // jump to preview when result arrives
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.generatedHtml]);
+
   const busy = genPhase !== "idle";
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(project);
@@ -383,7 +409,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     setGenChars(0);
     // Announce to global sparkJob so the Sidebar pill appears even when
     // the user navigates away — the async work continues regardless.
-    setSparkJob({ projectId: form.id, projectName: form.name, type: "generate", chars: 0, status: "running" });
+    setSparkJob({ projectId: form.id, projectName: form.name, workspaceId: form.workspaceId, type: "generate", chars: 0, status: "running" });
 
     // ── Auto image search from media library or stock APIs ─────────────────
     // 1. Use already-selected media items from the project
@@ -466,7 +492,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     setSparkChars(0);
     setRefineMsg("");
     // Global sparkJob — persists across navigation
-    setSparkJob({ projectId: form.id, projectName: form.name, type: "refine", chars: 0, status: "running" });
+    setSparkJob({ projectId: form.id, projectName: form.name, workspaceId: form.workspaceId, type: "refine", chars: 0, status: "running" });
     try {
       const rawHtml = await refinePage({
         html: form.generatedHtml,
