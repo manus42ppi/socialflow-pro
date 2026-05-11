@@ -62,30 +62,36 @@ footer a{color:#94a3b8}.footer-g{display:flex;gap:32px;justify-content:center;fl
 //   External http(s) links    → open in new tab (no iframe navigation)
 //   mailto / tel              → pass through
 export const LINK_GUARD = `<script>
-/* Spark link guard v2 – anchor repair + iframe guard */
+/* Spark link guard v3 – anchor repair + iframe guard + relative-path block */
 document.addEventListener('click',function(e){
   var a=e.target.closest('a');if(!a)return;
   var h=a.getAttribute('href')||'';
-  if(!h||h==='#')return;
+  if(!h||h==='#'||h.startsWith('javascript'))return;
   if(h.startsWith('#')){
-    var el=document.getElementById(h.slice(1));
-    if(!el){
-      /* Target ID missing — fuzzy-match by comparing link text with section IDs */
-      e.preventDefault();
-      var txt=(a.textContent||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-      var nodes=document.querySelectorAll('section[id],[id]');
-      var best=null;
-      for(var i=0;i<nodes.length;i++){
-        var sid=(nodes[i].id||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-        if(sid&&txt&&(sid.includes(txt.slice(0,5))||txt.includes(sid.slice(0,5)))){best=nodes[i];break;}
-      }
-      if(best)best.scrollIntoView({behavior:'smooth'});
-    }
+    var target=h.slice(1);
+    var el=document.getElementById(target);
+    if(el){el.scrollIntoView({behavior:'smooth'});e.preventDefault();return;}
+    /* Target ID missing — multi-strategy fuzzy-match */
+    e.preventDefault();
+    var txt=(a.textContent||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+    var nodes=Array.from(document.querySelectorAll('section[id],[id]'));
+    var best=null;
+    /* Strategy 1: exact ID or link-text contains target word */
+    best=nodes.find(function(n){var s=(n.id||'').toLowerCase().replace(/[^a-z0-9]/g,'');return s&&txt&&(s===txt||s.includes(txt)||txt.includes(s));});
+    /* Strategy 2: first 6 chars overlap */
+    if(!best)best=nodes.find(function(n){var s=(n.id||'').toLowerCase().replace(/[^a-z0-9]/g,'');return s&&txt&&(s.slice(0,6)===txt.slice(0,6));});
+    /* Strategy 3: target keyword found in ID */
+    if(!best){var kw=target.replace(/[^a-z0-9]/gi,'').toLowerCase();best=nodes.find(function(n){var s=(n.id||'').toLowerCase();return s&&kw&&s.includes(kw.slice(0,6));});}
+    /* Fallback: first section with an id */
+    if(!best)best=nodes[0];
+    if(best)best.scrollIntoView({behavior:'smooth'});
     return;
   }
   if(h.startsWith('mailto:')||h.startsWith('tel:'))return;
   e.preventDefault();
-  if(/^https?:\\/\\//.test(h))window.open(h,'_blank','noopener');
+  /* Absolute external links → new tab */
+  if(/^https?:\\/\\//.test(h)){window.open(h,'_blank','noopener');return;}
+  /* Relative paths (e.g. href="/") → block silently; generated pages are self-contained */
 },true);
 </script>`;
 
@@ -101,7 +107,7 @@ export const WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search"
 //   Redakteur    → clarity, structure, scannability, consistency
 //   Webdesigner  → visual hierarchy, typography, spacing, UX patterns
 export const SPARK_PERSONA =
-`Du bist drei Experten in einer Person — Werbetexter, Redakteur und Webdesigner — mit je 20 Jahren Erfahrung.
+`Du bist vier Experten in einer Person — Werbetexter, Redakteur, Webdesigner und Webentwickler — mit je 20 Jahren Erfahrung.
 
 ALS WERBETEXTER:
 • Menschen kaufen Gefühle, keine Features — schreibe immer benefit-orientiert ("Du sparst 3 h täglich", nicht "Das Tool hat Automatisierung")
@@ -130,7 +136,17 @@ ALS WEBDESIGNER:
 • Trust-Elemente (Logos, Bewertungen, Zertifikate, Kundenzahlen) stehen immer nah an der Conversion-Aktion
 • Typografie hat Persönlichkeit: Geometric = modern/tech · Humanist = vertrauenswürdig · Slab = stark/direkt
 • Responsive ist Pflicht: Grid-Breakpoints greifen, Touch-Targets ≥ 44 px, Lesebreite max 70 ch
-• KEINE bunten Emoji-Icons als Dekorationselemente (🎯 ✅ 🚀 💡 usw.) — sie sind das sicherste Erkennungszeichen für KI-generierten Content und wirken billig. Stattdessen: monochrome SVG-Icons (stroke="currentColor"), einfache Aufzählungszeichen (–, •) oder gar keine Icons`;
+• KEINE bunten Emoji-Icons als Dekorationselemente (🎯 ✅ 🚀 💡 usw.) — sie sind das sicherste Erkennungszeichen für KI-generierten Content und wirken billig. Stattdessen: monochrome SVG-Icons (stroke="currentColor"), einfache Aufzählungszeichen (–, •) oder gar keine Icons
+
+ALS WEBENTWICKLER:
+• CSS-Klassen sind semantisch — jede Klasse hat genau einen Zweck und darf nicht zweckentfremdet werden
+• .stat/.stat-l sind AUSSCHLIESSLICH für isolierte Kennzahlen in der STATS-Section reserviert ("2.400", "98%", "14 Tage") — niemals für Labels, Lesezeiten, Kategorien oder sonstigen Fließtext; "Lesedauer 7 min" ist KEIN Stat
+• .ico ist ein Icon-Container — NUR monochrome SVG mit stroke="currentColor", kein Emoji, kein Text
+• Jeder nav href="#xyz" MUSS eine Section mit genau id="xyz" haben — prüfe vor der Ausgabe jeden einzelnen Anker gegen die tatsächlichen IDs im Dokument
+• CTA-Buttons und alle Nav-Links: ausschließlich #anchor-Ziele — niemals relative Pfade (href="/") oder externe URLs ohne target="_blank" rel="noopener"
+• Typografie-Hierarchie einhalten: h1 (Hero) → h2 (Section-Titel) → h3 (Card-Titel) — Größe entsteht durch das korrekte HTML-Tag, nicht durch Klassenm issbrauch
+• Bilder immer in einem Container mit fester Höhe oder aspect-ratio einbetten — verhindert Layout-Shift beim Laden
+• Alle Grids (.g2 .g3 .g4) mit auto-fit minmax müssen auf 320 px Breite kollabieren ohne horizontale Scrollbar oder Text-Überlauf`;
 
 
 // ── Story-Editor persona ──────────────────────────────────────────────────────
@@ -646,15 +662,17 @@ LANDING PAGE ANATOMIE (ALLE 7 Sections vollständig):
 ${answersText ? `AUFTRAGGEBER-VORGABEN:\n${answersText}\n` : ""}
 ${imagesText}
 
-VERFÜGBARE CSS-KLASSEN (keine weiteren CSS-Regeln nötig):
-Layout:   .w  .g .g2 .g3 .g4  .img-r
-Nav:      nav  .ni  .logo  .nl  .nav-cta
-Hero:     .hero  .btns
-Buttons:  .btn  .btn-p  .btn-o  .btn-w
-Content:  section  .alt  .lbl  h2  h3  .lead
-Cards:    .card  .ico  .stat  .stat-l  .tag
-CTA:      .cta-b
-Footer:   footer  .footer-g
+VERFÜGBARE CSS-KLASSEN — Semantik strikt einhalten, keine Zweckentfremdung:
+Layout:   .w (max 1100px zentriert)  |  .g .g2 .g3 .g4 (responsive Grids)  |  .img-r (Text+Bild nebeneinander)
+Nav:      nav .ni .logo .nl .nav-cta  — alle Links AUSSCHLIESSLICH href="#section-id"
+Hero:     .hero (Gradient-Hintergrund)  |  .btns (Button-Reihe)
+Buttons:  .btn-p (primär, blau gefüllt)  |  .btn-o (outline, blau Rand)  |  .btn-w (weiß, für .cta-b)
+Content:  section .alt(grau) .lbl(Label) h2(Titel) h3(Untertitel) .lead(Intro-Text)
+Cards:    .card (weißes Panel)  |  .ico (NUR SVG, KEIN Emoji)  |  .tag (Kategorie-Badge)
+STATS:    .stat = AUSSCHLIESSLICH nackte Zahlenwerte ("2.400", "98%", "14 Tage") — NIEMALS für Labels, Lesezeiten oder Text
+          .stat-l = kurze Beschriftung DIREKT unter .stat (max 4 Wörter)
+CTA:      .cta-b (blauer Verlauf-Block)
+Footer:   footer .footer-g
 
 PROJEKT: ${form.name}
 BESCHREIBUNG: ${form.description || "(keine)"}
@@ -670,9 +688,10 @@ AUSGABE-FORMAT (exakt einhalten):
 
 QUALITÄTS-REGELN (keine Ausnahmen):
 - EMOJI-VERBOT (absolut, keine Ausnahmen): Niemals Emojis oder Unicode-Piktogramme — weder in <div class="ico">, noch in Überschriften, Listenpunkten oder Fließtext. Emojis verraten sofort KI-generierten Content. Einzig erlaubt: monochrome SVG mit stroke="currentColor". Beispiel: <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><circle cx="12" cy="12" r="10"/></svg></div>
+- STAT-VERBOT: .stat/.stat-l NUR für nackte Zahlenwerte in der STATS-Section ("2.400 Nutzer", "98%"). Texte wie "Lesedauer 7 min", "Jeden Samstag", "Kategorie Route" etc. sind KEINE Stats — diese als normaler h3/p-Text schreiben
 - KEIN zusätzliches CSS außer :root Farbvariablen in Schritt 2
-- Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" oder externe URLs in der Nav
-- ANCHOR-KONSISTENZ (kritisch): Jeder Nav-Link href="#xyz" MUSS eine Section oder ein Element mit GENAU id="xyz" im Body haben. Prüfe jeden einzelnen #anchor gegen die Section-IDs bevor du ausgibst — kein #anchor ohne passendes id=""
+- Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" oder href="https://..." in der Nav
+- ANCHOR-KONSISTENZ (kritisch): BEVOR du ausgibst — gehe alle href="#xyz" durch und stelle sicher dass im Body exakt id="xyz" existiert. Kein einziger #anchor darf ohne passendes id="" bleiben
 - KEIN opacity:0 oder display:none auf sichtbarem Content
 - JS nur wenn unbedingt nötig, max 10 Zeilen, Content ohne JS vollständig sichtbar
 - KEINE Platzhalter-Texte — nur echte Inhalte aus den Projektdaten
@@ -748,8 +767,9 @@ NAV → HERO → BENEFITS → CONTENT → STATS → CTA-BLOCK → FOOTER
 TECHNISCHE REGELN (keine Ausnahmen):
 - Behalte "${CSS_SENTINEL}" EXAKT im <style>-Tag — CSS wird automatisch eingefügt
 - EMOJI-VERBOT (absolut): Niemals Emojis oder Unicode-Piktogramme — weder in <div class="ico">, noch in Überschriften, Listenpunkten oder Fließtext. Nur monochrome SVG mit stroke="currentColor" sind erlaubt.
-- Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" in der Nav
-- ANCHOR-KONSISTENZ (kritisch): Jeder Nav-Link href="#xyz" MUSS eine Section mit GENAU id="xyz" im Body haben. Beim Refinement: wenn du Nav-Links änderst, passe auch die Section-IDs an — und umgekehrt. Kein #anchor ohne passendes id=""
+- STAT-VERBOT: .stat/.stat-l NUR für nackte Zahlenwerte ("2.400", "98%") — niemals für Labels, Texte oder Lesezeiten
+- Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" oder externe URLs in der Nav
+- ANCHOR-KONSISTENZ (kritisch): Jeder href="#xyz" MUSS eine Section mit GENAU id="xyz" haben. Bei Änderungen an Nav-Links immer auch die Section-IDs anpassen — und umgekehrt
 - KEIN opacity:0 oder display:none auf sichtbarem Content
 - KEIN zusätzliches CSS außer :root Farbvariablen
 - JS nur wenn nötig, Content ohne JS vollständig sichtbar`;
