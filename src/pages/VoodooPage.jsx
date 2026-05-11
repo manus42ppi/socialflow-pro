@@ -10,7 +10,7 @@ import { uid } from "../utils/store.js";
 import {
   slugify, buildContext, runPreflight, searchImages,
   generatePage, refinePage, validatePage, postProcessHtml,
-  buildRepairInstruction,
+  buildRepairInstruction, generateMissingSections,
 } from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
 
@@ -19,39 +19,60 @@ import { useApp } from "../context/AppContext.jsx";
 const getSiteUrl = (slug) => `${window.location.origin}/site/${slug}`;
 
 // ── Post-generation HTML repair ───────────────────────────────────────────────
-// Uses the browser's DOMParser to parse the AI-generated HTML and fix the most
-// common structural problems programmatically — no extra AI call needed.
+// Uses the browser's DOMParser to fix structural problems programmatically.
+// Zero AI tokens — pure DOM manipulation.
 //
-// Repairs performed:
-//   1. Broken nav anchors: href="#xyz" with no matching id="xyz" → assigns the
-//      missing id to the next available <section> in document order.
-//   2. Re-runs postProcessHtml (idempotent) so the current LINK_GUARD is always
-//      correctly placed regardless of what DOMParser did to whitespace/order.
+// Repairs performed (in order):
+//   1. Script-leak: text nodes containing JS code (e.g. guard reproduced as text)
+//      are removed from the DOM.
+//   2. Broken nav anchors: href="#xyz" with no matching id="xyz".
+//      Strategy A — content matching: find a section whose heading text contains
+//        the target keyword (e.g. "#neuron" → section with "Neuron" in h2).
+//      Strategy B — fallback: assign the id to the next section without one.
+//   3. Re-runs postProcessHtml (idempotent) for fresh LINK_GUARD + closing tags.
 //
-// Falls back to the original HTML on any parse error (safe, never throws).
+// Falls back to postProcessHtml(html) on any parse error (safe, never throws).
 function repairPage(html) {
   try {
     const doc = new DOMParser().parseFromString(html, "text/html");
 
-    // Collect all anchor links targeting #ids and all <section> elements
+    // 1. Remove script-leak text nodes (JS code rendered as visible text)
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null);
+    const leaks = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      const t = node.textContent || "";
+      if (t.includes("document.addEventListener") || t.includes("Spark link guard")) {
+        leaks.push(node);
+      }
+    }
+    leaks.forEach(n => n.parentNode?.removeChild(n));
+
+    // 2. Fix broken nav anchors
     const anchors  = [...doc.querySelectorAll('a[href^="#"]')];
     const sections = [...doc.querySelectorAll("section")];
-    let si = 0;
 
     anchors.forEach(a => {
       const id = a.getAttribute("href").slice(1);
-      if (!id || doc.getElementById(id)) return; // skip empty or already-valid
-      // Advance past sections that already have an id
-      while (si < sections.length && sections[si].id) si++;
-      if (si < sections.length) { sections[si].id = id; si++; }
+      if (!id || doc.getElementById(id)) return; // already valid
+
+      // Strategy A: find a section whose heading text fuzzy-matches the id
+      const keyword = id.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
+      const match = sections.find(s => {
+        const heading = (s.querySelector("h1,h2,h3")?.textContent || "").toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
+        return keyword && heading.includes(keyword);
+      });
+      if (match) { match.id = id; return; }
+
+      // Strategy B: assign to next section without an id
+      const empty = sections.find(s => !s.id);
+      if (empty) empty.id = id;
     });
 
-    // outerHTML gives <html>…</html> — prepend DOCTYPE, then re-run postProcessHtml
-    // which is idempotent and ensures the fresh LINK_GUARD is correctly placed.
     const serialized = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
     return postProcessHtml(serialized);
   } catch {
-    // Parse failure — postProcessHtml at least ensures guard + closing tags are correct
     return postProcessHtml(html);
   }
 }
@@ -245,40 +266,67 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   function save() { onSave(form); }
 
   // ── Auto-repair loop ──────────────────────────────────────────────────────
-  // Validates html; if issues remain, calls refinePage with a targeted repair
-  // instruction and re-runs repairPage. Repeats up to maxAttempts times.
-  // Always returns a valid HTML string (worst case: the original unchanged).
+  // Validates html; repairs issues using the cheapest strategy available.
+  //
+  // STRATEGY (in order of token cost):
+  //   1. DOM repair (0 tokens)  — repairPage() handles script leaks + anchor IDs
+  //      via content-based heading matching. Covers ~80% of all issues.
+  //   2. Section injection (~1500 tokens)  — generateMissingSections() produces
+  //      only the missing <section> snippets; they're stitched in client-side.
+  //      Only runs when DOM repair still leaves a section-count warning.
+  //   3. Never calls refinePage() — that would output the full page (~6000 tokens)
+  //      for what is often just a structural fix.
+  //
+  // Always returns a valid HTML string; never throws.
   async function autoRepairLoop(html, maxAttempts = 2) {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const issues = validatePage(html);
-      if (issues.length === 0) break;
+      // ── Phase 1: DOM repair (0 tokens) ─────────────────────────────────
+      // Handles: script leaks, anchor ID mismatches via content matching
+      const domFixed = repairPage(html);
+      const issuesAfterDom = validatePage(domFixed);
 
-      const instruction = buildRepairInstruction(issues);
-      if (!instruction) break;
+      if (issuesAfterDom.length === 0) {
+        // All fixed by DOM manipulation — no AI needed
+        html = domFixed;
+        break;
+      }
+      html = domFixed; // keep the DOM-fixed version as base
 
-      const label = `Automatische Reparatur… (${attempt}/${maxAttempts})`;
-      setRepairStatus(label);
+      // ── Phase 2: Surgical section injection (~1500 tokens) ───────────────
+      // Only if there are genuinely missing sections that DOM can't invent
+      const sectionIssue = issuesAfterDom.find(i => i.msg.includes("Sections gefunden"));
+      const anchorIssue  = issuesAfterDom.find(i => i.msg.includes("Nav-Link"));
+
+      if (!sectionIssue && !anchorIssue) break; // only unknown issues remain
+
+      // Collect IDs that nav links reference but no element provides
+      const navHrefs = [...html.matchAll(/href="#([\w-]+)"/g)].map(m => m[1]);
+      const pageIds  = new Set([...html.matchAll(/\s+id="([\w-]+)"/g)].map(m => m[1]));
+      const missingIds = [...new Set(navHrefs)].filter(id => !pageIds.has(id));
+
+      if (missingIds.length === 0 && !sectionIssue) break; // nothing actionable
+
+      setRepairStatus(`Automatische Reparatur… (${attempt}/${maxAttempts})`);
       setSparkJob(j => j ? { ...j, status: "running", chars: 0 } : j);
 
       try {
-        const rawHtml = await refinePage({
-          html,
-          instruction,
-          onChunk: (_c, full) => {
-            setSparkChars(full.length);
-            setSparkJob(j => j ? { ...j, chars: full.length } : j);
-          },
-        });
-        const fixed = repairPage(rawHtml);
-        if (fixed.startsWith("<!")) {
-          html = fixed; // accept the repaired version and continue loop
-        } else {
-          break; // AI returned something unexpected — stop and keep current
+        const newSections = await generateMissingSections({ html, missingIds });
+
+        if (newSections.length > 0) {
+          // Inject new sections before the CTA block (if present) or before </body>
+          const ctaPattern = /<section[^>]*class="[^"]*cta-b[^"]*"/i;
+          const insertionTag = ctaPattern.test(html) ? ctaPattern : /<\/body>/i;
+          const snippets = newSections.map(s => s.html).join("\n");
+          html = html.replace(insertionTag, m => snippets + "\n" + m);
+          html = postProcessHtml(html);
         }
       } catch(e) {
-        console.error(`autoRepairLoop attempt ${attempt} failed:`, e);
-        break; // network/AI error — stop, keep current html
+        console.error(`autoRepairLoop generateMissingSections attempt ${attempt}:`, e);
+        break; // keep what we have
       }
+
+      // Stop early if clean
+      if (validatePage(html).length === 0) break;
     }
 
     setRepairStatus("");

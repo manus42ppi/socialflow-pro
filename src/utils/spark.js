@@ -165,6 +165,11 @@ export function blocksToPlain(blocks) {
 // Used to strip stale guards before re-injecting the current version.
 const GUARD_RE = /<script>\s*\/\*\s*Spark link guard[\s\S]*?<\/script>\s*/i;
 
+// Sentinel used in both generatePage and refinePage.
+// Replaces PAGE_CSS in prompts/output so the model copies a short token
+// instead of ~3 KB of CSS. Both functions re-inject the real CSS afterwards.
+const CSS_SENTINEL = "/* PAGE_CSS_PLACEHOLDER */";
+
 /**
  * Post-process raw AI HTML output into a safe, complete page.
  *
@@ -297,6 +302,64 @@ export function buildRepairInstruction(issues) {
     `• Jeder Nav-Link href="#xyz" MUSS eine Section mit id="xyz" haben — keine Ausnahme\n` +
     `• Ausgabe: vollständige HTML-Seite, beginnt mit <!DOCTYPE html>`
   );
+}
+
+/**
+ * Generate ONLY the missing <section> elements for an existing page.
+ * Surgical alternative to a full-page refinement — ~1500 tokens instead of 6000+.
+ *
+ * Strategy: extract page title and nav-link labels from existing HTML for context,
+ * then ask the AI for only the section snippets that are missing.
+ * The caller injects them into the existing page.
+ *
+ * @param {string}   html       - Current page HTML (used for context extraction)
+ * @param {string[]} missingIds - Section IDs that need to be created
+ * @returns {Array<{id:string, html:string}>} New section elements
+ */
+export async function generateMissingSections({ html, missingIds }) {
+  if (!missingIds?.length) return [];
+
+  // Extract context from the existing page (regex — no DOMParser in pure functions)
+  const titleMatch = html.match(/<title>([^<]{1,80})<\/title>/i);
+  const pageTitle = titleMatch ? titleMatch[1].trim() : "Landing Page";
+
+  // Nav links: {id: "bikes", label: "Die Bikes"}
+  const navLinks = [...html.matchAll(/href="#([\w-]+)"[^>]*>\s*([^<]{1,40})/g)]
+    .map(m => ({ id: m[1], label: m[2].trim() }));
+
+  // Existing root-level CSS color vars for design continuity
+  const rootMatch = html.match(/:root\s*\{([^}]{1,300})\}/);
+  const rootVars = rootMatch ? rootMatch[1].trim() : "";
+
+  const targets = missingIds.map(id => {
+    const link = navLinks.find(l => l.id === id);
+    return `• id="${id}"${link?.label ? ` (Nav-Label: "${link.label}")` : ""}`;
+  }).join("\n");
+
+  const prompt =
+`Du bist Werbetexter und Webdesigner. Erstelle NUR folgende fehlende <section>-Elemente für eine bestehende Landing Page.
+KEINE vollständige HTML-Seite — NUR die <section>-Tags selbst.
+
+SEITE: "${pageTitle}"
+DESIGN-VARS: :root{${rootVars}}
+
+FEHLENDE SECTIONS (in dieser Reihenfolge erstellen):
+${targets}
+
+PFLICHT-KLASSEN (nur diese, kein eigenes CSS):
+section .alt .w .lbl h2 h3 .lead .g .g2 .g3 .g4 .card .ico .stat .stat-l .btn .btn-p .tag
+
+REGELN:
+• Jede Section bekommt GENAU das id="" das oben angegeben ist
+• Inhalte passen thematisch zu "${pageTitle}" — überzeugend, benefit-orientiert, konkret
+• Keine Bilder, keine externen URLs, kein JavaScript
+• Kein Platzhaltertext — echte, überzeugende Inhalte
+
+NUR JSON, kein Markdown:
+{"sections":[{"id":"xyz","html":"<section id=\\"xyz\\">...</section>"}]}`;
+
+  const raw = await aiCall([{ role: "user", content: prompt }], 2000);
+  return parseJSON(raw)?.sections || [];
 }
 
 /**
@@ -462,12 +525,12 @@ ${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}` : ""}
 AUSGABE-FORMAT (exakt einhalten):
 1. <!DOCTYPE html>
 2. <head>: charset · viewport · <title> · <style>:root{--p:#XXX;--pd:#XXX;--pl:#XXX}</style>
-3. <style>${PAGE_CSS}</style>
+3. <style>${CSS_SENTINEL}</style>   ← EXAKT SO schreiben — CSS wird automatisch eingefügt
 4. <body>: vollständiges semantisches HTML
 5. </body></html>
 
 QUALITÄTS-REGELN (keine Ausnahmen):
-- KEIN zusätzliches CSS außer :root Farbvariablen
+- KEIN zusätzliches CSS außer :root Farbvariablen in Schritt 2
 - KEINE Emoji-Icons als Grafik — nur monochrome SVG (stroke="currentColor") oder Textsymbole
 - Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" oder externe URLs in der Nav
 - ANCHOR-KONSISTENZ (kritisch): Jeder Nav-Link href="#xyz" MUSS eine Section oder ein Element mit GENAU id="xyz" im Body haben. Prüfe jeden einzelnen #anchor gegen die Section-IDs bevor du ausgibst — kein #anchor ohne passendes id=""
@@ -478,12 +541,14 @@ QUALITÄTS-REGELN (keine Ausnahmen):
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    4000,
+    6000,   // +2000 vs before: web search consumes 1000-2500 tokens before HTML starts
     onChunk,
     [WEB_SEARCH_TOOL],
   );
 
-  return postProcessHtml(raw);
+  // Re-inject CSS (sentinel trick: model outputs placeholder, we fill it in)
+  const withCss = raw.includes(CSS_SENTINEL) ? raw.replace(CSS_SENTINEL, PAGE_CSS) : raw;
+  return postProcessHtml(withCss);
 }
 
 /**
@@ -502,13 +567,17 @@ QUALITÄTS-REGELN (keine Ausnahmen):
  * @returns {string} Post-processed updated HTML string
  */
 export async function refinePage({ html, instruction, onChunk }) {
-  const SENTINEL = "/* PAGE_CSS_PLACEHOLDER */";
   // Strip PAGE_CSS (sentinel trick) AND the link guard script — the AI must
   // never see the guard code, otherwise it can reproduce it as visible text content.
   // Both are re-injected by postProcessHtml() after the stream completes.
   const compactHtml = html
-    .replace(PAGE_CSS, SENTINEL)
+    .replace(PAGE_CSS, CSS_SENTINEL)
     .replace(GUARD_RE, "");
+
+  // Dynamic token budget: 2× the compressed HTML size, capped between 4000–6000.
+  // A page is typically 8–16 kB compressed → 2000–4000 tokens → budget 4000–6000.
+  // Refinement rarely needs to produce MORE tokens than the input, so 6000 is safe.
+  const max_tokens = Math.min(6000, Math.max(4000, Math.ceil(compactHtml.length / 4 * 2.2)));
 
   // ⚠️  Output-Pflicht steht ZUERST — bevor das Modell irgendetwas anderes liest.
   // Das verhindert, dass das Modell einen einleitenden Satz vor <!DOCTYPE html> ausgibt.
@@ -548,12 +617,12 @@ TECHNISCHE REGELN (keine Ausnahmen):
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    8000,   // Vollständige Seite + Ergänzungen brauchen mehr als 4000 Token
+    max_tokens,
     onChunk,
-    // Kein WEB_SEARCH_TOOL: Refinement braucht keine Live-Recherche
+    // Kein WEB_SEARCH_TOOL: Refinement ist gezielte Änderung, keine Recherche-Aufgabe
   );
 
   // Re-inject CSS before post-processing
-  const withCss = raw.includes(SENTINEL) ? raw.replace(SENTINEL, PAGE_CSS) : raw;
+  const withCss = raw.includes(CSS_SENTINEL) ? raw.replace(CSS_SENTINEL, PAGE_CSS) : raw;
   return postProcessHtml(withCss);
 }
