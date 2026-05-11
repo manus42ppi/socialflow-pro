@@ -25,6 +25,7 @@ import {
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
 import { uid, aiCall, fileToDataURL, parseJSON } from "../utils/store.js";
+import { STORY_PERSONA } from "../utils/spark.js";
 import { stockSearch, skGet } from "../components/StockSearch.jsx";
 import { Btn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
@@ -1404,7 +1405,7 @@ export default function StoryEditorModal() {
     try {
       if (isSel) {
         // ── Text-edit mode (selection) ──────────────────────────────────────
-        const sys = `Du bist Spark, ein präziser KI-Editor für Content-Erstellung. Bearbeite NUR den folgenden markierten Text (${ctxWords} Wörter). Antworte NUR mit dem bearbeiteten Text – keine Erklärungen, keine Präfixe, keine Anführungszeichen.`;
+        const sys = `${STORY_PERSONA}\n\nBearbeite NUR den folgenden markierten Text (${ctxWords} Wörter). Antworte NUR mit dem bearbeiteten Text – keine Erklärungen, keine Präfixe, keine Anführungszeichen.`;
         const result = await aiCall([{ role:"user", content:`${sys}\n\nText:\n${ctxText}\n\nAufgabe: ${p}` }], 2000);
         const trimmed = result.trim();
         if (!trimmed) throw new Error("empty");
@@ -1414,7 +1415,7 @@ export default function StoryEditorModal() {
         // ── Agentic editor mode (full document) ─────────────────────────────
         const blocks     = editor.document || [];
         const serialized = serializeDocumentForAI(blocks);
-        const sys = `Du bist Spark, der autonome KI-Editor von SocialFlow Pro. Du kennst jeden Block des Artikels und kannst gezielte Änderungen planen: Überschriften schreiben, Absätze umformulieren, Bilder suchen & einsetzen, Strukturen verbessern, Listenelemente hinzufügen und mehr.
+        const sys = `${STORY_PERSONA}\n\nDu bist Spark, der autonome KI-Editor von SocialFlow Pro. Du kennst jeden Block des Artikels und kannst gezielte Änderungen planen: Überschriften schreiben, Absätze umformulieren, Bilder suchen & einsetzen, Strukturen verbessern, Listenelemente hinzufügen und mehr.
 
 ARTIKEL:
 Titel: "${formRef.current.title || "(kein Titel)"}"
