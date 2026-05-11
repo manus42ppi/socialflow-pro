@@ -13,7 +13,7 @@
 | Auth | Clerk (Dev-Key) | Demo-Login via `DEMO_USERS` in `constants/demo.js` |
 | AI-Proxy | Cloudflare Function | `POST /ai` → Anthropic API (NIEMALS direkt!) |
 | KV-Store | Cloudflare KV | `POST /store` → Clerk-JWT geschützt, Demo-User: kein KV |
-| Backend | `functions/` | Cloudflare Pages Functions (ai, store, instagram, ig-monitor, rss) |
+| Backend | `functions/` | Cloudflare Pages Functions (12 Endpunkte) |
 | Produktion | https://socialflow-pro.pages.dev | Auto-deploy: `main` Branch |
 | Dev-Preview | https://develop.socialflow-pro.pages.dev | Auto-deploy: `develop` Branch |
 | Repo | https://github.com/manus42ppi/socialflow-pro | |
@@ -42,7 +42,7 @@ git commit -m "refactor: ... [skip ci]"
 # Aktuellen Branch prüfen — muss immer "develop" sein
 git branch --show-current
 
-# Tests ausführen (141 Tests, müssen alle grün sein vor jedem Push)
+# Tests ausführen (193 Tests, müssen alle grün sein vor jedem Push)
 node node_modules/.bin/vitest run
 
 # Build prüfen
@@ -151,43 +151,6 @@ const pickerVisible = document.body.innerHTML.includes('Block-Typ');
 const blockCount = document.querySelectorAll('[data-node-type="blockContainer"]').length;
 ```
 
-### BlockNote AddBlockButton – vollständiger Test
-
-```js
-// Schritt 1: Block hovern → SideMenu erscheint
-const block = document.querySelector('[data-node-type="blockContainer"]');
-const r0 = block.getBoundingClientRect();
-block.dispatchEvent(new MouseEvent('mouseover', { bubbles:true, clientX:r0.left+20, clientY:r0.top+10 }));
-block.dispatchEvent(new MouseEvent('mousemove', { bubbles:true, clientX:r0.left+20, clientY:r0.top+10 }));
-
-// Schritt 2: 400ms warten → + Button suchen → echtes mousedown dispatchen
-await new Promise(r => setTimeout(r, 400));
-const addBtn = [...document.querySelectorAll('button')].find(b => b.title === 'Block einfügen');
-const r1 = addBtn.getBoundingClientRect();
-addBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles:true, cancelable:true,
-  clientX: r1.left + r1.width/2, clientY: r1.top + r1.height/2 }));
-
-// Schritt 3: 500ms warten → Picker prüfen (muss im DOM sein, auch wenn SideMenu umgehängt wurde)
-await new Promise(r => setTimeout(r, 500));
-const pickerOK = document.body.innerHTML.includes('Block-Typ') &&
-  document.body.innerHTML.includes('Aufzählung');
-
-// Schritt 4: Item im Picker anklicken (echtes mousedown)
-const menu = [...document.querySelectorAll('div')].find(d =>
-  d.textContent.includes('Block-Typ') && d.textContent.includes('Aufzählung'));
-const h2Row = [...menu.querySelectorAll('div')].find(d => d.textContent.trim() === 'H2Überschrift 2');
-const r2 = h2Row.getBoundingClientRect();
-h2Row.dispatchEvent(new MouseEvent('mousedown', { bubbles:true, cancelable:true,
-  clientX: r2.left + r2.width/2, clientY: r2.top + r2.height/2 }));
-
-// Schritt 5: 400ms warten → Block-Typ prüfen
-await new Promise(r => setTimeout(r, 400));
-const blocks = [...document.querySelectorAll('[data-node-type="blockContainer"]')]
-  .map(b => ({ type: b.querySelector('[data-content-type]')?.getAttribute('data-content-type'),
-               tag: b.querySelector('h1,h2,h3')?.tagName }));
-// Erwartung: [ {type:'paragraph', tag:null}, {type:'heading', tag:'H2'} ]
-```
-
 ---
 
 ## 4. Dateistruktur `src/`
@@ -201,23 +164,34 @@ src/
 │   ├── colors.js              # C, T (Farb-Tokens), FONT, FONT_DISPLAY, IW, CSS
 │   ├── demo.js                # CHANNELS, STORY_CHANNELS, ROLES, DEMO_USERS,
 │   │                          # DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS,
-│   │                          # DEMO_CAMPAIGNS, DEMO_POSTS, DEMO_STORIES, DEMO_MEDIA
-│   └── nav.js                 # NAV_GROUPS, NAV_UTILITY, TITLE-Map
+│   │                          # DEMO_CAMPAIGNS, DEMO_POSTS, DEMO_STORIES, DEMO_MEDIA,
+│   │                          # DEMO_PROJECTS (leer), VOODOO_SOURCE_TYPES
+│   └── nav.js                 # NAV_GROUPS, NAV_UTILITY, NAV, TITLE, CHCLR
 │
 ├── context/
 │   └── AppContext.jsx         # Gesamter App-State + Multi-Tenant + KV-Persistenz
 │
+├── hooks/
+│   └── useSections.jsx        # useSections() Hook + SecCard – draggable Dashboard-Karten
+│
 ├── utils/
-│   └── store.js               # uid, fileToDataURL, getMediaType, fmtDate, fpos,
-│                              # aiCall, parseJSON, storeGet, storeSet,
-│                              # igSync, igMonitor, AI-Objekt
+│   ├── store.js               # uid, fileToDataURL, getMediaType, fmtDate, fpos,
+│   │                          # aiCall, aiCallStream, parseJSON,
+│   │                          # storeGet, storeSet, storeDelete,
+│   │                          # igSync, igMonitor, AI-Objekt
+│   └── spark.js               # Creation Voodoo — alle Spark-KI-Funktionen (testbar)
+│                              # PAGE_CSS, LINK_GUARD, WEB_SEARCH_TOOL, SPARK_PERSONA
+│                              # slugify, blocksToPlain, postProcessHtml, buildContext
+│                              # validatePage, buildRepairInstruction
+│                              # generateMissingSections, runPreflight
+│                              # generatePage, refinePage, searchImages
 │
 ├── components/
 │   ├── ui/
 │   │   ├── index.jsx          # Sp, Badge, Avatar, Btn, Card, FL, TIn, SBadge, SCrd
 │   │   └── ChIco.jsx          # Channel-Icons
 │   ├── layout/
-│   │   ├── Sidebar.jsx        # Linke Navigation + Mandanten-Switcher
+│   │   ├── Sidebar.jsx        # Linke Navigation + Mandanten-Switcher + Spark-Pill
 │   │   ├── TopBar.jsx         # Suchleiste + Notifications + "Neuer Post"
 │   │   └── GlobalRightSidebar.jsx
 │   ├── previews/              # IGPrev, TWPrev, LIPrev, FBPrev, TKPrev, WAPrev
@@ -237,11 +211,18 @@ src/
 │   ├── StoriesPage.jsx
 │   ├── MediaPage.jsx
 │   ├── PerformancePage.jsx
-│   ├── MonitoringPage.jsx
+│   ├── MonitoringPage.jsx         # Instagram Business Discovery API
 │   ├── AdminPage.jsx
 │   ├── TrashPage.jsx
-│   ├── ResearchPage.jsx
-│   └── UGCPortalPage.jsx
+│   ├── UGCPortalPage.jsx
+│   ├── VoodooPage.jsx             # Creation Voodoo – Landing Page Generator
+│   │
+│   ├── TrendsPage.jsx             # RSS-Feed + Trendanalyse (Tagesschau, Heise, t3n …)
+│   ├── DomainAnalysePage.jsx      # Domain-Analyse via /content + /analyze Function
+│   ├── WettbewerberPage.jsx       # Wettbewerber-Vergleich via /analyze
+│   ├── ContentAuditPage.jsx       # SEO Content-Audit via /analyze
+│   ├── StructureAuditPage.jsx     # Schema.org Strukturdaten-Audit via /schema-validate
+│   └── SocialIntelligencePage.jsx # Social Media Analytics via /social-analyze
 │
 ├── modals/
 │   ├── Editor.jsx
@@ -257,14 +238,24 @@ src/
     ├── story.test.js
     └── components/
         ├── ui.test.jsx
-        └── postcard.test.jsx
+        ├── postcard.test.jsx
+        └── spark.test.js          # 193 Tests für spark.js (validatePage, buildRepairInstruction …)
 
 functions/
-├── ai.js          # POST /ai → Anthropic API Proxy (claude-sonnet-4-6)
-├── store.js       # POST /store → Cloudflare KV (Clerk-JWT required)
-├── instagram.js   # POST /instagram
-├── ig-monitor.js  # POST /ig-monitor → Business Discovery API
-└── rss.js         # GET /rss → RSS-Feed Proxy
+├── ai.js              # POST /ai → Anthropic API Proxy (claude-sonnet-4-6), stream + non-stream
+├── store.js           # POST /store → Cloudflare KV (Clerk-JWT required, User-isoliert)
+├── instagram.js       # POST /instagram → Instagram Graph API Proxy
+├── ig-monitor.js      # POST /ig-monitor → Business Discovery API (öffentliche Accounts)
+├── rss.js             # GET  /rss?url=… → RSS-Feed Proxy (CORS-Umgehung)
+├── content.js         # POST /content → URL fetchen + Text extrahieren
+├── analyze.js         # POST /analyze → Haupt-Orchestrator (Content+Social+Schema parallel)
+├── social-analyze.js  # POST /social-analyze → Social-Media-Metriken
+├── schema-validate.js # POST /schema-validate → Schema.org / JSON-LD Validator via KI
+├── blog.js            # POST /blog → Public Blog API (KV: "public:blog:{slug}")
+├── track.js           # POST /track → Blog-Artikel-Analytics (KV: "stats:blog:{slug}")
+├── deploy-site.js     # POST /deploy-site → Voodoo Landing Page in KV schreiben/löschen
+└── site/
+    └── [slug].js      # GET  /site/:slug → Deployed Voodoo Page öffentlich ausliefern
 ```
 
 ---
@@ -329,6 +320,14 @@ lockStory, unlockStory, delStory, newStory
 // Post-Detail
 detailPost, setDetailPost
 
+// Projects (Creation Voodoo) — workspace-UNFILTERED für aktive Projekte
+projects, saveProject, delProject, voodooProjectId, setVoodooProjectId
+
+// Spark background job
+sparkJob, setSparkJob
+// Shape: null | { projectId, projectName, workspaceId,
+//                 type:"generate"|"refine", chars:0, status:"running"|"done"|"error" }
+
 // Workspace / Multi-Tenant
 workspaces, userWorkspaces,
 currentWorkspaceId, setCurrentWorkspaceId, currentWorkspace
@@ -353,7 +352,20 @@ useEffect(() => {
 }, [posts]);
 ```
 
-Demo-User → kein KV → localStorage-Fallback für Media (`"demo_media"`).
+Demo-User → kein KV → localStorage-Fallback für Media (`"demo_media"`), Stories (`"demo_stories"`), Projects (`"demo_projects"`).
+
+### Projects-KV-Schema (getrennte Speicherung)
+```js
+// Metadata-Index (ohne generatedHtml — hält Payload klein)
+storeSet("projects", projects.map(({ generatedHtml, ...meta }) => meta));
+
+// HTML pro Projekt separat (nur wenn status === "live")
+storeSet(`project:html:${p.id}`, { html: p.generatedHtml });
+
+// Beim Löschen: beide Keys aufräumen
+storeDelete(`project:html:${p.id}`);
+// + DELETE /deploy-site { slug, delete: true } → KV-Eintrag "site:{slug}" entfernen
+```
 
 ### Auto-Save-Pattern (Editor & StoryEditorModal)
 
@@ -410,9 +422,87 @@ document.addEventListener("mousedown", close);
 
 `currentWorkspace` gibt `null` zurück wenn kein Mandant — NICHT `DEMO_WORKSPACES[0]`.
 
+### Projects sind workspace-unabhängig beim Lesen
+```js
+// VoodooPage: aktives Projekt über ALLE workspaces suchen (nicht wsProjects.find!)
+const project = projects.find(p => p.id === voodooProjectId) || null;
+// Sonst: Workspace-Wechsel während Generierung → Projekt verschwindet
+```
+
 ---
 
-## 8. Story-Workflow (BlockNote v0.47.3)
+## 8. Creation Voodoo (`spark.js` + `VoodooPage.jsx`)
+
+### Überblick
+Spark generiert vollständige Landing Pages / One-Pager aus Storys, Posts, Medien und URLs.
+KI-Modell: `claude-sonnet-4-6` via `/ai` Proxy.
+
+### Architektur `src/utils/spark.js`
+
+| Export | Typ | Tokens | Beschreibung |
+|---|---|---|---|
+| `PAGE_CSS` | Konstante | — | ~3 KB Inline-CSS für generierte Pages |
+| `LINK_GUARD` | Konstante | — | Anchor-Repair + iframe-Guard Script |
+| `WEB_SEARCH_TOOL` | Konstante | — | Anthropic web_search Tool-Definition |
+| `SPARK_PERSONA` | Konstante | — | Kombinierter Werbetexter/Redakteur/Designer-Prompt |
+| `slugify(str)` | Pure | — | String → URL-sicherer Slug |
+| `blocksToPlain(blocks)` | Pure | — | BlockNote-Blöcke → Plaintext |
+| `postProcessHtml(raw)` | Pure | — | Normalisierung + LINK_GUARD-Injektion |
+| `validatePage(html)` | Pure | — | Prüft Script-Leak, Anker-IDs, Section-Count |
+| `buildRepairInstruction(issues)` | Pure | — | validatePage-Output → KI-Reparatur-Prompt |
+| `buildContext(form, …)` | Pure | — | Projekt-Quellen → Kontext-String |
+| `generateMissingSections({html, missingIds})` | Async | ~3000 | Nur fehlende `<section>`-Tags generieren |
+| `runPreflight(name, desc, ctx)` | Async | ~600 | 4 Rückfragen für den User generieren |
+| `searchImages(query, count, …)` | Async | — | Stock-Foto-API (Pexels/Unsplash/Pixabay) |
+| `generatePage({form, ctx, …})` | Async | ~6000 | Vollständige Landing Page + Web-Search |
+| `refinePage({html, instruction, …})` | Async | 4000–6000 | Gezielte Überarbeitung einer bestehenden Page |
+
+### CSS-Sentinel-Trick (Token-Sparung)
+```js
+const CSS_SENTINEL = "/* PAGE_CSS_PLACEHOLDER */";
+// Im Prompt: ${CSS_SENTINEL} statt vollen PAGE_CSS (~3 KB / ~750 Token)
+// Nach Stream: raw.replace(CSS_SENTINEL, PAGE_CSS)
+// Spart ~750 Token auf Input UND Output
+```
+
+### Auto-Repair-Loop (`VoodooPage.jsx`)
+Drei-Stufen-Strategie nach jeder Generierung/Verfeinerung:
+
+```
+Tier 1 — DOM repair (0 Token, immer)
+  repairPage() → DOMParser → Script-Leak-Text-Nodes entfernen
+                           → Anker-IDs via Heading-Text zuweisen
+
+Tier 2 — Section injection (~3000 Token, bis 2×)
+  generateMissingSections() → plain HTML (kein JSON) → DOMParser-Injektion
+  vor .cta-b oder footer einfügen
+
+Tier 3 — refinePage fallback (~6000 Token, max. 1×)
+  buildRepairInstruction(issues) → refinePage()
+  NUR aus generate() — sparkRefine() nutzt maxTier=2 (kein nested refinePage)
+```
+
+### Hintergrund-Job (sparkJob in AppContext)
+```js
+// Shape: null | { projectId, projectName, workspaceId, type, chars, status }
+// Sidebar-Pill zeigt Live-Status (Zap-Icon animiert, chars-Counter)
+// Klick navigiert direkt zur richtigen Page + Workspace
+// Bei Workspace-Wechsel bleibt async-Job laufen — Ergebnis landet via onSave()
+// VoodooPage synct generatedHtml zurück via useEffect auf project.generatedHtml
+```
+
+### Deploy-Flow
+```
+generate() / sparkRefine()
+  → fetch("/deploy-site", { slug, html })
+  → Cloudflare Function schreibt KV "site:{slug}"
+  → öffentliche URL: /site/{slug}
+  → Deploy-Fehler werden korrekt weitergereicht (! data.ok → throw)
+```
+
+---
+
+## 9. Story-Workflow (BlockNote v0.47.3)
 
 ### Import-Pflicht
 
@@ -475,10 +565,10 @@ function AddBlockButton({ block }) {
 
 ---
 
-## 9. Tests
+## 10. Tests
 
 ```bash
-# Alle Tests ausführen (141 Tests, alle müssen grün sein)
+# Alle Tests ausführen (193 Tests, alle müssen grün sein)
 node node_modules/.bin/vitest run
 
 # E2E Tests (Playwright, Chromium)
@@ -491,12 +581,13 @@ node node_modules/.bin/playwright test
 | `demo.test.js` | CHANNELS, STORY_CHANNELS, ROLES, DEMO_CAMPAIGNS, DEMO_POSTS |
 | `campaigns.test.js` | dateProg, fmtBudget |
 | `story.test.js` | blocksToText, sectionsToBlocks, computeReadability |
+| `spark.test.js` | validatePage, buildRepairInstruction, slugify, blocksToPlain |
 | `ui.test.jsx` | Btn, Badge, Avatar |
 | `postcard.test.jsx` | PostCard-Rendering |
 
 ---
 
-## 10. Datenmodelle
+## 11. Datenmodelle
 
 ### Post
 ```js
@@ -526,9 +617,19 @@ node node_modules/.bin/playwright test
   source:"upload"|"unsplash"|"pexels"|"pixabay" }
 ```
 
+### Project (Creation Voodoo)
+```js
+{ id, workspaceId, slug, name, description,
+  storyIds:[], postIds:[], mediaIds:[], externalUrls:[{id, url, label}],
+  generatedHtml:null|string,   // null in KV-Index; geladen via project:html:{id}
+  lastGeneratedAt:null|string, // ISO timestamp
+  status:"draft"|"live",
+  createdAt, updatedAt }
+```
+
 ---
 
-## 11. Kritische Regeln
+## 12. Kritische Regeln
 
 | ❌ Verboten | ✅ Korrekt |
 |---|---|
@@ -544,10 +645,14 @@ node node_modules/.bin/playwright test
 | `loadedRef`-Guard weglassen | Immer `if(!loadedRef.current) return` |
 | Direkt auf `main` pushen | Immer auf `develop`, release nur auf Anfrage |
 | Chrome Extension für Browser-Tests | Claude Preview Tools (`mcp__Claude_Preview__*`) |
+| `wsProjects.find(...)` für aktives Projekt | `projects.find(...)` (workspace-unabhängig) |
+| Deploy-Fehler in `sparkRefine()` ignorieren | `if (!deployData.ok) throw new Error(...)` |
+| `${SENTINEL}` im Spark-Prompt | `${CSS_SENTINEL}` (korrekte Konstantenname) |
+| `refinePage()` aus `autoRepairLoop()` wenn bereits in `sparkRefine()` | `maxTier=2` übergeben |
 
 ---
 
-## 12. Secrets & Umgebungsvariablen
+## 13. Secrets & Umgebungsvariablen
 
 Niemals committen. In Cloudflare Pages Dashboard setzen:
 - `ANTHROPIC_API_KEY` – für `/ai` Function
@@ -558,9 +663,11 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 
 ---
 
-## 13. Entwicklungsstand (Mai 2026)
+## 14. Entwicklungsstand (Mai 2026)
 
-### ✅ Fertig
+### ✅ Fertig & aktiv
+
+**Core-Workflow**
 - Dashboard, Publisher (Kanban), Kalender, Planner (Gantt), Kampagnen
 - Medienbibliothek (Upload, KI-Analyse, Fokuspunkt)
 - Performance (Mock-Analytics), Instagram Monitoring
@@ -569,8 +676,25 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 - UGC Portal (Einreichungen, Genehmigungs-Workflow)
 - Build-Metadaten: `v1.0.{BUILD_NUMBER}` in Sidebar + Login
 
+**Creation Voodoo (Spark)**
+- Landing-Page-Generierung aus Projekt-Inhalten via KI + Web-Search
+- Preflight Q&A, Auto-Bilder, Live-Preview im iFrame
+- Verfeinern mit freier Anweisung + Quick-Actions
+- Hintergrund-Job: Navigation weg & zurück möglich (sparkJob Pill in Sidebar)
+- Auto-Repair-Loop (3 Tiers: DOM → Section-Injektion → refinePage)
+- CSS-Sentinel: ~750 Token Einsparung pro Aufruf
+- Deployed Pages unter `/site/{slug}` öffentlich erreichbar
+
+**Analyse-Suite**
+- Trends: RSS-Feed Reader (Tagesschau, DW, Heise, t3n, Golem …)
+- Domain-Analyse: Seiten-Content analysieren
+- Wettbewerber: Konkurrenz vergleichen
+- Content-Audit: SEO-Qualitätsprüfung
+- Structure-Audit: Schema.org / JSON-LD Validierung
+- Social Intelligence: Social-Media-Analyse
+
 ### 🔄 Geplant / Nächste Schritte
-- Medienbibliothek: KI-Analyse-Persistenz, Overlay-Fixes, Datei-Typ/Auflösung (Plan existiert)
-- Workspace-Zugriffsrechte änderbar machen
+- Medienbibliothek: KI-Analyse-Persistenz, Overlay-Fixes
+- Workspace-Zugriffsrechte im Admin änderbar machen
 - Mobile Responsive
-- Echter Publish-Endpunkt
+- Echter Publish-Endpunkt für Social Channels

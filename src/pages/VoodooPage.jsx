@@ -556,11 +556,13 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
       //    would double the token cost and risk triggering rate-limit errors.
       const html = await autoRepairLoop(domFixed, 2, 2);
 
-      await fetch("/deploy-site", {
+      const deployRes  = await fetch("/deploy-site", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({ slug:form.slug, html }),
       });
+      const deployData = await deployRes.json().catch(() => ({}));
+      if (!deployData.ok) throw new Error(deployData.error || "Deploy fehlgeschlagen");
 
       const updated = { ...form, generatedHtml: html, lastGeneratedAt: new Date().toISOString() };
       setForm(updated);

@@ -8,6 +8,7 @@ import Editor from "./modals/Editor.jsx";
 import SchedModal from "./modals/SchedModal.jsx";
 import StoryEditorModal from "./modals/StoryEditorModal.jsx";
 import PostDetailDrawer from "./modals/PostDetailDrawer.jsx";
+import { TITLE } from "./constants/nav.js";
 import Dashboard from "./pages/Dashboard.jsx";
 import PublisherPage from "./pages/PublisherPage.jsx";
 import TrashPage from "./pages/TrashPage.jsx";
@@ -51,18 +52,6 @@ function AppShell() {
 
   // Login screen
   if (!user) return <Login onLogin={u => setDemoUser(u)} />;
-
-  const TITLE = {
-    dashboard: "Dashboard", publisher: "Publisher",
-    trash: "Papierkorb", stories: "Storys", campaigns: "Kampagnen",
-    media: "Medienbibliothek", calendar: "Kalender", planner: "Planner",
-    performance: "Performance",
-    monitoring: "Instagram Monitoring", admin: "Admin", ugc: "UGC Portal",
-    trends: "Trends", "domain-analyse": "Domain-Analyse",
-    wettbewerber: "Wettbewerber", "content-audit": "Content-Audit",
-    "structure-audit": "Structure-Audit", "social-intel": "Social Intelligence",
-    voodoo: "Creation Voodoo",
-  };
 
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: FONT, background: C.bg, overflow: "hidden" }}>
