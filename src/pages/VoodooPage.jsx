@@ -6,9 +6,9 @@ import {
   FileText, Zap, MessageSquare, Search, ArrowRight, SkipForward,
 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
-import { uid } from "../utils/store.js";
+import { uid, AI } from "../utils/store.js";
 import {
-  slugify, buildContext, runPreflight, searchImages,
+  slugify, buildContext, runPreflight, searchImages, searchMediaLibrary,
   generatePage, refinePage, validatePage, postProcessHtml,
   buildRepairInstruction, generateMissingSections,
 } from "../utils/spark.js";
@@ -74,6 +74,45 @@ function repairPage(html) {
     return postProcessHtml(serialized);
   } catch {
     return postProcessHtml(html);
+  }
+}
+
+// ── Post-upload KI analysis for Spark-imported images ─────────────────────────
+// Called fire-and-forget after searchImages() uploads a stock photo.
+// Mirrors the MediaPage upload pattern: fetch → base64 → AI.analyzeImg → updateItem.
+// Stock images have HTTP URLs, so we must convert to base64 before the AI call.
+// Timeout: 30 s (same as MediaPage).
+async function analyzeUploadedImage(item, updateItem) {
+  try {
+    const timeout = new Promise((_, rej) =>
+      setTimeout(() => rej(new Error("timeout")), 30000)
+    );
+    const dataUrl = await Promise.race([
+      (async () => {
+        const res  = await fetch(item.url);
+        const blob = await res.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload  = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("FileReader error"));
+          reader.readAsDataURL(blob);
+        });
+      })(),
+      timeout,
+    ]);
+    const r = await AI.analyzeImg(dataUrl);
+    updateItem({
+      ...item,
+      analyzing:   false,
+      tags:        Array.isArray(r.tags) ? r.tags.join(", ") : "",
+      description: r.description  || "",
+      altText:     r.suggestedAlt || "",
+      mood:        r.mood         || "",
+      focusPoint:  r.focalPoint   ? { x: r.focalPoint.x, y: r.focalPoint.y } : { x: 50, y: 50 },
+      aiAnalysis:  r,
+    });
+  } catch {
+    updateItem({ ...item, analyzing: false, aiError: true });
   }
 }
 
@@ -229,7 +268,7 @@ export default function VoodooPage() {
 
 // ── Project detail view ───────────────────────────────────────────────────────
 function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
-  const { uploadItem, currentWorkspaceId, setSparkJob } = useApp();
+  const { uploadItem, updateItem, currentWorkspaceId, setSparkJob } = useApp();
 
   const [form, setForm] = useState({ ...project });
   const [tab, setTab] = useState("content"); // "content" | "site"
@@ -443,12 +482,25 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     // the user navigates away — the async work continues regardless.
     setSparkJob({ projectId: form.id, projectName: form.name, workspaceId: form.workspaceId, type: "generate", chars: 0, status: "running" });
 
-    // ── Auto image search from media library or stock APIs ─────────────────
-    // 1. Use already-selected media items from the project
+    // ── 3-phase image strategy ────────────────────────────────────────────
+    // Phase 1: project-selected media (user explicitly picked these)
     const selectedMedia = (form.mediaIds||[]).map(id => items.find(x=>x.id===id)).filter(Boolean);
     let autoImages = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name }));
 
-    // 2. If fewer than 2 project images, search stock APIs and save to library
+    // Phase 2: workspace media library keyword search — free, instant, no API
+    if (autoImages.length < 4) {
+      const searchQuery = `${form.name} ${form.description||""}`.trim();
+      const libraryHits = searchMediaLibrary(items, searchQuery, {
+        count: 4 - autoImages.length,
+        workspaceId: currentWorkspaceId,
+      });
+      // Deduplicate against already-selected images
+      const usedUrls = new Set(autoImages.map(i => i.url));
+      const freshLib = libraryHits.filter(i => !usedUrls.has(i.url));
+      autoImages = [...autoImages, ...freshLib];
+    }
+
+    // Phase 3: stock API — only if still under 2 images after library search
     if (autoImages.length < 2) {
       const searchQuery = `${form.name} ${form.description||""}`.trim();
       const found = await searchImages(
@@ -457,7 +509,11 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
         uploadItem,
         currentWorkspaceId,
       );
-      autoImages = [...autoImages, ...found];
+      // Fire-and-forget KI analysis for each newly uploaded stock image
+      found.forEach(img => {
+        if (img.uploadedItem) analyzeUploadedImage(img.uploadedItem, updateItem);
+      });
+      autoImages = [...autoImages, ...found.map(img => ({ url: img.url, alt: img.alt }))];
     }
 
     setGenPhase("streaming");

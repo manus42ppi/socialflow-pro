@@ -5,7 +5,7 @@
 // are NOT tested here — they require API access.
 
 import { describe, it, expect } from "vitest";
-import { slugify, blocksToPlain, postProcessHtml, buildContext, validatePage, buildRepairInstruction, LINK_GUARD } from "../utils/spark.js";
+import { slugify, blocksToPlain, postProcessHtml, buildContext, validatePage, buildRepairInstruction, searchMediaLibrary, LINK_GUARD } from "../utils/spark.js";
 
 // ── slugify ──────────────────────────────────────────────────────────────────
 describe("slugify", () => {
@@ -393,5 +393,137 @@ describe("buildRepairInstruction", () => {
     const issues = [{ type: "warn", msg: "Unbekannter Fehler XYZ" }];
     const result = buildRepairInstruction(issues);
     expect(result).toContain("Unbekannter Fehler XYZ");
+  });
+});
+
+// ── searchMediaLibrary ───────────────────────────────────────────────────────
+describe("searchMediaLibrary", () => {
+  const items = [
+    {
+      id: "img-1", type: "image", workspaceId: "ws-a",
+      name: "Team Foto Berlin", description: "Unser Team bei der Arbeit",
+      altText: "Teamfoto", tags: "team, büro, arbeit", mood: "professional",
+      url: "https://example.com/team.jpg",
+    },
+    {
+      id: "img-2", type: "image", workspaceId: "ws-a",
+      name: "Produktshot", description: "Neues Produkt auf weißem Hintergrund",
+      altText: "Produkt", tags: "produkt, shop", mood: "clean",
+      url: "https://example.com/product.jpg",
+    },
+    {
+      id: "img-3", type: "image", workspaceId: "ws-b",
+      name: "Landschaft Natur", description: "Grüne Wiese im Sommer",
+      altText: "Natur", tags: "natur, sommer, wiese", mood: "calm",
+      url: "https://example.com/nature.jpg",
+    },
+    {
+      id: "vid-1", type: "video", workspaceId: "ws-a",
+      name: "Team Video", description: "Team beim Meeting",
+      tags: "team, video", url: "https://example.com/vid.mp4",
+    },
+    {
+      id: "img-4", type: "image", workspaceId: "ws-a",
+      name: "Büro Außenansicht", description: "Modernes Bürogebäude",
+      altText: "Büro", tags: "büro, gebäude", mood: "corporate",
+      aiAnalysis: { tags: ["modern", "urban", "business"] },
+      url: "https://example.com/office.jpg",
+    },
+  ];
+
+  it("returns empty array for empty items", () => {
+    expect(searchMediaLibrary([], "team")).toEqual([]);
+    expect(searchMediaLibrary(null, "team")).toEqual([]);
+    expect(searchMediaLibrary(undefined, "team")).toEqual([]);
+  });
+
+  it("returns empty array for empty query", () => {
+    expect(searchMediaLibrary(items, "")).toEqual([]);
+    expect(searchMediaLibrary(items, "   ")).toEqual([]);
+    expect(searchMediaLibrary(items, null)).toEqual([]);
+  });
+
+  it("finds items by name keyword", () => {
+    const r = searchMediaLibrary(items, "Produktshot");
+    expect(r.map(x => x.mediaId)).toContain("img-2");
+  });
+
+  it("finds items by description keyword", () => {
+    const r = searchMediaLibrary(items, "arbeit");
+    expect(r.map(x => x.mediaId)).toContain("img-1");
+  });
+
+  it("finds items by tags keyword", () => {
+    const r = searchMediaLibrary(items, "sommer");
+    expect(r.map(x => x.mediaId)).toContain("img-3");
+  });
+
+  it("finds items by aiAnalysis tags", () => {
+    const r = searchMediaLibrary(items, "urban");
+    expect(r.map(x => x.mediaId)).toContain("img-4");
+  });
+
+  it("excludes non-image items even when name matches", () => {
+    const r = searchMediaLibrary(items, "team video");
+    expect(r.map(x => x.mediaId)).not.toContain("vid-1");
+  });
+
+  it("filters by workspaceId when provided", () => {
+    const r = searchMediaLibrary(items, "natur", { workspaceId: "ws-a" });
+    expect(r.map(x => x.mediaId)).not.toContain("img-3"); // belongs to ws-b
+  });
+
+  it("includes items from other workspaces when workspaceId is omitted", () => {
+    const r = searchMediaLibrary(items, "natur");
+    expect(r.map(x => x.mediaId)).toContain("img-3");
+  });
+
+  it("respects the count limit", () => {
+    // "büro" matches img-1 (tags), img-4 (name+tags) → but count=1
+    const r = searchMediaLibrary(items, "büro", { count: 1 });
+    expect(r).toHaveLength(1);
+  });
+
+  it("returns {url, alt, mediaId} shape", () => {
+    const r = searchMediaLibrary(items, "team");
+    expect(r.length).toBeGreaterThan(0);
+    for (const hit of r) {
+      expect(hit).toHaveProperty("url");
+      expect(hit).toHaveProperty("alt");
+      expect(hit).toHaveProperty("mediaId");
+    }
+  });
+
+  it("sorts higher-scoring items first (more keyword matches)", () => {
+    // img-1 matches "team" AND "büro" (name: "Team Foto Berlin", tags: "team, büro, arbeit")
+    // img-4 matches "büro" only from name perspective
+    const r = searchMediaLibrary(items, "team büro");
+    expect(r[0].mediaId).toBe("img-1"); // 2 keyword matches
+  });
+
+  it("uses description as alt when available", () => {
+    const r = searchMediaLibrary(items, "Produktshot");
+    const hit = r.find(x => x.mediaId === "img-2");
+    expect(hit.alt).toBe("Neues Produkt auf weißem Hintergrund");
+  });
+
+  it("falls back to altText when no description", () => {
+    const sparse = [
+      { id: "s1", type: "image", workspaceId: "ws-a",
+        name: "Foto", description: "", altText: "Alt-Text fallback",
+        tags: "foto", url: "https://example.com/s1.jpg" },
+    ];
+    const r = searchMediaLibrary(sparse, "foto");
+    expect(r[0].alt).toBe("Alt-Text fallback");
+  });
+
+  it("falls back to name when description and altText are empty", () => {
+    const sparse = [
+      { id: "s2", type: "image", workspaceId: "ws-a",
+        name: "Mein Bild", description: "", altText: "",
+        tags: "mein, bild", url: "https://example.com/s2.jpg" },
+    ];
+    const r = searchMediaLibrary(sparse, "bild");
+    expect(r[0].alt).toBe("Mein Bild");
   });
 });

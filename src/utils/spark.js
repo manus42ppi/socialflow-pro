@@ -434,9 +434,59 @@ NUR JSON, kein Markdown:
 }
 
 /**
+ * Search the workspace media library for images matching a query.
+ * Pure function — no API calls, no side effects.
+ *
+ * Scoring: counts how many space-separated keywords appear in a concatenated
+ * text field (name + description + altText + tags + mood + aiAnalysis.tags).
+ * Items are sorted by descending score and the top `count` are returned.
+ *
+ * @param {Array}  items               - Media library items from AppContext
+ * @param {string} query               - Free-text search terms
+ * @param {object} [opts]
+ * @param {number} [opts.count=4]       - Max results
+ * @param {string} [opts.workspaceId]   - Restrict to this workspace (falsy = all)
+ * @returns {Array<{url, alt, mediaId}>}
+ */
+export function searchMediaLibrary(items, query, { count = 4, workspaceId = null } = {}) {
+  if (!items?.length || !query?.trim()) return [];
+
+  const keywords = query.toLowerCase().split(/\s+/).filter(k => k.length > 1);
+  if (!keywords.length) return [];
+
+  const scored = [];
+  for (const item of items) {
+    if (item.type !== "image") continue;
+    if (workspaceId && item.workspaceId && item.workspaceId !== workspaceId) continue;
+
+    const haystack = [
+      item.name,
+      item.description,
+      item.altText,
+      item.tags,
+      item.mood,
+      ...(Array.isArray(item.aiAnalysis?.tags) ? item.aiAnalysis.tags : []),
+    ].join(" ").toLowerCase();
+
+    const score = keywords.reduce((n, kw) => n + (haystack.includes(kw) ? 1 : 0), 0);
+    if (score > 0) scored.push({ score, item });
+  }
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+    .map(({ item }) => ({
+      url: item.url,
+      alt: item.description || item.altText || item.name,
+      mediaId: item.id,
+    }));
+}
+
+/**
  * Search for images using the first available stock API key (Pexels > Unsplash > Pixabay).
- * Saves found images to the media library via uploadItem.
- * Returns an array of {url, alt} objects for use in the generation prompt.
+ * Saves found images to the media library via uploadItem with analyzing:true so the
+ * caller (VoodooPage) can fire-and-forget the KI analysis.
+ * Returns an array of {url, alt, mediaId, uploadedItem} objects.
  *
  * @param {string}   query       - Search terms (project name + description)
  * @param {number}   count       - Max images to return (default 4)
@@ -455,17 +505,25 @@ export async function searchImages(query, count = 4, uploadItem = null, workspac
     const found = await stockSearch(src, query.slice(0, 80), { type: "image", orientation: "landscape" });
     const fresh = found.slice(0, count);
 
-    if (uploadItem && fresh.length > 0) {
-      fresh.forEach(f => uploadItem({
-        ...f,
-        id: uid(),
-        category: "Spark Auto",
-        workspaceId: workspaceId || "ws-ppi-media",
-        analyzing: false,
-      }));
+    const results = [];
+    for (const f of fresh) {
+      const alt = f.description || f.tags || query;
+      if (uploadItem) {
+        const newId = uid();
+        const uploadedItem = {
+          ...f,
+          id: newId,
+          category: "Spark Auto",
+          workspaceId: workspaceId || "ws-ppi-media",
+          analyzing: true,   // caller fires AI analysis after upload
+        };
+        uploadItem(uploadedItem);
+        results.push({ url: f.url, alt, mediaId: newId, uploadedItem });
+      } else {
+        results.push({ url: f.url, alt });
+      }
     }
-
-    return fresh.map(f => ({ url: f.url, alt: f.description || f.tags || query }));
+    return results;
   } catch {
     return [];
   }
