@@ -11,7 +11,7 @@
 // The /ai Cloudflare Function forwards any `tools` field to Anthropic as-is,
 // so web search works transparently through the existing proxy.
 
-import { aiCall, aiCallStream, parseJSON, uid } from "./store.js";
+import { aiCall, aiCallStream, parseJSON, uid, AI } from "./store.js";
 import { stockSearch, skGet } from "../components/StockSearch.jsx";
 
 // ── Pre-built CSS design system ───────────────────────────────────────────────
@@ -552,6 +552,52 @@ export async function searchImages(query, count = 4, uploadItem = null, workspac
     return results;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Fire-and-forget KI analysis for a freshly uploaded image.
+ * Shared by VoodooPage (stock images in generate()) and StoryEditorModal
+ * (stock images in executeSparkPlan()).
+ *
+ * Stock images have HTTP URLs — we must fetch → blob → base64 before calling
+ * AI.analyzeImg (which requires a data URL, not a raw HTTP URL).
+ * Mirrors the MediaPage upload pattern; timeout: 30 s.
+ *
+ * @param {object}   item        - Media item already saved via uploadItem (analyzing:true)
+ * @param {Function} updateItem  - AppContext updateItem to write analysis results back
+ */
+export async function analyzeUploadedImage(item, updateItem) {
+  try {
+    const timeout = new Promise((_, rej) =>
+      setTimeout(() => rej(new Error("timeout")), 30000)
+    );
+    const dataUrl = await Promise.race([
+      (async () => {
+        const res  = await fetch(item.url);
+        const blob = await res.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload  = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("FileReader error"));
+          reader.readAsDataURL(blob);
+        });
+      })(),
+      timeout,
+    ]);
+    const r = await AI.analyzeImg(dataUrl);
+    updateItem({
+      ...item,
+      analyzing:   false,
+      tags:        Array.isArray(r.tags) ? r.tags.join(", ") : "",
+      description: r.description  || "",
+      altText:     r.suggestedAlt || "",
+      mood:        r.mood         || "",
+      focusPoint:  r.focalPoint   ? { x: r.focalPoint.x, y: r.focalPoint.y } : { x: 50, y: 50 },
+      aiAnalysis:  r,
+    });
+  } catch {
+    updateItem({ ...item, analyzing: false, aiError: true });
   }
 }
 

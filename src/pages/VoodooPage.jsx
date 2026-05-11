@@ -6,9 +6,10 @@ import {
   FileText, Zap, MessageSquare, Search, ArrowRight, SkipForward,
 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
-import { uid, AI } from "../utils/store.js";
+import { uid } from "../utils/store.js";
 import {
   slugify, buildContext, runPreflight, searchImages, searchMediaLibrary,
+  analyzeUploadedImage,
   generatePage, refinePage, validatePage, postProcessHtml,
   buildRepairInstruction, generateMissingSections,
 } from "../utils/spark.js";
@@ -74,45 +75,6 @@ function repairPage(html) {
     return postProcessHtml(serialized);
   } catch {
     return postProcessHtml(html);
-  }
-}
-
-// ── Post-upload KI analysis for Spark-imported images ─────────────────────────
-// Called fire-and-forget after searchImages() uploads a stock photo.
-// Mirrors the MediaPage upload pattern: fetch → base64 → AI.analyzeImg → updateItem.
-// Stock images have HTTP URLs, so we must convert to base64 before the AI call.
-// Timeout: 30 s (same as MediaPage).
-async function analyzeUploadedImage(item, updateItem) {
-  try {
-    const timeout = new Promise((_, rej) =>
-      setTimeout(() => rej(new Error("timeout")), 30000)
-    );
-    const dataUrl = await Promise.race([
-      (async () => {
-        const res  = await fetch(item.url);
-        const blob = await res.blob();
-        return await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload  = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error("FileReader error"));
-          reader.readAsDataURL(blob);
-        });
-      })(),
-      timeout,
-    ]);
-    const r = await AI.analyzeImg(dataUrl);
-    updateItem({
-      ...item,
-      analyzing:   false,
-      tags:        Array.isArray(r.tags) ? r.tags.join(", ") : "",
-      description: r.description  || "",
-      altText:     r.suggestedAlt || "",
-      mood:        r.mood         || "",
-      focusPoint:  r.focalPoint   ? { x: r.focalPoint.x, y: r.focalPoint.y } : { x: 50, y: 50 },
-      aiAnalysis:  r,
-    });
-  } catch {
-    updateItem({ ...item, analyzing: false, aiError: true });
   }
 }
 

@@ -25,7 +25,7 @@ import {
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
 import { uid, aiCall, fileToDataURL, parseJSON } from "../utils/store.js";
-import { STORY_PERSONA } from "../utils/spark.js";
+import { STORY_PERSONA, analyzeUploadedImage } from "../utils/spark.js";
 import { stockSearch, skGet } from "../components/StockSearch.jsx";
 import { Btn } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
@@ -1165,7 +1165,7 @@ function AccSection({ label, badge, badgeWarn, isOpen, onToggle, children }) {
 
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function StoryEditorModal() {
-  const { edStory: story, items, posts, saveStory: onSave, updateStory, lockStory, unlockStory, setEdStory, setPosts, user, projects } = useApp();
+  const { edStory: story, items, posts, saveStory: onSave, updateStory, lockStory, unlockStory, setEdStory, setPosts, user, projects, uploadItem, updateItem, currentWorkspaceId } = useApp();
   const onClose = () => {
     if (story.id) unlockStory(story.id);
     setEdStory(null);
@@ -1493,7 +1493,9 @@ REGELN:
     const snapshot = JSON.parse(JSON.stringify(editor.document));
     setSparkUndo({ blocks: snapshot, msgId: msg.id });
     try {
-      // Fetch stock images in parallel for all image actions
+      // Fetch stock images in parallel for all image actions,
+      // save each found image to the workspace media library, and
+      // fire-and-forget KI analysis (analyzing:true until done).
       const imageActions = (msg.actions||[]).filter(a => a.type==="image");
       const imageMap = {};
       await Promise.all(imageActions.map(async a => {
@@ -1501,7 +1503,23 @@ REGELN:
           if (!skGet(src)) continue;
           try {
             const res = await stockSearch(src, a.query, { orientation:"landscape", type:"photo" });
-            if (res?.[0]) { imageMap[a._imgKey] = res[0]; break; }
+            if (!res?.[0]) continue;
+            const found = res[0];
+            imageMap[a._imgKey] = found;
+
+            // Save to media library
+            const newId = uid();
+            const mediaItem = {
+              ...found,
+              id:          newId,
+              category:    "Spark Auto",
+              workspaceId: currentWorkspaceId || story?.workspaceId || "ws-ppi-media",
+              analyzing:   true,
+            };
+            uploadItem(mediaItem);
+            // Fire-and-forget: fetch → base64 → AI.analyzeImg → updateItem
+            analyzeUploadedImage(mediaItem, updateItem);
+            break;
           } catch {}
         }
       }));
