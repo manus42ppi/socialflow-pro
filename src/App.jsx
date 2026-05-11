@@ -28,6 +28,8 @@ import StoriesPage from "./pages/StoriesPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import UGCPortalPage from "./pages/UGCPortalPage.jsx";
 import VoodooPage from "./pages/VoodooPage.jsx";
+import ProductsPage from "./pages/ProductsPage.jsx";
+import ProductEditorModal from "./modals/ProductEditorModal.jsx";
 
 // ── APP ROOT ───────────────────────────────────────────────────────────────
 export default function App() {
@@ -40,7 +42,7 @@ export default function App() {
 
 // ── APP SHELL (uses context) ───────────────────────────────────────────────
 function AppShell() {
-  const { isLoaded, user, setDemoUser, nav, edPost, schPost, edStory, detailPost } = useApp();
+  const { isLoaded, user, setDemoUser, nav, edPost, schPost, edStory, edProduct, detailPost } = useApp();
 
   // Loading spinner while Clerk initialises
   if (!isLoaded) return (
@@ -58,8 +60,8 @@ function AppShell() {
       <style>{CSS}</style>
       <Sidebar />
 
-      {/* Story editor fills the content area (sidebar stays visible) */}
-      {edStory ? <StoryEditorModal /> : (
+      {/* Full-screen modals: story editor or product editor fill the content area */}
+      {edStory ? <StoryEditorModal /> : edProduct ? <ProductEditorModal /> : (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <TopBar title={TITLE[nav] || "SocialFlow"} />
           <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
@@ -80,6 +82,7 @@ function AppShell() {
               {nav === "structure-audit"&& <StructureAuditPage />}
               {nav === "social-intel"   && <SocialIntelligencePage />}
               {nav === "stories"        && <StoriesPage />}
+              {nav === "produkte"       && <ProductsPage />}
               {nav === "admin"          && <AdminPage />}
               {nav === "ugc"            && <UGCPortalPage />}
               {nav === "voodoo"         && <VoodooPage />}

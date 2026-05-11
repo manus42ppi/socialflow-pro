@@ -293,6 +293,66 @@ export const DEMO_MEDIA = [
   { id:"img-a3", workspaceId:"ws-alphabeta",  name:"preiszeremonie.jpg",    url:"https://picsum.photos/seed/alphabeta3/900/600",  type:"image", size:267000, date:"06.04.2026", width:900, height:600, tags:"preis, award, zeremonie, design", description:"Designpreis-Verleihung 2026", altText:"Preisverleihung", category:"Event", focusPoint:{x:50,y:45}, mood:"celebratory", source:"upload" },
 ];
 
+// ── Demo products ─────────────────────────────────────────────────────────────
+export const DEMO_PRODUCTS = [
+  {
+    id: "prod-1", workspaceId: "ws-ppi-media",
+    name: "Canyon Grail SL 8", sku: "CGR-SL8-M",
+    category: "Gravelbike", status: "active",
+    tags: "gravel, carbon, performance, rennrad",
+    shortDesc: "Das vielseitigste Gravelbike für Asphalt und Schotter — mit überlegener Gravel-Geometrie und Race-DNA.",
+    description: "Der Grail SL 8 vereint Rennrad-Performance mit echter Gravel-Tauglichkeit. Der leichte Carbon-Rahmen absorbiert Vibrationen, während die asymmetrische Geometrie maximale Kraftübertragung sicherstellt. Perfekt für die Alster-Runden am Wochenende und mehrtägige Gravel-Abenteuer.",
+    price: 3499, currency: "EUR", unit: "Stk.", vatClass: "19%",
+    mediaIds: [],
+    attributes: [
+      { id: "a1", key: "Gewicht", value: "8,2 kg" },
+      { id: "a2", key: "Material", value: "Carbon" },
+      { id: "a3", key: "Schaltgruppe", value: "SRAM Rival AXS" },
+      { id: "a4", key: "Reifenbreite max.", value: "45 mm" },
+      { id: "a5", key: "Verfügbare Größen", value: "XS, S, M, L, XL" },
+    ],
+    createdAt: "2026-02-10T10:00:00.000Z",
+    updatedAt: "2026-04-15T14:00:00.000Z",
+  },
+  {
+    id: "prod-2", workspaceId: "ws-ppi-media",
+    name: "Specialized Turbo Creo SL Expert", sku: "SPC-CREO-SL-EXP-54",
+    category: "E-Gravelbike", status: "active",
+    tags: "e-bike, gravel, leicht, specialized",
+    shortDesc: "Leichtstes E-Gravelbike seiner Klasse — volle Rennrad-Performance, diskreter Motor.",
+    description: "Das Turbo Creo SL Expert redefiniert das E-Gravelbike. Mit nur 12,2 kg Systemgewicht und dem SL 1.1 Antrieb spürt man den Motor nur wenn man ihn braucht. Kompatibel mit allen Standard-Gravel-Komponenten.",
+    price: 6999, currency: "EUR", unit: "Stk.", vatClass: "19%",
+    mediaIds: [],
+    attributes: [
+      { id: "b1", key: "Systemgewicht", value: "12,2 kg" },
+      { id: "b2", key: "Motor", value: "SL 1.1 (240 W)" },
+      { id: "b3", key: "Akku", value: "320 Wh intern" },
+      { id: "b4", key: "Reichweite", value: "bis 130 km" },
+      { id: "b5", key: "Material", value: "Carbon FACT 11r" },
+    ],
+    createdAt: "2026-03-01T09:00:00.000Z",
+    updatedAt: "2026-04-20T11:00:00.000Z",
+  },
+  {
+    id: "prod-3", workspaceId: "ws-alphabeta",
+    name: "Brand Strategy Workshop", sku: "AB-WORK-BSW-01",
+    category: "Workshop", status: "active",
+    tags: "branding, strategie, workshop, beratung",
+    shortDesc: "Eintägiger Intensiv-Workshop zur Entwicklung einer klaren Markenstrategie für Ihr Unternehmen.",
+    description: "In unserem Brand Strategy Workshop erarbeiten wir gemeinsam die Grundlage Ihrer Markenkommunikation: Positionierung, Tonalität, visuelle Identität und Botschaftsarchitektur. Ideal für Unternehmen, die ihre Kommunikation neu ausrichten oder eine klare Markenidentität aufbauen möchten.",
+    price: 2400, currency: "EUR", unit: "Tag", vatClass: "19%",
+    mediaIds: [],
+    attributes: [
+      { id: "c1", key: "Dauer", value: "1 Tag (8 Std.)" },
+      { id: "c2", key: "Teilnehmer", value: "bis 8 Personen" },
+      { id: "c3", key: "Ort", value: "Bei Ihnen oder remote" },
+      { id: "c4", key: "Ergebnis", value: "Brand-Strategie-Dokument (PDF)" },
+    ],
+    createdAt: "2026-01-20T08:00:00.000Z",
+    updatedAt: "2026-03-10T16:00:00.000Z",
+  },
+];
+
 // ── Creation Voodoo demo projects ────────────────────────────────────────────
 export const DEMO_PROJECTS = [];
 

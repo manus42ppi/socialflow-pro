@@ -4,6 +4,7 @@ import {
   BookOpen, Send as SendIcon, Image as ImageIcon, Globe,
   ChevronRight, X, RefreshCw, Sparkles, Link as LinkIcon,
   FileText, Zap, MessageSquare, Search, ArrowRight, SkipForward,
+  Package,
 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { uid } from "../utils/store.js";
@@ -113,7 +114,7 @@ function SourceChip({ icon: Icon, label, count, active, onClick }) {
 // ── main component ────────────────────────────────────────────────────────────
 export default function VoodooPage() {
   const {
-    projects, saveProject, delProject, stories, posts, items,
+    projects, saveProject, delProject, stories, posts, items, products,
     currentWorkspaceId, voodooProjectId, setVoodooProjectId,
   } = useApp();
 
@@ -137,7 +138,7 @@ export default function VoodooPage() {
     const slug = slugify(newName) + "-" + id.slice(0,4);
     const p = {
       id, slug, name: newName.trim(), description: "",
-      storyIds: [], postIds: [], mediaIds: [], externalUrls: [],
+      storyIds: [], postIds: [], mediaIds: [], productIds: [], externalUrls: [],
       generatedHtml: null, lastGeneratedAt: null, status: "draft",
       workspaceId: currentWorkspaceId || "ws-ppi-media",
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -221,6 +222,7 @@ export default function VoodooPage() {
         stories={stories}
         posts={posts}
         items={items}
+        products={products}
         onSave={saveProject}
         onDelete={() => { delProject(project.id); setVoodooProjectId(null); }}
       />
@@ -229,7 +231,7 @@ export default function VoodooPage() {
 }
 
 // ── Project detail view ───────────────────────────────────────────────────────
-function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
+function ProjectDetail({ project, stories, posts, items, products, onSave, onDelete }) {
   const { uploadItem, updateItem, currentWorkspaceId, setSparkJob } = useApp();
 
   const [form, setForm] = useState({ ...project });
@@ -405,6 +407,10 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     const ids = form.mediaIds||[];
     upd({ mediaIds: ids.includes(id) ? ids.filter(x=>x!==id) : [...ids, id] });
   }
+  function toggleProduct(id) {
+    const ids = form.productIds||[];
+    upd({ productIds: ids.includes(id) ? ids.filter(x=>x!==id) : [...ids, id] });
+  }
   function addUrl() {
     if (!urlInput.trim()) return;
     const entry = { id:uid(), url:urlInput.trim(), label:urlLabel.trim()||urlInput.trim() };
@@ -418,7 +424,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     if (busy || totalSources === 0) return;
     setGenPhase("preflight-loading");
     setPreflightA({});
-    const ctx = buildContext(form, stories, posts, items);
+    const ctx = buildContext(form, stories, posts, items, products);
     try {
       const questions = await runPreflight(form.name, form.description, ctx);
       if (questions.length) {
@@ -480,7 +486,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
 
     setGenPhase("streaming");
 
-    const ctx = buildContext(form, stories, posts, items);
+    const ctx = buildContext(form, stories, posts, items, products);
 
     try {
       const rawHtml = await generatePage({
@@ -617,12 +623,13 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const totalSources = (form.storyIds||[]).length+(form.postIds||[]).length+(form.mediaIds||[]).length+(form.externalUrls||[]).length;
+  const totalSources = (form.storyIds||[]).length+(form.postIds||[]).length+(form.mediaIds||[]).length+(form.productIds||[]).length+(form.externalUrls||[]).length;
 
-  // Stories/posts/media available to pick (not filtered by workspace here so user can pick any)
-  const availStories = stories.filter(s => !s.deleted);
-  const availPosts   = posts.filter(p => !p.deleted);
-  const availMedia   = items.filter(m => m.type==="image"||m.type==="video");
+  // Content available to pick (not filtered by workspace so user can pick across Mandanten)
+  const availStories  = stories.filter(s => !s.deleted);
+  const availPosts    = posts.filter(p => !p.deleted);
+  const availMedia    = items.filter(m => m.type==="image"||m.type==="video");
+  const availProducts = (products||[]).filter(p => p.status !== "archived");
 
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
@@ -711,15 +718,22 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
             {/* Source filters */}
             <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
               {[
-                { id:"all",    label:"Alle",       icon:Wand2 },
-                { id:"story",  label:"Storys",     icon:BookOpen },
-                { id:"post",   label:"Posts",      icon:SendIcon },
-                { id:"media",  label:"Medien",     icon:ImageIcon },
-                { id:"url",    label:"URLs",        icon:Globe },
+                { id:"all",      label:"Alle",      icon:Wand2    },
+                { id:"story",    label:"Storys",    icon:BookOpen },
+                { id:"post",     label:"Posts",     icon:SendIcon },
+                { id:"media",    label:"Medien",    icon:ImageIcon },
+                { id:"product",  label:"Produkte",  icon:Package  },
+                { id:"url",      label:"URLs",      icon:Globe    },
               ].map(s => (
                 <SourceChip key={s.id} icon={s.icon} label={s.label}
                   active={sourceFilter===s.id}
-                  count={s.id==="story"?(form.storyIds||[]).length:s.id==="post"?(form.postIds||[]).length:s.id==="media"?(form.mediaIds||[]).length:s.id==="url"?(form.externalUrls||[]).length:0}
+                  count={
+                    s.id==="story"   ? (form.storyIds||[]).length :
+                    s.id==="post"    ? (form.postIds||[]).length :
+                    s.id==="media"   ? (form.mediaIds||[]).length :
+                    s.id==="product" ? (form.productIds||[]).length :
+                    s.id==="url"     ? (form.externalUrls||[]).length : 0
+                  }
                   onClick={() => setSourceFilter(s.id)}
                 />
               ))}
@@ -787,6 +801,32 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
                     sub={`${m.type} · ${m.width||0}×${m.height||0}`}
                     color="#E1306C"
                     thumb={m.url}
+                  />
+                ))}
+              </ContentSection>
+            )}
+
+            {/* PRODUKTE */}
+            {(sourceFilter==="all"||sourceFilter==="product") && (
+              <ContentSection
+                title="Produkte" icon={Package}
+                count={(form.productIds||[]).length}
+                total={availProducts.length}
+              >
+                {availProducts.length === 0 ? (
+                  <EmptyHint>Noch keine Produkte vorhanden.</EmptyHint>
+                ) : availProducts.map(p => (
+                  <ContentRow
+                    key={p.id}
+                    checked={(form.productIds||[]).includes(p.id)}
+                    onChange={() => toggleProduct(p.id)}
+                    label={p.name}
+                    sub={[
+                      p.sku ? `SKU ${p.sku}` : null,
+                      p.price != null ? `${Number(p.price).toLocaleString("de-DE", { minimumFractionDigits:2, maximumFractionDigits:2 })} ${p.currency||"EUR"}` : null,
+                      p.category || null,
+                    ].filter(Boolean).join(" · ")}
+                    color="#F59E0B"
                   />
                 ))}
               </ContentSection>

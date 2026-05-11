@@ -415,10 +415,10 @@ REGELN:
 
 /**
  * Build the text context block that is fed to the AI.
- * Collects text from Stories (block content), Posts, Media descriptions,
+ * Collects text from Stories (block content), Posts, Products, Media descriptions,
  * and raw external URLs selected in the project.
  */
-export function buildContext(form, stories, posts, items) {
+export function buildContext(form, stories, posts, items, products = []) {
   const parts = [];
 
   (form.storyIds || []).forEach(id => {
@@ -432,6 +432,27 @@ export function buildContext(form, stories, posts, items) {
     const p = posts.find(x => x.id === id);
     if (!p) return;
     parts.push(`## Post: "${p.title}"\n${(p.content || "").slice(0, 600)}`);
+  });
+
+  (form.productIds || []).forEach(id => {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    const priceStr = p.price != null
+      ? `${Number(p.price).toLocaleString("de-DE", { minimumFractionDigits: 2 })} ${p.currency} / ${p.unit} (inkl. ${p.vatClass} MwSt.)`
+      : "–";
+    const attrsStr = (p.attributes || []).filter(a => a.key && a.value)
+      .map(a => `${a.key}: ${a.value}`).join(" · ");
+    const imgUrls = (p.mediaIds || []).map(mid => items.find(x => x.id === mid)?.url).filter(Boolean);
+    parts.push(
+      `## Produkt: "${p.name}"` +
+      (p.sku ? `\nSKU: ${p.sku}` : "") +
+      (p.category ? ` | Kategorie: ${p.category}` : "") +
+      `\nPreis: ${priceStr}` +
+      (p.shortDesc ? `\nKurztext: ${p.shortDesc}` : "") +
+      (p.description ? `\nBeschreibung: ${p.description.slice(0, 1200)}` : "") +
+      (attrsStr ? `\nAttribute: ${attrsStr}` : "") +
+      (imgUrls.length ? `\nBilder: ${imgUrls.join(", ")}` : "")
+    );
   });
 
   (form.mediaIds || []).forEach(id => {

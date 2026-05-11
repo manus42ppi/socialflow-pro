@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
-import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_PROJECTS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
+import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_PROJECTS, DEMO_PRODUCTS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { uid, storeGet, storeSet, storeDelete } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
@@ -49,6 +49,7 @@ export function AppProvider({ children }) {
   const [items, setItems] = useState([]);
   const [campaigns, setCampaigns] = useState(DEMO_CAMPAIGNS);
   const [stories, setStories] = useState(DEMO_STORIES);
+  const [products, setProducts] = useState(DEMO_PRODUCTS);
   const [projects, setProjects] = useState(DEMO_PROJECTS);
 
   // ── Modal / filter state ──────────────────────────────────────────────────
@@ -57,6 +58,7 @@ export function AppProvider({ children }) {
   const [filt, setFilt] = useState("all");
   const [chFilt, setChFilt] = useState("all");
   const [edStory, setEdStory] = useState(null);
+  const [edProduct, setEdProduct] = useState(null);
   const [detailPost, setDetailPost] = useState(null);
   // Active project in Creation Voodoo — shared between Sidebar and VoodooPage
   const [voodooProjectId, setVoodooProjectId] = useState(null);
@@ -73,6 +75,7 @@ export function AppProvider({ children }) {
   const postsLoaded = useRef(false);
   const campsLoaded = useRef(false);
   const storiesLoaded = useRef(false);
+  const productsLoaded = useRef(false);
   const projectsLoaded = useRef(false);
   const demoMediaLoaded = useRef(false);
   const demoStoriesLoaded = useRef(false);
@@ -94,12 +97,14 @@ export function AppProvider({ children }) {
       postsLoaded.current    = false;
       campsLoaded.current    = false;
       storiesLoaded.current  = false;
+      productsLoaded.current = false;
       mediaLoaded.current    = false;
       projectsLoaded.current = false;
       demoProjectsLoaded.current = false;
       setPosts(DEMO_POSTS);
       setCampaigns(DEMO_CAMPAIGNS);
       setStories(DEMO_STORIES);
+      setProducts(DEMO_PRODUCTS);
       setItems(DEMO_MEDIA);
       setProjects(DEMO_PROJECTS);
       return;
@@ -136,6 +141,18 @@ export function AppProvider({ children }) {
       storiesLoaded.current = true;
       if (data?.length) setStories(data);
       else setStories(DEMO_STORIES);
+    });
+
+    productsLoaded.current = false;
+    storeGet("products").then(data => {
+      productsLoaded.current = true;
+      if (data?.length) {
+        const kvIds = new Set(data.map(p => p.id));
+        const newDemo = DEMO_PRODUCTS.filter(p => !kvIds.has(p.id));
+        setProducts(newDemo.length ? [...data, ...newDemo] : data);
+      } else {
+        setProducts(DEMO_PRODUCTS);
+      }
     });
 
     // Projects: metadata index stored without generatedHtml; HTML loaded separately
@@ -188,6 +205,11 @@ export function AppProvider({ children }) {
     if (!storiesLoaded.current) return;
     storeSet("stories", stories);
   }, [stories]);
+
+  useEffect(() => {
+    if (!productsLoaded.current) return;
+    storeSet("products", products);
+  }, [products]);
 
   useEffect(() => {
     if (!projectsLoaded.current) return;
@@ -329,6 +351,12 @@ export function AppProvider({ children }) {
       : stories
   , [stories, currentWorkspaceId]);
 
+  const filteredProducts = useMemo(() =>
+    currentWorkspaceId
+      ? products.filter(p => p.workspaceId === currentWorkspaceId)
+      : products
+  , [products, currentWorkspaceId]);
+
   const filteredItems = useMemo(() =>
     currentWorkspaceId
       ? items.filter(i => i.workspaceId === currentWorkspaceId)
@@ -402,6 +430,36 @@ export function AppProvider({ children }) {
       tags: "",
       lockedBy: null, comments: [], history: [],
       workspaceId: currentWorkspaceId,
+    });
+  };
+
+  // ── Product actions ───────────────────────────────────────────────────────
+  const saveProduct = p => {
+    const wsId = p.workspaceId || currentWorkspaceId || "ws-ppi-media";
+    const saved = { ...p, workspaceId: wsId, updatedAt: new Date().toISOString() };
+    setProducts(prev =>
+      prev.find(x => x.id === saved.id) ? prev.map(x => x.id === saved.id ? saved : x) : [...prev, saved]
+    );
+    productsLoaded.current = true; // unlock KV save
+  };
+  const updateProduct = p => {
+    setProducts(prev =>
+      prev.find(x => x.id === p.id) ? prev.map(x => x.id === p.id ? p : x) : [...prev, p]
+    );
+  };
+  const delProduct = id => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+  };
+  const newProduct = () => {
+    if (!currentWorkspaceId) return;
+    setEdProduct({
+      id: uid(), workspaceId: currentWorkspaceId,
+      name: "", sku: "", category: "", status: "draft", tags: "",
+      shortDesc: "", description: "",
+      price: null, currency: "EUR", unit: "Stk.", vatClass: "19%",
+      mediaIds: [], attributes: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
   };
 
@@ -509,6 +567,14 @@ export function AppProvider({ children }) {
     unlockStory,
     delStory,
     newStory,
+    // Products (filtered by current workspace for display)
+    products: filteredProducts,
+    edProduct,
+    setEdProduct,
+    saveProduct,
+    updateProduct,
+    delProduct,
+    newProduct,
     detailPost,
     setDetailPost,
     // Projects (Creation Voodoo)
