@@ -10,6 +10,7 @@ import { uid } from "../utils/store.js";
 import {
   slugify, buildContext, runPreflight, searchImages,
   generatePage, refinePage, validatePage, postProcessHtml,
+  buildRepairInstruction,
 } from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
 
@@ -232,6 +233,8 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   const [pageIssues, setPageIssues] = useState(() =>
     project.generatedHtml ? validatePage(project.generatedHtml) : []
   );
+  // Shown during the auto-repair loop ("Repariere... 1/2")
+  const [repairStatus, setRepairStatus] = useState("");
 
   const busy = genPhase !== "idle";
 
@@ -240,6 +243,47 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   function upd(patch) { setForm(f => ({ ...f, ...patch })); }
 
   function save() { onSave(form); }
+
+  // ── Auto-repair loop ──────────────────────────────────────────────────────
+  // Validates html; if issues remain, calls refinePage with a targeted repair
+  // instruction and re-runs repairPage. Repeats up to maxAttempts times.
+  // Always returns a valid HTML string (worst case: the original unchanged).
+  async function autoRepairLoop(html, maxAttempts = 2) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const issues = validatePage(html);
+      if (issues.length === 0) break;
+
+      const instruction = buildRepairInstruction(issues);
+      if (!instruction) break;
+
+      const label = `Automatische Reparatur… (${attempt}/${maxAttempts})`;
+      setRepairStatus(label);
+      setSparkJob(j => j ? { ...j, status: "running", chars: 0 } : j);
+
+      try {
+        const rawHtml = await refinePage({
+          html,
+          instruction,
+          onChunk: (_c, full) => {
+            setSparkChars(full.length);
+            setSparkJob(j => j ? { ...j, chars: full.length } : j);
+          },
+        });
+        const fixed = repairPage(rawHtml);
+        if (fixed.startsWith("<!")) {
+          html = fixed; // accept the repaired version and continue loop
+        } else {
+          break; // AI returned something unexpected — stop and keep current
+        }
+      } catch(e) {
+        console.error(`autoRepairLoop attempt ${attempt} failed:`, e);
+        break; // network/AI error — stop, keep current html
+      }
+    }
+
+    setRepairStatus("");
+    return html;
+  }
 
   // ── Content pickers ───────────────────────────────────────────────────────
   function toggleStory(id) {
@@ -328,13 +372,16 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
         },
       });
 
-      // DOM repair: fix broken anchor links + ensure LINK_GUARD is correct
-      const html = repairPage(rawHtml);
+      // 1. DOM repair: fix broken anchors structurally via DOMParser
+      const domFixed = repairPage(rawHtml);
 
-      if (!html.startsWith("<!")) {
+      if (!domFixed.startsWith("<!")) {
         console.error("VoodooPage generate: unexpected response:", rawHtml.slice(0, 200));
         throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
       }
+
+      // 2. AI repair loop: up to 2 additional refinements if validatePage still finds issues
+      const html = await autoRepairLoop(domFixed);
 
       const res = await fetch("/deploy-site", {
         method:"POST",
@@ -381,9 +428,13 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
           setSparkJob(j => j ? { ...j, chars: full.length } : j);
         },
       });
-      const html = repairPage(rawHtml);
+      // 1. DOM repair: structural anchor fixes via DOMParser
+      const domFixed = repairPage(rawHtml);
 
-      if (!html.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
+      if (!domFixed.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
+
+      // 2. AI repair loop: up to 2 additional passes if validatePage finds issues
+      const html = await autoRepairLoop(domFixed);
 
       await fetch("/deploy-site", {
         method:"POST",
@@ -782,19 +833,27 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
               {/* ── PHASE: streaming ── */}
               {genPhase === "streaming" && (
                 <div style={{ padding:"24px 16px", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
-                  <Loader size={22} strokeWidth={1.5} color={C.accent} style={{animation:"spin .8s linear infinite"}}/>
+                  <Loader size={22} strokeWidth={1.5}
+                    color={repairStatus ? "#7C3AED" : C.accent}
+                    style={{animation:"spin .8s linear infinite"}}/>
                   <div style={{ textAlign:"center" }}>
                     <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:4 }}>
-                      {genChars > 0 ? `${(genChars/1000).toFixed(1)} k Zeichen…` : "Spark schreibt…"}
+                      {repairStatus
+                        ? repairStatus
+                        : genChars > 0 ? `${(genChars/1000).toFixed(1)} k Zeichen…` : "Spark schreibt…"}
                     </div>
-                    <div style={{ fontSize:11, color:T.gray400 }}>Landing Page wird generiert</div>
+                    <div style={{ fontSize:11, color:T.gray400 }}>
+                      {repairStatus ? "Qualitätsprüfung & Reparatur" : "Landing Page wird generiert"}
+                    </div>
                   </div>
-                  {genChars > 0 && (
+                  {(genChars > 0 || sparkChars > 0) && (
                     <div style={{ width:"100%", height:4, background:T.gray100, borderRadius:2, overflow:"hidden" }}>
                       <div style={{
                         height:"100%", borderRadius:2, transition:"width .3s",
-                        background:`linear-gradient(90deg, ${C.accent}, #7C3AED)`,
-                        width:`${Math.min(100, (genChars/4000)*100)}%`,
+                        background: repairStatus
+                          ? "linear-gradient(90deg, #7C3AED, #4F46E5)"
+                          : `linear-gradient(90deg, ${C.accent}, #7C3AED)`,
+                        width:`${Math.min(100, ((genChars||sparkChars)/4000)*100)}%`,
                       }}/>
                     </div>
                   )}
@@ -939,9 +998,20 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
                   ))}
                 </div>
 
-                {sparkLoading && sparkChars > 0 && (
+                {sparkLoading && sparkChars > 0 && !repairStatus && (
                   <div style={{ fontSize:11, color:C.accent, marginBottom:6, fontWeight:600 }}>
                     ⟳ {(sparkChars/1000).toFixed(1)} k Zeichen…
+                  </div>
+                )}
+                {repairStatus && (
+                  <div style={{ fontSize:11, color:"#6D28D9", background:"#EDE9FE",
+                    border:"1px solid #C4B5FD", borderRadius:7, padding:"5px 10px",
+                    marginBottom:6, fontWeight:600, display:"flex", alignItems:"center", gap:6 }}>
+                    <span style={{ display:"inline-block", animation:"spin 1s linear infinite" }}>⚙</span>
+                    {repairStatus}
+                    {sparkChars > 0 && <span style={{ color:"#8B5CF6", fontWeight:400 }}>
+                      · {(sparkChars/1000).toFixed(1)} k Zeichen
+                    </span>}
                   </div>
                 )}
                 {refineMsg && (

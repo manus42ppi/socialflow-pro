@@ -5,7 +5,7 @@
 // are NOT tested here — they require API access.
 
 import { describe, it, expect } from "vitest";
-import { slugify, blocksToPlain, postProcessHtml, buildContext, validatePage, LINK_GUARD } from "../utils/spark.js";
+import { slugify, blocksToPlain, postProcessHtml, buildContext, validatePage, buildRepairInstruction, LINK_GUARD } from "../utils/spark.js";
 
 // ── slugify ──────────────────────────────────────────────────────────────────
 describe("slugify", () => {
@@ -340,5 +340,58 @@ describe("buildContext", () => {
     const items = [{ id: "m1", name: "img.jpg", url: "https://x.com/img.jpg", description: "", altText: "Alt fallback" }];
     const result = buildContext(form, [], [], items);
     expect(result).toContain("Alt fallback");
+  });
+});
+
+// ── buildRepairInstruction ────────────────────────────────────────────────────
+describe("buildRepairInstruction", () => {
+  it("returns empty string for empty issues array", () => {
+    expect(buildRepairInstruction([])).toBe("");
+    expect(buildRepairInstruction(null)).toBe("");
+    expect(buildRepairInstruction(undefined)).toBe("");
+  });
+
+  it("addresses broken nav anchors by listing them", () => {
+    const issues = [{ type: "warn", msg: "2 Nav-Link(s) ohne passende Section-ID: #neuron, #grail" }];
+    const result = buildRepairInstruction(issues);
+    expect(result).toContain("#neuron");
+    expect(result).toContain("#grail");
+    expect(result).toContain("NAV-ANKER REPARIEREN");
+  });
+
+  it("addresses too-few sections with a count", () => {
+    const issues = [{ type: "warn", msg: "Nur 2 Sections gefunden — mindestens 7 erwartet" }];
+    const result = buildRepairInstruction(issues);
+    expect(result).toContain("FEHLENDE SECTIONS ERGÄNZEN");
+    expect(result).toContain("5"); // 7 - 2 = 5 missing
+  });
+
+  it("addresses script leak", () => {
+    const issues = [{ type: "error", msg: "Script-Code als sichtbarer Text — Seite einmal neu verfeinern" }];
+    const result = buildRepairInstruction(issues);
+    expect(result).toContain("SCRIPT-LEAK BEHEBEN");
+  });
+
+  it("combines multiple issues into one instruction", () => {
+    const issues = [
+      { type: "warn", msg: "1 Nav-Link(s) ohne passende Section-ID: #hero" },
+      { type: "warn", msg: "Nur 3 Sections gefunden — mindestens 7 erwartet" },
+    ];
+    const result = buildRepairInstruction(issues);
+    expect(result).toContain("NAV-ANKER REPARIEREN");
+    expect(result).toContain("FEHLENDE SECTIONS ERGÄNZEN");
+    expect(result).toContain("#hero");
+  });
+
+  it("always includes the output rule for <!DOCTYPE html>", () => {
+    const issues = [{ type: "warn", msg: "Nur 1 Sections gefunden — mindestens 7 erwartet" }];
+    const result = buildRepairInstruction(issues);
+    expect(result).toContain("<!DOCTYPE html>");
+  });
+
+  it("passes unknown issues through as-is", () => {
+    const issues = [{ type: "warn", msg: "Unbekannter Fehler XYZ" }];
+    const result = buildRepairInstruction(issues);
+    expect(result).toContain("Unbekannter Fehler XYZ");
   });
 });

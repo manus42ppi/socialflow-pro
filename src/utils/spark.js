@@ -247,6 +247,59 @@ export function validatePage(html) {
 }
 
 /**
+ * Build a targeted repair instruction from a validatePage() issues array.
+ * The returned string is passed directly to refinePage() as the instruction.
+ * This is a pure function so it can be tested without mocks.
+ *
+ * @param {Array<{type:string, msg:string}>} issues - output of validatePage()
+ * @returns {string} instruction text for the AI
+ */
+export function buildRepairInstruction(issues) {
+  if (!issues?.length) return "";
+  const lines = [];
+
+  for (const issue of issues) {
+    if (issue.msg.includes("Nav-Link") && issue.msg.includes("Section-ID")) {
+      // Extract the broken #ids from the message (e.g. "#neuron, #aeroad, #grail")
+      const match = issue.msg.match(/(#[\w-]+(?:,\s*#[\w-]+)*)/);
+      const ids = match ? match[1] : "(siehe Meldung)";
+      lines.push(
+        `– NAV-ANKER REPARIEREN: ${ids}. Jede Section die über ein Nav-Link erreichbar sein soll MUSS ` +
+        `ein id-Attribut haben das exakt dem href entspricht. ` +
+        `Wenn die Section fehlt → erstelle sie mit passendem Inhalt. ` +
+        `Wenn die Section existiert aber das falsche id hat → korrigiere das id.`
+      );
+    } else if (issue.msg.includes("Sections gefunden")) {
+      const match = issue.msg.match(/Nur (\d+)/);
+      const found = match ? parseInt(match[1], 10) : 0;
+      const missing = Math.max(0, 7 - found);
+      lines.push(
+        `– FEHLENDE SECTIONS ERGÄNZEN: Nur ${found} Sections vorhanden, mindestens 7 erwartet. ` +
+        `Füge ${missing} sinnvolle Sections hinzu (z.B. Vorteile, Features, Testimonials, Statistiken, FAQ, CTA-Bereich). ` +
+        `Jede neue Section braucht ein eindeutiges id-Attribut das zum Nav-Link passt.`
+      );
+    } else if (issue.msg.includes("Script-Code als sichtbarer Text")) {
+      lines.push(
+        `– SCRIPT-LEAK BEHEBEN: JavaScript-Code ist als sichtbarer Fließtext auf der Seite. ` +
+        `Entferne diesen Text vollständig — Code darf nur innerhalb von <script>-Tags stehen, niemals als <p>- oder sonstiger Text.`
+      );
+    } else {
+      lines.push(`– ${issue.msg}`);
+    }
+  }
+
+  return (
+    `AUTOMATISCHE QUALITÄTS-REPARATUR — behebe exakt folgende Fehler:\n\n` +
+    lines.join("\n\n") +
+    `\n\nREGELN:\n` +
+    `• Alle bestehenden Inhalte, Farben und das Design bleiben vollständig erhalten\n` +
+    `• Nur die oben genannten Punkte werden geändert\n` +
+    `• Jeder Nav-Link href="#xyz" MUSS eine Section mit id="xyz" haben — keine Ausnahme\n` +
+    `• Ausgabe: vollständige HTML-Seite, beginnt mit <!DOCTYPE html>`
+  );
+}
+
+/**
  * Build the text context block that is fed to the AI.
  * Collects text from Stories (block content), Posts, Media descriptions,
  * and raw external URLs selected in the project.
