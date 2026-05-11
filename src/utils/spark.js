@@ -669,8 +669,8 @@ AUSGABE-FORMAT (exakt einhalten):
 5. </body></html>
 
 QUALITÄTS-REGELN (keine Ausnahmen):
+- EMOJI-VERBOT (absolut, keine Ausnahmen): Niemals Emojis oder Unicode-Piktogramme — weder in <div class="ico">, noch in Überschriften, Listenpunkten oder Fließtext. Emojis verraten sofort KI-generierten Content. Einzig erlaubt: monochrome SVG mit stroke="currentColor". Beispiel: <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><circle cx="12" cy="12" r="10"/></svg></div>
 - KEIN zusätzliches CSS außer :root Farbvariablen in Schritt 2
-- KEINE Emoji-Icons als Grafik — nur monochrome SVG (stroke="currentColor") oder Textsymbole
 - Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" oder externe URLs in der Nav
 - ANCHOR-KONSISTENZ (kritisch): Jeder Nav-Link href="#xyz" MUSS eine Section oder ein Element mit GENAU id="xyz" im Body haben. Prüfe jeden einzelnen #anchor gegen die Section-IDs bevor du ausgibst — kein #anchor ohne passendes id=""
 - KEIN opacity:0 oder display:none auf sichtbarem Content
@@ -747,7 +747,7 @@ NAV → HERO → BENEFITS → CONTENT → STATS → CTA-BLOCK → FOOTER
 
 TECHNISCHE REGELN (keine Ausnahmen):
 - Behalte "${CSS_SENTINEL}" EXAKT im <style>-Tag — CSS wird automatisch eingefügt
-- KEINE Emoji-Icons — nur monochrome SVG (stroke="currentColor") oder Textsymbole
+- EMOJI-VERBOT (absolut): Niemals Emojis oder Unicode-Piktogramme — weder in <div class="ico">, noch in Überschriften, Listenpunkten oder Fließtext. Nur monochrome SVG mit stroke="currentColor" sind erlaubt.
 - Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" in der Nav
 - ANCHOR-KONSISTENZ (kritisch): Jeder Nav-Link href="#xyz" MUSS eine Section mit GENAU id="xyz" im Body haben. Beim Refinement: wenn du Nav-Links änderst, passe auch die Section-IDs an — und umgekehrt. Kein #anchor ohne passendes id=""
 - KEIN opacity:0 oder display:none auf sichtbarem Content
