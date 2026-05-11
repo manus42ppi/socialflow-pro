@@ -616,7 +616,7 @@ LANDING PAGE ANATOMIE (alle 7 Sections müssen vorhanden bleiben):
 NAV → HERO → BENEFITS → CONTENT → STATS → CTA-BLOCK → FOOTER
 
 TECHNISCHE REGELN (keine Ausnahmen):
-- Behalte "${SENTINEL}" EXAKT im <style>-Tag — CSS wird automatisch eingefügt
+- Behalte "${CSS_SENTINEL}" EXAKT im <style>-Tag — CSS wird automatisch eingefügt
 - KEINE Emoji-Icons — nur monochrome SVG (stroke="currentColor") oder Textsymbole
 - Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" in der Nav
 - ANCHOR-KONSISTENZ (kritisch): Jeder Nav-Link href="#xyz" MUSS eine Section mit GENAU id="xyz" im Body haben. Beim Refinement: wenn du Nav-Links änderst, passe auch die Section-IDs an — und umgekehrt. Kein #anchor ohne passendes id=""

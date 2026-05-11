@@ -308,7 +308,7 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   //    Only triggered when Tier 1+2 still leave issues after all attempts.
   //
   // Always returns a valid HTML string; never throws.
-  async function autoRepairLoop(html, maxAttempts = 2) {
+  async function autoRepairLoop(html, maxAttempts = 2, maxTier = 3) {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       // ── Tier 1: DOM repair (0 tokens) ──────────────────────────────────
       const domFixed = repairPage(html);
@@ -361,9 +361,11 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     }
 
     // ── Tier 3: refinePage fallback (≤6000 tokens, runs once) ─────────────
-    // Only if DOM + section injection still left issues.
+    // Only if DOM + section injection still left issues AND caller allows it.
+    // sparkRefine() passes maxTier=2 to avoid a nested refinePage call inside
+    // a refinePage call — which would double tokens and risk rate-limit errors.
     const remaining = validatePage(html);
-    if (remaining.length > 0) {
+    if (remaining.length > 0 && maxTier >= 3) {
       const instruction = buildRepairInstruction(remaining);
       if (instruction) {
         setRepairStatus("Qualitätsprüfung – finale Korrektur…");
@@ -524,21 +526,35 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
     // Global sparkJob — persists across navigation
     setSparkJob({ projectId: form.id, projectName: form.name, workspaceId: form.workspaceId, type: "refine", chars: 0, status: "running" });
     try {
-      const rawHtml = await refinePage({
-        html: form.generatedHtml,
-        instruction: p,
-        onChunk: (_c, full) => {
-          setSparkChars(full.length);
-          setSparkJob(j => j ? { ...j, chars: full.length } : j);
-        },
-      });
-      // 1. DOM repair: structural anchor fixes via DOMParser
+      // Streaming callback shared across initial attempt + retry
+      const onChunkCb = (_c, full) => {
+        setSparkChars(full.length);
+        setSparkJob(j => j ? { ...j, chars: full.length } : j);
+      };
+
+      // One automatic retry for transient errors (server overload, rate limit)
+      let rawHtml;
+      try {
+        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, onChunk: onChunkCb });
+      } catch (firstErr) {
+        // Short pause then retry — handles 529 overload / momentary network blips
+        setRefineMsg("⏳ Kurze Pause – erneuter Versuch…");
+        await new Promise(r => setTimeout(r, 2500));
+        setRefineMsg("");
+        setSparkChars(0);
+        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, onChunk: onChunkCb });
+      }
+
+      // 1. DOM repair: structural anchor fixes via DOMParser (0 tokens)
       const domFixed = repairPage(rawHtml);
 
-      if (!domFixed.startsWith("<!")) throw new Error("Ungültige HTML-Antwort");
+      if (!domFixed.startsWith("<!")) throw new Error("Ungültige HTML-Antwort vom KI-Server");
 
-      // 2. AI repair loop: up to 2 additional passes if validatePage finds issues
-      const html = await autoRepairLoop(domFixed);
+      // 2. AI repair loop: Tier 1 (DOM) + Tier 2 (section injection) only.
+      //    Tier 3 (full refinePage fallback) is skipped here via maxTier=2,
+      //    because sparkRefine() itself already IS a refinePage call — nesting
+      //    would double the token cost and risk triggering rate-limit errors.
+      const html = await autoRepairLoop(domFixed, 2, 2);
 
       await fetch("/deploy-site", {
         method:"POST",
@@ -557,7 +573,17 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
       setTimeout(() => setSparkJob(j => j?.status === "done" ? null : j), 5000);
     } catch(e) {
       console.error("VoodooPage sparkRefine error:", e);
-      setRefineMsg("⚠️ Fehler – bitte erneut versuchen");
+      // Give the user an actionable error message instead of a generic one
+      const msg = (e?.message || "").toLowerCase();
+      const userMsg =
+        msg.includes("529") || msg.includes("overload") || msg.includes("rate") || msg.includes("limit")
+          ? "⚠️ KI-Server überlastet — bitte 30 Sekunden warten"
+          : msg.includes("network") || msg.includes("fetch") || msg.includes("failed to fetch")
+          ? "⚠️ Netzwerkfehler — bitte erneut versuchen"
+          : msg.includes("ungültige") || msg.includes("invalid")
+          ? "⚠️ Ungültige Antwort — Seite neu generieren"
+          : "⚠️ Fehler — bitte erneut versuchen";
+      setRefineMsg(userMsg);
       setSparkJob(j => j ? { ...j, status: "error" } : j);
       setTimeout(() => setSparkJob(j => j?.status === "error" ? null : j), 7000);
     }
