@@ -306,60 +306,69 @@ export function buildRepairInstruction(issues) {
 
 /**
  * Generate ONLY the missing <section> elements for an existing page.
- * Surgical alternative to a full-page refinement — ~1500 tokens instead of 6000+.
+ * Surgical alternative to a full-page refinement — ~3000 tokens instead of 6000+.
  *
- * Strategy: extract page title and nav-link labels from existing HTML for context,
- * then ask the AI for only the section snippets that are missing.
- * The caller injects them into the existing page.
+ * OUTPUT FORMAT: plain HTML sections, NO JSON.
+ * JSON was unreliable because the model had to escape HTML quotes inside JSON strings.
+ * Plain HTML is parsed in the browser via DOMParser, which is much more robust.
  *
  * @param {string}   html       - Current page HTML (used for context extraction)
  * @param {string[]} missingIds - Section IDs that need to be created
- * @returns {Array<{id:string, html:string}>} New section elements
+ * @returns {Array<{id:string, html:string}>} Serialized outerHTML of each section
  */
 export async function generateMissingSections({ html, missingIds }) {
   if (!missingIds?.length) return [];
 
-  // Extract context from the existing page (regex — no DOMParser in pure functions)
+  // Extract context from the existing page via regex
   const titleMatch = html.match(/<title>([^<]{1,80})<\/title>/i);
   const pageTitle = titleMatch ? titleMatch[1].trim() : "Landing Page";
 
-  // Nav links: {id: "bikes", label: "Die Bikes"}
+  // Nav links for label context: {id: "magazin", label: "Magazin"}
   const navLinks = [...html.matchAll(/href="#([\w-]+)"[^>]*>\s*([^<]{1,40})/g)]
     .map(m => ({ id: m[1], label: m[2].trim() }));
 
-  // Existing root-level CSS color vars for design continuity
+  // Color variables for visual continuity
   const rootMatch = html.match(/:root\s*\{([^}]{1,300})\}/);
   const rootVars = rootMatch ? rootMatch[1].trim() : "";
 
   const targets = missingIds.map(id => {
     const link = navLinks.find(l => l.id === id);
-    return `• id="${id}"${link?.label ? ` (Nav-Label: "${link.label}")` : ""}`;
+    return `• <section id="${id}">  ${link?.label ? `— Nav-Label: "${link.label}"` : ""}`;
   }).join("\n");
 
+  // Plain-HTML output avoids JSON quote-escaping failures.
+  // The model just outputs <section> tags directly; the browser DOMParser parses them.
   const prompt =
-`Du bist Werbetexter und Webdesigner. Erstelle NUR folgende fehlende <section>-Elemente für eine bestehende Landing Page.
-KEINE vollständige HTML-Seite — NUR die <section>-Tags selbst.
+`Du bist Werbetexter und Webdesigner. Erstelle die folgenden fehlenden <section>-Elemente.
+KEINE vollständige HTML-Seite. KEIN JSON. KEIN Markdown. Direkt die <section>-Tags ausgeben.
 
 SEITE: "${pageTitle}"
-DESIGN-VARS: :root{${rootVars}}
+DESIGN: :root{${rootVars}}
 
-FEHLENDE SECTIONS (in dieser Reihenfolge erstellen):
+FEHLENDE SECTIONS (alle erstellen, in dieser Reihenfolge):
 ${targets}
 
-PFLICHT-KLASSEN (nur diese, kein eigenes CSS):
+CSS-KLASSEN (nur diese, kein eigenes CSS):
 section .alt .w .lbl h2 h3 .lead .g .g2 .g3 .g4 .card .ico .stat .stat-l .btn .btn-p .tag
 
 REGELN:
-• Jede Section bekommt GENAU das id="" das oben angegeben ist
-• Inhalte passen thematisch zu "${pageTitle}" — überzeugend, benefit-orientiert, konkret
-• Keine Bilder, keine externen URLs, kein JavaScript
-• Kein Platzhaltertext — echte, überzeugende Inhalte
+• Jede Section hat GENAU das id="" das oben spezifiziert ist — keine Abweichung
+• Inhalt passend zu "${pageTitle}" — überzeugend, konkret, kein Platzhaltertext
+• Kein JavaScript, keine Bild-URLs, keine externen Ressourcen
+• Gib ausschließlich die <section>…</section>-Tags aus, direkt nacheinander`;
 
-NUR JSON, kein Markdown:
-{"sections":[{"id":"xyz","html":"<section id=\\"xyz\\">...</section>"}]}`;
+  const raw = await aiCall([{ role: "user", content: prompt }], 3000);
 
-  const raw = await aiCall([{ role: "user", content: prompt }], 2000);
-  return parseJSON(raw)?.sections || [];
+  // Parse with DOMParser — robust against any HTML the model produces
+  // (DOMParser is available in both browser and jsdom/vitest environments)
+  try {
+    const doc = new DOMParser().parseFromString(`<div>${raw}</div>`, "text/html");
+    return [...doc.querySelectorAll("div > section[id]")]
+      .filter(s => missingIds.includes(s.id))
+      .map(s => ({ id: s.id, html: s.outerHTML }));
+  } catch {
+    return [];
+  }
 }
 
 /**

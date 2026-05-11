@@ -292,46 +292,43 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
   function save() { onSave(form); }
 
   // ── Auto-repair loop ──────────────────────────────────────────────────────
-  // Validates html; repairs issues using the cheapest strategy available.
+  // Three-tier strategy (cheapest first):
   //
-  // STRATEGY (in order of token cost):
-  //   1. DOM repair (0 tokens)  — repairPage() handles script leaks + anchor IDs
-  //      via content-based heading matching. Covers ~80% of all issues.
-  //   2. Section injection (~1500 tokens)  — generateMissingSections() produces
-  //      only the missing <section> snippets; they're stitched in client-side.
-  //      Only runs when DOM repair still leaves a section-count warning.
-  //   3. Never calls refinePage() — that would output the full page (~6000 tokens)
-  //      for what is often just a structural fix.
+  //  Tier 1 — DOM repair (0 tokens, always runs first)
+  //    repairPage() fixes script-leak text nodes and anchor-ID mismatches via
+  //    content-based heading matching. Covers ~80% of structural issues.
+  //
+  //  Tier 2 — Section injection (~3000 tokens, runs up to 2 times)
+  //    generateMissingSections() asks the AI for only the missing <section> tags
+  //    as plain HTML (no JSON — avoids quote-escaping failures). Sections are
+  //    injected via DOMParser before the CTA block for correct document order.
+  //
+  //  Tier 3 — Full refinePage fallback (~6000 tokens, runs once if needed)
+  //    Last resort: asks for a full page re-output with explicit repair instruction.
+  //    Only triggered when Tier 1+2 still leave issues after all attempts.
   //
   // Always returns a valid HTML string; never throws.
   async function autoRepairLoop(html, maxAttempts = 2) {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      // ── Phase 1: DOM repair (0 tokens) ─────────────────────────────────
-      // Handles: script leaks, anchor ID mismatches via content matching
+      // ── Tier 1: DOM repair (0 tokens) ──────────────────────────────────
       const domFixed = repairPage(html);
       const issuesAfterDom = validatePage(domFixed);
+      html = domFixed;
 
-      if (issuesAfterDom.length === 0) {
-        // All fixed by DOM manipulation — no AI needed
-        html = domFixed;
-        break;
-      }
-      html = domFixed; // keep the DOM-fixed version as base
+      if (issuesAfterDom.length === 0) break; // all clean
 
-      // ── Phase 2: Surgical section injection (~1500 tokens) ───────────────
-      // Only if there are genuinely missing sections that DOM can't invent
       const sectionIssue = issuesAfterDom.find(i => i.msg.includes("Sections gefunden"));
       const anchorIssue  = issuesAfterDom.find(i => i.msg.includes("Nav-Link"));
-
-      if (!sectionIssue && !anchorIssue) break; // only unknown issues remain
+      if (!sectionIssue && !anchorIssue) break; // only unknown issue types remain
 
       // Collect IDs that nav links reference but no element provides
-      const navHrefs = [...html.matchAll(/href="#([\w-]+)"/g)].map(m => m[1]);
-      const pageIds  = new Set([...html.matchAll(/\s+id="([\w-]+)"/g)].map(m => m[1]));
+      const navHrefs  = [...html.matchAll(/href="#([\w-]+)"/g)].map(m => m[1]);
+      const pageIds   = new Set([...html.matchAll(/\bid="([\w-]+)"/g)].map(m => m[1]));
       const missingIds = [...new Set(navHrefs)].filter(id => !pageIds.has(id));
 
-      if (missingIds.length === 0 && !sectionIssue) break; // nothing actionable
+      if (missingIds.length === 0 && !sectionIssue) break;
 
+      // ── Tier 2: Section injection (~3000 tokens) ────────────────────────
       setRepairStatus(`Automatische Reparatur… (${attempt}/${maxAttempts})`);
       setSparkJob(j => j ? { ...j, status: "running", chars: 0 } : j);
 
@@ -339,20 +336,53 @@ function ProjectDetail({ project, stories, posts, items, onSave, onDelete }) {
         const newSections = await generateMissingSections({ html, missingIds });
 
         if (newSections.length > 0) {
-          // Inject new sections before the CTA block (if present) or before </body>
-          const ctaPattern = /<section[^>]*class="[^"]*cta-b[^"]*"/i;
-          const insertionTag = ctaPattern.test(html) ? ctaPattern : /<\/body>/i;
-          const snippets = newSections.map(s => s.html).join("\n");
-          html = html.replace(insertionTag, m => snippets + "\n" + m);
-          html = postProcessHtml(html);
+          // Inject via DOMParser — reliable, handles edge cases regex can't
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const ctaEl = doc.querySelector(".cta-b, [class*='cta-b']");
+          const footer = doc.querySelector("footer");
+          const anchor = ctaEl || footer || null;
+
+          for (const sec of newSections) {
+            const tpl = document.createElement("template");
+            tpl.innerHTML = sec.html;
+            const el = tpl.content.firstElementChild;
+            if (!el) continue;
+            if (anchor) anchor.parentNode.insertBefore(el.cloneNode(true), anchor);
+            else doc.body.appendChild(el.cloneNode(true));
+          }
+
+          html = postProcessHtml("<!DOCTYPE html>\n" + doc.documentElement.outerHTML);
         }
       } catch(e) {
-        console.error(`autoRepairLoop generateMissingSections attempt ${attempt}:`, e);
-        break; // keep what we have
+        console.error(`autoRepairLoop tier-2 attempt ${attempt}:`, e);
       }
 
-      // Stop early if clean
       if (validatePage(html).length === 0) break;
+    }
+
+    // ── Tier 3: refinePage fallback (≤6000 tokens, runs once) ─────────────
+    // Only if DOM + section injection still left issues.
+    const remaining = validatePage(html);
+    if (remaining.length > 0) {
+      const instruction = buildRepairInstruction(remaining);
+      if (instruction) {
+        setRepairStatus("Qualitätsprüfung – finale Korrektur…");
+        setSparkJob(j => j ? { ...j, status: "running", chars: 0 } : j);
+        try {
+          const rawHtml = await refinePage({
+            html,
+            instruction,
+            onChunk: (_c, full) => {
+              setSparkChars(full.length);
+              setSparkJob(j => j ? { ...j, chars: full.length } : j);
+            },
+          });
+          const fixed = repairPage(rawHtml);
+          if (fixed.startsWith("<!")) html = fixed;
+        } catch(e) {
+          console.error("autoRepairLoop tier-3 fallback:", e);
+        }
+      }
     }
 
     setRepairStatus("");
