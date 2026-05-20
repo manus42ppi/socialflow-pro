@@ -802,30 +802,68 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           {/* Content main area */}
           <div style={{ flex:1, overflowY:"auto", padding:"20px 24px" }}>
 
-            {/* Template selector */}
-            <div style={{ marginBottom:20 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:T.gray500, display:"block", marginBottom:8, textTransform:"uppercase", letterSpacing:".06em" }}>
-                Seiten-Template
-              </label>
-              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                {[...TEMPLATES, { id:"freeform", name:"Freie Generierung", description:"KI erstellt Seite komplett selbst — langsamer, maximale Freiheit" }].map(tmpl => {
-                  const active = (form.templateId || "editorial") === tmpl.id;
-                  return (
-                    <div key={tmpl.id} onClick={() => upd({ templateId: tmpl.id })}
-                      style={{ padding:"10px 12px", borderRadius:8, cursor:"pointer", transition:"all .15s",
-                        border:`1.5px solid ${active ? C.accent+"88" : T.gray200}`,
-                        background: active ? C.accent+"0D" : "#fff",
-                      }}>
-                      <div style={{ fontSize:13, fontWeight:600, color: active ? C.accent : C.text, marginBottom:2 }}>
-                        {tmpl.name}
-                        {tmpl.id !== "freeform" && <span style={{ marginLeft:8, fontSize:10, fontWeight:700, background: active ? C.accent : T.gray200, color: active ? "#fff" : T.gray500, borderRadius:4, padding:"1px 5px" }}>SCHNELL</span>}
+            {/* Template selector — 2-column grid */}
+            {(() => {
+              const allTmpls = [...TEMPLATES, { id:"freeform", name:"Freie Generierung", description:"KI erstellt Seite komplett selbst — langsamer, maximale Freiheit", icon:"✏️" }];
+              const activeTmpl = allTmpls.find(t => t.id === (form.templateId || "editorial"));
+              return (
+                <div style={{ marginBottom:20 }}>
+                  <label style={{ fontSize:11, fontWeight:700, color:T.gray500, display:"block", marginBottom:8, textTransform:"uppercase", letterSpacing:".06em" }}>
+                    Seiten-Template
+                  </label>
+                  {/* Grid: SCHNELL templates 2-col, Freie Generierung full-width */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5, marginBottom:5 }}>
+                    {TEMPLATES.map(tmpl => {
+                      const active = (form.templateId || "editorial") === tmpl.id;
+                      return (
+                        <div key={tmpl.id} onClick={() => upd({ templateId: tmpl.id })}
+                          title={tmpl.description}
+                          style={{ display:"flex", alignItems:"center", gap:7, padding:"7px 10px",
+                            borderRadius:7, cursor:"pointer", transition:"all .12s",
+                            border:`1.5px solid ${active ? C.accent : T.gray200}`,
+                            background: active ? C.accent+"0F" : "#fff",
+                          }}>
+                          <span style={{ fontSize:14, lineHeight:1, flexShrink:0 }}>{tmpl.icon}</span>
+                          <span style={{ fontSize:12, fontWeight: active ? 700 : 500, color: active ? C.accent : C.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                            {tmpl.name}
+                          </span>
+                          <span style={{ marginLeft:"auto", fontSize:9, fontWeight:800, flexShrink:0,
+                            background: active ? C.accent : T.gray100,
+                            color: active ? "#fff" : T.gray400,
+                            borderRadius:3, padding:"1px 4px", letterSpacing:".04em",
+                          }}>SCHNELL</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Freie Generierung — full width */}
+                  {(() => {
+                    const ff = allTmpls.find(t => t.id === "freeform");
+                    const active = (form.templateId || "editorial") === "freeform";
+                    return (
+                      <div onClick={() => upd({ templateId: "freeform" })}
+                        style={{ display:"flex", alignItems:"center", gap:7, padding:"7px 10px",
+                          borderRadius:7, cursor:"pointer", transition:"all .12s",
+                          border:`1.5px solid ${active ? C.accent : T.gray200}`,
+                          background: active ? C.accent+"0F" : "#fff",
+                        }}>
+                        <span style={{ fontSize:14, lineHeight:1 }}>✏️</span>
+                        <span style={{ fontSize:12, fontWeight: active ? 700 : 500, color: active ? C.accent : C.text }}>
+                          {ff.name}
+                        </span>
+                        <span style={{ fontSize:11, color:T.gray400, marginLeft:4 }}>— langsamer, maximale Freiheit</span>
                       </div>
-                      <div style={{ fontSize:11, color:T.gray400 }}>{tmpl.description}</div>
+                    );
+                  })()}
+                  {/* Active template description */}
+                  {activeTmpl && (
+                    <div style={{ marginTop:6, fontSize:11, color:T.gray400, paddingLeft:2 }}>
+                      {activeTmpl.description}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Description */}
             <div style={{ marginBottom:12 }}>
