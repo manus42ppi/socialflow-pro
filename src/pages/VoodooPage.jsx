@@ -4,8 +4,24 @@ import {
   BookOpen, Send as SendIcon, Image as ImageIcon, Globe,
   ChevronRight, X, RefreshCw, Sparkles, Link as LinkIcon,
   FileText, Zap, MessageSquare, Search, ArrowRight, SkipForward,
-  Package,
+  Package, Calendar, Mail, ShoppingCart, Briefcase, Monitor,
+  GraduationCap, MapPin, BarChart2, Play,
 } from "lucide-react";
+
+// Monochrome Lucide icon per template-id (no colored emojis)
+const TMPL_ICONS = {
+  editorial:  FileText,
+  event:      Calendar,
+  lead:       Mail,
+  product:    ShoppingCart,
+  service:    Briefcase,
+  saas:       Monitor,
+  kurs:       GraduationCap,
+  local:      MapPin,
+  casestudy:  BarChart2,
+  video:      Play,
+  freeform:   Wand2,
+};
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { uid } from "../utils/store.js";
 import {
@@ -815,6 +831,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5, marginBottom:5 }}>
                     {TEMPLATES.map(tmpl => {
                       const active = (form.templateId || "editorial") === tmpl.id;
+                      const TIcon = TMPL_ICONS[tmpl.id] || FileText;
                       return (
                         <div key={tmpl.id} onClick={() => upd({ templateId: tmpl.id })}
                           title={tmpl.description}
@@ -823,7 +840,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                             border:`1.5px solid ${active ? C.accent : T.gray200}`,
                             background: active ? C.accent+"0F" : "#fff",
                           }}>
-                          <span style={{ fontSize:14, lineHeight:1, flexShrink:0 }}>{tmpl.icon}</span>
+                          <TIcon size={13} strokeWidth={IW} color={active ? C.accent : T.gray400} style={{ flexShrink:0 }}/>
                           <span style={{ fontSize:12, fontWeight: active ? 700 : 500, color: active ? C.accent : C.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
                             {tmpl.name}
                           </span>
@@ -847,7 +864,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                           border:`1.5px solid ${active ? C.accent : T.gray200}`,
                           background: active ? C.accent+"0F" : "#fff",
                         }}>
-                        <span style={{ fontSize:14, lineHeight:1 }}>✏️</span>
+                        <Wand2 size={13} strokeWidth={IW} color={active ? C.accent : T.gray400} style={{ flexShrink:0 }}/>
                         <span style={{ fontSize:12, fontWeight: active ? 700 : 500, color: active ? C.accent : C.text }}>
                           {ff.name}
                         </span>
@@ -969,20 +986,19 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                 title="Storys" icon={BookOpen}
                 count={(form.storyIds||[]).length}
                 total={availStories.length}
-              >
-                {availStories.length === 0 ? (
-                  <EmptyHint>Noch keine Storys vorhanden.</EmptyHint>
-                ) : availStories.map(s => (
+                items={availStories}
+                emptyText="Noch keine Storys vorhanden."
+                getSearchText={s => `${s.title||""} ${s.status||""} ${s.category||""}`}
+                renderItem={s => (
                   <ContentRow
-                    key={s.id}
                     checked={(form.storyIds||[]).includes(s.id)}
                     onChange={() => toggleStory(s.id)}
                     label={s.title||"Ohne Titel"}
                     sub={`${(s.blocks||[]).length} Blöcke · ${s.status}`}
                     color="#6941C6"
                   />
-                ))}
-              </ContentSection>
+                )}
+              />
             )}
 
             {/* POSTS */}
@@ -991,20 +1007,19 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                 title="Publisher-Posts" icon={SendIcon}
                 count={(form.postIds||[]).length}
                 total={availPosts.length}
-              >
-                {availPosts.length === 0 ? (
-                  <EmptyHint>Noch keine Posts vorhanden.</EmptyHint>
-                ) : availPosts.map(p => (
+                items={availPosts}
+                emptyText="Noch keine Posts vorhanden."
+                getSearchText={p => `${p.title||""} ${p.channels?.join(" ")||""} ${p.status||""}`}
+                renderItem={p => (
                   <ContentRow
-                    key={p.id}
                     checked={(form.postIds||[]).includes(p.id)}
                     onChange={() => togglePost(p.id)}
                     label={p.title||"Ohne Titel"}
                     sub={`${p.channels?.join(", ")||""} · ${p.status}`}
                     color="#0077B5"
                   />
-                ))}
-              </ContentSection>
+                )}
+              />
             )}
 
             {/* MEDIA */}
@@ -1013,12 +1028,11 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                 title="Medien" icon={ImageIcon}
                 count={(form.mediaIds||[]).length}
                 total={availMedia.length}
-              >
-                {availMedia.length === 0 ? (
-                  <EmptyHint>Noch keine Medien vorhanden.</EmptyHint>
-                ) : availMedia.map(m => (
+                items={availMedia}
+                emptyText="Noch keine Medien vorhanden."
+                getSearchText={m => `${m.name||""} ${m.type||""} ${m.tags||""} ${m.description||""}`}
+                renderItem={m => (
                   <ContentRow
-                    key={m.id}
                     checked={(form.mediaIds||[]).includes(m.id)}
                     onChange={() => toggleMedia(m.id)}
                     label={m.name}
@@ -1026,8 +1040,8 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                     color="#E1306C"
                     thumb={m.url}
                   />
-                ))}
-              </ContentSection>
+                )}
+              />
             )}
 
             {/* PRODUKTE */}
@@ -1036,12 +1050,11 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                 title="Produkte" icon={Package}
                 count={(form.productIds||[]).length}
                 total={availProducts.length}
-              >
-                {availProducts.length === 0 ? (
-                  <EmptyHint>Noch keine Produkte vorhanden.</EmptyHint>
-                ) : availProducts.map(p => (
+                items={availProducts}
+                emptyText="Noch keine Produkte vorhanden."
+                getSearchText={p => `${p.name||""} ${p.sku||""} ${p.category||""}`}
+                renderItem={p => (
                   <ContentRow
-                    key={p.id}
                     checked={(form.productIds||[]).includes(p.id)}
                     onChange={() => toggleProduct(p.id)}
                     label={p.name}
@@ -1052,13 +1065,13 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                     ].filter(Boolean).join(" · ")}
                     color="#F59E0B"
                   />
-                ))}
-              </ContentSection>
+                )}
+              />
             )}
 
             {/* EXTERNAL URLS */}
             {(sourceFilter==="all"||sourceFilter==="url") && (
-              <ContentSection title="Externe URLs" icon={Globe} count={(form.externalUrls||[]).length}>
+              <ContentSection title="Externe URLs" icon={Globe} count={(form.externalUrls||[]).length} total={(form.externalUrls||[]).length||null}>
                 <div style={{ display:"flex", gap:6, marginBottom:8 }}>
                   <input
                     value={urlInput}
@@ -1468,26 +1481,94 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
 }
 
 // ── Reusable sub-components ──────────────────────────────────────────────────
-function ContentSection({ title, icon:Icon, count, total, children }) {
-  const [open, setOpen] = useState(true);
+function ContentSection({ title, icon:Icon, count, total, items, renderItem, getSearchText, emptyText="Keine Einträge.", children }) {
+  const [open, setOpen] = useState(false); // collapsed by default
+  const [q, setQ] = useState("");
+  const useItems = items != null && renderItem != null;
+
+  const filtered = useItems
+    ? (q.trim()
+        ? items.filter(item => {
+            const txt = getSearchText
+              ? getSearchText(item)
+              : [item.title, item.name, item.tags, item.description, item.status].filter(Boolean).join(" ");
+            return txt.toLowerCase().includes(q.toLowerCase());
+          })
+        : items)
+    : [];
+  const limited = filtered.slice(0, 10);
+  const overflow = filtered.length > 10;
+
   return (
-    <div style={{ marginBottom:16, background:"#fff", borderRadius:10, border:`1px solid ${T.gray200}`, overflow:"hidden" }}>
+    <div style={{ marginBottom:10, background:"#fff", borderRadius:10, border:`1px solid ${T.gray200}`, overflow:"hidden" }}>
+      {/* Header row */}
       <button onClick={() => setOpen(o=>!o)} style={{
-        width:"100%", display:"flex", alignItems:"center", gap:8, padding:"10px 14px",
+        width:"100%", display:"flex", alignItems:"center", gap:8, padding:"9px 14px",
         border:"none", background:T.gray50, cursor:"pointer", fontFamily:FONT,
       }}>
         <Icon size={13} strokeWidth={IW} color={T.gray500}/>
         <span style={{ flex:1, fontSize:12, fontWeight:700, color:T.gray600, textAlign:"left" }}>{title}</span>
+        {total != null && (
+          <span style={{ fontSize:10, color:T.gray400, marginRight:2 }}>{total}</span>
+        )}
         {count > 0 && (
           <span style={{ fontSize:10, fontWeight:700, background:C.accent+"22", color:C.accent, borderRadius:8, padding:"1px 7px" }}>
-            {count}{total!=null?` / ${total}`:""}
+            {count}
           </span>
         )}
-        <ChevronRight size={12} strokeWidth={2} color={T.gray400} style={{ transform: open?"rotate(90deg)":"rotate(0deg)", transition:"transform .15s" }}/>
+        <ChevronRight size={12} strokeWidth={2} color={T.gray400} style={{ transform: open?"rotate(90deg)":"rotate(0deg)", transition:"transform .15s", flexShrink:0 }}/>
       </button>
+
       {open && (
-        <div style={{ padding:"8px 10px", display:"flex", flexDirection:"column", gap:3 }}>
-          {children}
+        <div>
+          {/* Search bar — only when items mode and list has entries */}
+          {useItems && items.length > 3 && (
+            <div style={{ padding:"6px 10px 0", position:"relative" }}>
+              <Search size={11} strokeWidth={IW} color={T.gray400}
+                style={{ position:"absolute", left:18, top:"50%", transform:"translateY(-40%)", pointerEvents:"none" }}/>
+              <input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder={`${title} durchsuchen…`}
+                style={{ width:"100%", padding:"5px 8px 5px 26px", borderRadius:6,
+                  border:`1px solid ${T.gray200}`, fontSize:11, fontFamily:FONT,
+                  outline:"none", boxSizing:"border-box", background:T.gray50, color:C.text }}
+              />
+              {q && (
+                <button onClick={() => setQ("")} style={{ position:"absolute", right:16, top:"50%", transform:"translateY(-40%)", background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:2, lineHeight:1 }}>
+                  <X size={10} strokeWidth={2.5}/>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Item list with scroll cap */}
+          {useItems && (
+            <div style={{ padding:"6px 10px", display:"flex", flexDirection:"column", gap:2,
+              maxHeight: overflow ? 360 : "none",
+              overflowY: overflow ? "auto" : "visible",
+            }}>
+              {limited.length === 0
+                ? <EmptyHint>{q.trim() ? "Keine Treffer." : emptyText}</EmptyHint>
+                : limited.map((item, i) => {
+                    const el = renderItem(item);
+                    return el ? <el.type key={item.id || i} {...el.props}/> : null;
+                  })
+              }
+              {overflow && (
+                <div style={{ fontSize:10, color:T.gray400, padding:"4px 8px", textAlign:"center", borderTop:`1px solid ${T.gray100}`, marginTop:2 }}>
+                  + {filtered.length - 10} weitere (Suche verfeinern)
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Custom children slot (URLs section etc.) */}
+          {children && (
+            <div style={{ padding:"8px 10px", display:"flex", flexDirection:"column", gap:3 }}>
+              {children}
+            </div>
+          )}
         </div>
       )}
     </div>
