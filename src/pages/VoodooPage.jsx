@@ -692,65 +692,107 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
     <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
 
       {/* ── Header bar ───────────────────────────────────────────────── */}
+      {/* ── Row 1: Project header ────────────────────────────────────── */}
       <div style={{
-        display:"flex", alignItems:"center", gap:12, padding:"10px 20px",
-        borderBottom:`1px solid ${T.gray200}`, background:"#fff", flexShrink:0,
+        display:"flex", alignItems:"center", gap:10, padding:"8px 16px",
+        borderBottom:`1px solid ${T.gray100}`, background:"#fff", flexShrink:0, minHeight:48,
       }}>
-        <Wand2 size={16} strokeWidth={IW} color={C.accent}/>
-        {/* Editable name */}
+        <Wand2 size={15} strokeWidth={IW} color={C.accent} style={{ flexShrink:0 }}/>
+
+        {/* Editable project name */}
         <input
           value={form.name}
           onChange={e => upd({ name:e.target.value })}
           style={{
-            fontSize:15, fontWeight:700, color:C.text, fontFamily:FONT,
-            border:"none", outline:"none", background:"transparent", flex:1, minWidth:0,
+            fontSize:14, fontWeight:700, color:C.text, fontFamily:FONT,
+            border:"none", outline:"none", background:"transparent", minWidth:60, width: Math.max(80, form.name.length * 8.5),
           }}
         />
-        {/* Slug */}
-        <div style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:T.gray400 }}>
-          <LinkIcon size={11} strokeWidth={2}/>
-          <code style={{ fontSize:11, color:T.gray500 }}>/site/{form.slug}</code>
-        </div>
 
         {/* Status badge */}
         <span style={{
-          fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:6,
+          fontSize:10, fontWeight:800, padding:"2px 7px", borderRadius:20, flexShrink:0,
           background: form.status==="live" ? "#DCFCE7" : T.gray100,
-          color: form.status==="live" ? "#15803D" : T.gray500,
+          color: form.status==="live" ? "#15803D" : T.gray400,
+          letterSpacing:".04em", textTransform:"uppercase",
         }}>{form.status==="live" ? "● Live" : "Entwurf"}</span>
 
-        {isDirty && (
-          <button onClick={save} style={{
-            padding:"6px 14px", borderRadius:7, border:"none",
-            background:C.accent, color:"#fff", fontSize:12, fontWeight:700,
-            cursor:"pointer", fontFamily:FONT,
-          }}>Speichern</button>
+        {/* URL pill — only when live */}
+        {form.status==="live" && (
+          <div style={{
+            flex:1, display:"flex", alignItems:"center", gap:6, minWidth:0,
+            background:T.gray50, border:`1px solid ${T.gray200}`, borderRadius:8, padding:"4px 10px",
+          }}>
+            <Globe size={11} strokeWidth={2} color={T.gray400} style={{ flexShrink:0 }}/>
+            <span style={{ fontSize:11, color:T.gray500, fontFamily:"monospace", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+              {getSiteUrl(form.slug)}
+            </span>
+          </div>
         )}
-        <button onClick={onDelete} style={{
-          background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:4,
-        }} title="Projekt löschen">
-          <Trash2 size={14} strokeWidth={IW}/>
-        </button>
+        {form.status!=="live" && <div style={{ flex:1 }}/>}
+
+        {/* Action buttons */}
+        <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+          {form.status==="live" && (<>
+            <button onClick={copyLink} title="Link kopieren" style={{
+              display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7,
+              border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray600,
+              fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:FONT, whiteSpace:"nowrap",
+            }}>
+              {copied ? <Check size={11} strokeWidth={3} color="#10B981"/> : <Copy size={11} strokeWidth={2}/>}
+              {copied ? "Kopiert!" : "Kopieren"}
+            </button>
+            <a href={getSiteUrl(form.slug)} target="_blank" rel="noopener noreferrer" style={{
+              display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7,
+              border:"none", background:C.accent, color:"#fff",
+              fontSize:11, fontWeight:700, textDecoration:"none", fontFamily:FONT, whiteSpace:"nowrap",
+            }}>
+              <ExternalLink size={11} strokeWidth={2}/> Öffnen
+            </a>
+          </>)}
+          {isDirty && (
+            <button onClick={save} style={{
+              padding:"5px 12px", borderRadius:7, border:"none",
+              background:C.accent, color:"#fff", fontSize:11, fontWeight:700,
+              cursor:"pointer", fontFamily:FONT, whiteSpace:"nowrap",
+            }}>Speichern</button>
+          )}
+          <button onClick={onDelete} title="Projekt löschen" style={{
+            background:"none", border:"none", cursor:"pointer", color:T.gray300, padding:"4px 6px",
+            borderRadius:6, transition:"color .12s",
+          }} onMouseEnter={e=>e.currentTarget.style.color="#EF4444"} onMouseLeave={e=>e.currentTarget.style.color=T.gray300}>
+            <Trash2 size={13} strokeWidth={IW}/>
+          </button>
+        </div>
       </div>
 
-      {/* ── Tab bar ──────────────────────────────────────────────────── */}
-      <div style={{ display:"flex", borderBottom:`1px solid ${T.gray200}`, background:"#fff", flexShrink:0 }}>
-        {[
-          { id:"content", label:"Inhalte", icon:FileText },
-          { id:"site",    label:"Live-Seite", icon:Zap, badge: form.status==="live" },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            display:"flex", alignItems:"center", gap:6, padding:"10px 18px",
-            border:"none", borderBottom:`2px solid ${tab===t.id ? C.accent : "transparent"}`,
-            background:"none", cursor:"pointer", fontFamily:FONT,
-            fontSize:12, fontWeight:600, color: tab===t.id ? C.accent : T.gray500,
-            transition:"all .12s",
-          }}>
-            <t.icon size={13} strokeWidth={IW}/>
-            {t.label}
-            {t.badge && <span style={{ width:6, height:6, borderRadius:"50%", background:"#22C55E", display:"inline-block" }}/>}
+      {/* ── Row 2: Tabs ──────────────────────────────────────────────── */}
+      <div style={{ display:"flex", alignItems:"center", borderBottom:`1px solid ${T.gray200}`, background:"#fff", flexShrink:0, paddingRight:8 }}>
+        <div style={{ display:"flex", flex:1 }}>
+          {[
+            { id:"content", label:"Inhalte", icon:FileText },
+            { id:"site",    label:"Live-Seite", icon:Zap, badge: form.status==="live" },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              display:"flex", alignItems:"center", gap:6, padding:"9px 16px",
+              border:"none", borderBottom:`2px solid ${tab===t.id ? C.accent : "transparent"}`,
+              background:"none", cursor:"pointer", fontFamily:FONT,
+              fontSize:12, fontWeight:600, color: tab===t.id ? C.accent : T.gray500,
+              transition:"all .12s",
+            }}>
+              <t.icon size={13} strokeWidth={IW}/>
+              {t.label}
+              {t.badge && <span style={{ width:6, height:6, borderRadius:"50%", background:"#22C55E", display:"inline-block" }}/>}
+            </button>
+          ))}
+        </div>
+        {/* Refresh — only on Live tab */}
+        {tab==="site" && form.status==="live" && (
+          <button onClick={() => setForm(f => ({ ...f, _previewKey: Date.now() }))} title="Vorschau neu laden"
+            style={{ background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:"6px 8px", borderRadius:6 }}>
+            <RefreshCw size={13} strokeWidth={2}/>
           </button>
-        ))}
+        )}
       </div>
 
       {/* ── CONTENT TAB ──────────────────────────────────────────────── */}
@@ -1219,30 +1261,6 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", background:T.gray100 }}>
             {form.status==="live" ? (
               <>
-                <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 16px", background:"#fff", borderBottom:`1px solid ${T.gray200}`, flexShrink:0 }}>
-                  <div style={{ flex:1, display:"flex", alignItems:"center", gap:8, background:T.gray50, border:`1px solid ${T.gray200}`, borderRadius:8, padding:"5px 12px" }}>
-                    <Globe size={12} strokeWidth={2} color={T.gray400}/>
-                    <span style={{ fontSize:12, color:T.gray500, fontFamily:"monospace" }}>{getSiteUrl(form.slug)}</span>
-                  </div>
-                  <button onClick={copyLink} style={{
-                    display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:7,
-                    border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray600,
-                    fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:FONT,
-                  }}>
-                    {copied ? <Check size={12} strokeWidth={3} color="#10B981"/> : <Copy size={12} strokeWidth={2}/>}
-                    {copied ? "Kopiert!" : "Link kopieren"}
-                  </button>
-                  <a href={getSiteUrl(form.slug)} target="_blank" rel="noopener noreferrer" style={{
-                    display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:7,
-                    border:"none", background:C.accent, color:"#fff",
-                    fontSize:12, fontWeight:700, textDecoration:"none", fontFamily:FONT,
-                  }}>
-                    <ExternalLink size={12} strokeWidth={2}/> Öffnen
-                  </a>
-                  <button onClick={() => setForm(f => ({ ...f, _previewKey: Date.now() }))} title="Vorschau neu laden" style={{ background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:4 }}>
-                    <RefreshCw size={14} strokeWidth={2}/>
-                  </button>
-                </div>
                 {/* Validation banner — shown when validatePage() found issues */}
                 {pageIssues.length > 0 && (
                   <div style={{ flexShrink:0, borderBottom:`1px solid ${T.gray200}` }}>
