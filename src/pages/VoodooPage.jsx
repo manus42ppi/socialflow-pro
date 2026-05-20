@@ -503,7 +503,10 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
 
     // ── 3-phase image strategy ────────────────────────────────────────────
     // Phase 1: project-selected media (user explicitly picked these)
-    const selectedMedia = (form.mediaIds||[]).map(id => items.find(x=>x.id===id)).filter(Boolean);
+    // Documents and data: URLs are excluded — they're not usable as image sources in HTML.
+    const selectedMedia = (form.mediaIds||[])
+      .map(id => items.find(x=>x.id===id))
+      .filter(m => m && m.type !== "document" && !(m.url||"").startsWith("data:application"));
     let autoImages = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name }));
 
     // Phase 2: workspace media library keyword search — free, instant, no API
@@ -540,6 +543,8 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
     const ctx = buildContext(form, stories, posts, items, products);
 
     const useTemplate = form.templateId && form.templateId !== "freeform";
+    // Strip data: URLs — base64 blobs can't be used as hosted PDF links for visitors
+    const safeDossierUrl = (form.dossierPdfUrl||"").trim().startsWith("data:") ? "" : (form.dossierPdfUrl||"").trim();
 
     try {
       let rawHtml;
@@ -553,7 +558,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           answers,
           images: autoImages,
           extraPrompt: genPromptRef.current.trim(),
-          dossierPdfUrl: (form.dossierPdfUrl||"").trim(),
+          dossierPdfUrl: safeDossierUrl,
           preflightQ,
           onChunk: (_chunk, full) => {
             setGenChars(full.length);
@@ -569,7 +574,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           images: autoImages,
           extraPrompt: genPromptRef.current.trim(),
           ctaUrl: (form.ctaUrl||"").trim(),
-          dossierPdfUrl: (form.dossierPdfUrl||"").trim(),
+          dossierPdfUrl: safeDossierUrl,
           preflightQ,
           onChunk: (_chunk, full) => {
             setGenChars(full.length);
@@ -964,6 +969,22 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                   <FileText size={11} strokeWidth={IW}/>
                   Aus Medienbibliothek wählen ({items.filter(m => m.type==="document").length})
                 </button>
+              )}
+              {/* Warning: data: URL can't be used for visitors */}
+              {(form.dossierPdfUrl||"").startsWith("data:") && (
+                <div style={{ display:"flex", alignItems:"flex-start", gap:7, marginTop:6,
+                  background:"#fffbeb", border:`1px solid #fbbf24`, borderRadius:7, padding:"7px 10px" }}>
+                  <span style={{ fontSize:13, flexShrink:0 }}>⚠️</span>
+                  <div style={{ fontSize:11, color:"#92400e", lineHeight:1.45 }}>
+                    <strong>Lokal gespeicherte Datei</strong> — data: URLs funktionieren nur für dich.
+                    Besucher können das PDF nicht öffnen. Bitte das PDF extern hosten (z.B. Dropbox, Google Drive öffentlicher Link) und die HTTPS-URL hier eintragen.
+                    <button onClick={() => upd({ dossierPdfUrl: "" })}
+                      style={{ display:"block", marginTop:5, background:"none", border:`1px solid #f59e0b`,
+                        borderRadius:5, color:"#92400e", fontSize:10, fontWeight:700, cursor:"pointer", padding:"2px 8px", fontFamily:FONT }}>
+                      URL leeren
+                    </button>
+                  </div>
+                </div>
               )}
               <div style={{ fontSize:10, color:T.gray400, marginTop:4, paddingLeft:2 }}>
                 Wenn gesetzt, ersetzt Spark den CTA-Button durch ein Email-Eingabe-Formular. Bei Absenden öffnet sich die PDF-URL automatisch.

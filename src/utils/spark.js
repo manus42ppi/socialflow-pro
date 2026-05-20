@@ -485,7 +485,10 @@ export function buildContext(form, stories, posts, items, products = []) {
   (form.mediaIds || []).forEach(id => {
     const m = items.find(x => x.id === id);
     if (!m) return;
-    parts.push(`## Bild: "${m.name}"\nURL: ${m.url}\nBeschreibung: ${m.description || m.altText || ""}`);
+    // Skip documents and data: URLs — base64 blobs are meaningless tokens for the AI
+    if (m.type === "document" || (m.url || "").startsWith("data:application")) return;
+    const url = (m.url || "").startsWith("data:") ? "(lokales Bild)" : m.url;
+    parts.push(`## Bild: "${m.name}"\nURL: ${url}\nBeschreibung: ${m.description || m.altText || ""}`);
   });
 
   (form.externalUrls || []).forEach(u => {
