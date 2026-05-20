@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Search, Upload, Settings, Image, Check, Trash2, Edit2, AlertTriangle, CheckSquare, X, BookmarkPlus, Bookmark, ChevronDown } from "lucide-react";
+import { Search, Upload, Settings, Image, Check, Trash2, Edit2, AlertTriangle, CheckSquare, X, BookmarkPlus, Bookmark, ChevronDown, Loader } from "lucide-react";
 import { C, FONT, IW } from "../constants/colors.js";
 import { AI } from "../utils/store.js";
 import { uid, fileToDataURL, getMediaType, fpos } from "../utils/store.js";
@@ -79,10 +79,16 @@ export default function MediaPage(){
 
   const saveKey=(id,v)=>{skSet(id,v);setKeys(p=>({...p,[id]:v}));};
 
-  // Add external image to library
+  // Add external image to library — with duplicate guard
   const addToLib=async ext=>{
+    // Guard: check by URL (primary) or by stock-source id (secondary, handles URL param variants)
+    const isDup = items.some(m =>
+      m.url === ext.url ||
+      (ext.id && (m.stockId === ext.id || m.id === ext.id))
+    );
+    if (isDup) return; // already in library → silent no-op
     if(ext.source==="unsplash"&&ext.dlLoc){const k=skGet("unsplash");if(k)fetch(ext.dlLoc,{headers:{Authorization:`Client-ID ${k}`}}).catch(()=>{});}
-    const item={...ext,id:uid(),analyzing:ext.type==="image",workspaceId:currentWorkspaceId||"ws-ppi-media"};
+    const item={...ext,id:uid(),stockId:ext.id||null,analyzing:ext.type==="image",workspaceId:currentWorkspaceId||"ws-ppi-media"};
     onUpload(item);
     if(item.type==="image"){
       const timeout2=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
@@ -218,8 +224,9 @@ export default function MediaPage(){
   // ── Unsplash-style tile for external stock results ──
   const ExtTile=({item})=>{
     const s=STOCK_SRCS.find(x=>x.id===item.source);
-    const already=items.some(m=>m.url===item.url||m.name===item.name);
+    const already=items.some(m=>m.url===item.url||(item.id&&(m.stockId===item.id||m.id===item.id)));
     const [hov,setHov]=useState(false);
+    const [adding,setAdding]=useState(false);
     // Use provided aspect ratio if available (Unsplash/Pexels provide width+height)
     const ar=item.width&&item.height?`${item.width}/${item.height}`:undefined;
     return(
@@ -241,8 +248,8 @@ export default function MediaPage(){
               ?<div style={{background:"rgba(255,255,255,.92)",borderRadius:8,padding:"5px 8px",display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:700,color:C.success}}>
                 <Check size={11} strokeWidth={2.5}/>In Bibliothek
               </div>
-              :<div onClick={e=>{e.stopPropagation();addToLib(item);}} style={{background:"rgba(255,255,255,.92)",borderRadius:8,padding:"5px 8px",display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:700,color:C.text,cursor:"pointer",backdropFilter:"blur(6px)"}}>
-                <Upload size={11} strokeWidth={2}/>Hinzufügen
+              :<div onClick={e=>{e.stopPropagation();if(adding)return;setAdding(true);addToLib(item).finally(()=>setAdding(false));}} style={{background:"rgba(255,255,255,.92)",borderRadius:8,padding:"5px 8px",display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:700,color:adding?C.textMute:C.text,cursor:adding?"default":"pointer",backdropFilter:"blur(6px)",opacity:adding?.7:1}}>
+                {adding?<Loader size={11} strokeWidth={2} style={{animation:"spin 1s linear infinite"}}/>:<Upload size={11} strokeWidth={2}/>}{adding?"…":"Hinzufügen"}
               </div>}
           </div>}
           {/* Bottom row: author + source */}
