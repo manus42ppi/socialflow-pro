@@ -15,6 +15,7 @@ import {
   buildRepairInstruction, generateMissingSections,
 } from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
+import { TEMPLATES, generateContent } from "../utils/spark-templates.js";
 
 // Dynamic — uses the same origin as the running app so the link always
 // points to a deployment that has functions/site/[slug].js available.
@@ -159,7 +160,7 @@ export default function VoodooPage() {
     const id = uid();
     const slug = slugify(newName) + "-" + id.slice(0,4);
     const p = {
-      id, slug, name: newName.trim(), description: "", ctaUrl: "",
+      id, slug, name: newName.trim(), description: "", ctaUrl: "", templateId: "editorial",
       storyIds: [], postIds: [], mediaIds: [], productIds: [], externalUrls: [],
       generatedHtml: null, lastGeneratedAt: null, status: "draft",
       workspaceId: currentWorkspaceId || "ws-ppi-media",
@@ -399,6 +400,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           const rawHtml = await refinePage({
             html,
             instruction,
+            dossierPdfUrl: (form.dossierPdfUrl||"").trim(),
             onChunk: (_c, full) => {
               setSparkChars(full.length);
               setSparkJob(j => j ? { ...j, chars: full.length } : j);
@@ -510,32 +512,54 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
 
     const ctx = buildContext(form, stories, posts, items, products);
 
-    try {
-      const rawHtml = await generatePage({
-        form,
-        ctx,
-        answers,
-        images: autoImages,
-        extraPrompt: genPromptRef.current.trim(),
-        ctaUrl: (form.ctaUrl||"").trim(),
-        preflightQ,
-        onChunk: (_chunk, full) => {
-          setGenChars(full.length);
-          setSparkJob(j => j ? { ...j, chars: full.length } : j);
-        },
-      });
+    const useTemplate = form.templateId && form.templateId !== "freeform";
 
-      // 1. DOM repair: fix broken anchors structurally via DOMParser
-      const domFixed = repairPage(rawHtml);
+    try {
+      let rawHtml;
+      if (useTemplate) {
+        // Template flow: AI generates small content JSON (~700 tokens) → rendered locally.
+        // No repair loop needed — structure is guaranteed by the template function.
+        rawHtml = await generateContent({
+          templateId: form.templateId,
+          form,
+          ctx,
+          answers,
+          images: autoImages,
+          extraPrompt: genPromptRef.current.trim(),
+          dossierPdfUrl: (form.dossierPdfUrl||"").trim(),
+          preflightQ,
+          onChunk: (_chunk, full) => {
+            setGenChars(full.length);
+            setSparkJob(j => j ? { ...j, chars: full.length } : j);
+          },
+        });
+      } else {
+        // Freeform flow: AI generates full HTML (~4500 tokens). Slower but unrestricted.
+        rawHtml = await generatePage({
+          form,
+          ctx,
+          answers,
+          images: autoImages,
+          extraPrompt: genPromptRef.current.trim(),
+          ctaUrl: (form.ctaUrl||"").trim(),
+          dossierPdfUrl: (form.dossierPdfUrl||"").trim(),
+          preflightQ,
+          onChunk: (_chunk, full) => {
+            setGenChars(full.length);
+            setSparkJob(j => j ? { ...j, chars: full.length } : j);
+          },
+        });
+      }
+
+      // Template flow skips repair (structure guaranteed). Freeform still benefits from it.
+      const domFixed = useTemplate ? rawHtml : repairPage(rawHtml);
 
       if (!domFixed.startsWith("<!")) {
         console.error("VoodooPage generate: unexpected response:", rawHtml.slice(0, 200));
         throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
       }
 
-      // 2. AI repair loop: max 1 attempt, Tier 1+2 only (no full refinePage fallback).
-      //    Better initial generation (Section Contract + no web search) makes Tier 3 unnecessary.
-      const html = await autoRepairLoop(domFixed, 1, 2);
+      const html = useTemplate ? domFixed : await autoRepairLoop(domFixed, 1, 2);
 
       const res = await fetch("/deploy-site", {
         method:"POST",
@@ -583,14 +607,14 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
       // One automatic retry for transient errors (server overload, rate limit)
       let rawHtml;
       try {
-        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), onChunk: onChunkCb });
+        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), dossierPdfUrl: (form.dossierPdfUrl||"").trim(), onChunk: onChunkCb });
       } catch (firstErr) {
         // Short pause then retry — handles 529 overload / momentary network blips
         setRefineMsg("⏳ Kurze Pause – erneuter Versuch…");
         await new Promise(r => setTimeout(r, 2500));
         setRefineMsg("");
         setSparkChars(0);
-        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), onChunk: onChunkCb });
+        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), dossierPdfUrl: (form.dossierPdfUrl||"").trim(), onChunk: onChunkCb });
       }
 
       // 1. DOM repair: structural anchor fixes via DOMParser (0 tokens)
@@ -727,6 +751,31 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           {/* Content main area */}
           <div style={{ flex:1, overflowY:"auto", padding:"20px 24px" }}>
 
+            {/* Template selector */}
+            <div style={{ marginBottom:20 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:T.gray500, display:"block", marginBottom:8, textTransform:"uppercase", letterSpacing:".06em" }}>
+                Seiten-Template
+              </label>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {[...TEMPLATES, { id:"freeform", name:"Freie Generierung", description:"KI erstellt Seite komplett selbst — langsamer, maximale Freiheit" }].map(tmpl => {
+                  const active = (form.templateId || "editorial") === tmpl.id;
+                  return (
+                    <div key={tmpl.id} onClick={() => upd({ templateId: tmpl.id })}
+                      style={{ padding:"10px 12px", borderRadius:8, cursor:"pointer", transition:"all .15s",
+                        border:`1.5px solid ${active ? C.accent+"88" : T.gray200}`,
+                        background: active ? C.accent+"0D" : "#fff",
+                      }}>
+                      <div style={{ fontSize:13, fontWeight:600, color: active ? C.accent : C.text, marginBottom:2 }}>
+                        {tmpl.name}
+                        {tmpl.id !== "freeform" && <span style={{ marginLeft:8, fontSize:10, fontWeight:700, background: active ? C.accent : T.gray200, color: active ? "#fff" : T.gray500, borderRadius:4, padding:"1px 5px" }}>SCHNELL</span>}
+                      </div>
+                      <div style={{ fontSize:11, color:T.gray400 }}>{tmpl.description}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Description */}
             <div style={{ marginBottom:12 }}>
               <label style={{ fontSize:11, fontWeight:700, color:T.gray500, display:"block", marginBottom:4, textTransform:"uppercase", letterSpacing:".06em" }}>Beschreibung</label>
@@ -767,6 +816,37 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
               </div>
               <div style={{ fontSize:10, color:T.gray400, marginTop:4, paddingLeft:2 }}>
                 Spark setzt diese URL hinter alle CTA-Buttons der generierten Seite.
+              </div>
+            </div>
+
+            {/* Dossier PDF */}
+            <div style={{ marginBottom:20 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:T.gray500, display:"block", marginBottom:4, textTransform:"uppercase", letterSpacing:".06em" }}>
+                Dossier PDF{" "}
+                <span style={{ fontWeight:400, textTransform:"none", letterSpacing:0, color:T.gray400 }}>(optional — aktiviert Email-Formular als CTA)</span>
+              </label>
+              <div style={{ display:"flex", alignItems:"center", gap:8,
+                background: form.dossierPdfUrl ? "#f0fdf4" : "#fff",
+                border:`1.5px solid ${form.dossierPdfUrl ? "#22c55e55" : T.gray200}`,
+                borderRadius:8, padding:"6px 10px", transition:"all .15s" }}>
+                <FileText size={14} strokeWidth={IW} color={form.dossierPdfUrl ? "#16a34a" : T.gray400} style={{ flexShrink:0 }}/>
+                <input
+                  type="url"
+                  value={form.dossierPdfUrl||""}
+                  onChange={e => upd({ dossierPdfUrl: e.target.value })}
+                  placeholder="https://example.com/dossier.pdf"
+                  style={{ flex:1, border:"none", outline:"none", fontSize:13,
+                    fontFamily:FONT, color:C.text, background:"transparent", minWidth:0 }}
+                />
+                {form.dossierPdfUrl && (
+                  <button onClick={() => upd({ dossierPdfUrl:"" })}
+                    style={{ background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:0, lineHeight:1 }}>
+                    <X size={12} strokeWidth={2.5}/>
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize:10, color:T.gray400, marginTop:4, paddingLeft:2 }}>
+                Wenn gesetzt, ersetzt Spark den CTA-Button durch ein Email-Eingabe-Formular. Bei Absenden öffnet sich die PDF-URL automatisch.
               </div>
             </div>
 

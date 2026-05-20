@@ -211,6 +211,29 @@ export function blocksToPlain(blocks) {
 // Used to strip stale guards before re-injecting the current version.
 const GUARD_RE = /<script>\s*\/\*\s*Spark link guard[\s\S]*?<\/script>\s*/i;
 
+// Inject an email-capture script that opens a PDF URL on form submit.
+// Only called when dossierPdfUrl is configured on the project.
+function injectEmailCapture(html, pdfUrl) {
+  const script = `<script>
+/* Spark email-capture — opens PDF on form submit */
+(function(){
+  var PDF_URL=${JSON.stringify(pdfUrl)};
+  document.addEventListener('submit',function(e){
+    if(!e.target.querySelector('input[type="email"]'))return;
+    e.preventDefault();
+    var btn=e.target.querySelector('button[type="submit"],input[type="submit"]');
+    if(btn){btn.textContent='Wird vorbereitet…';btn.disabled=true;}
+    setTimeout(function(){
+      window.open(PDF_URL,'_blank');
+      if(btn){btn.textContent='Dossier geöffnet ✔';btn.disabled=false;}
+    },700);
+  });
+})();
+</script>`;
+  if (html.includes("</body>")) return html.replace(/<\/body>/i, script + "\n</body>");
+  return html + "\n" + script;
+}
+
 // Sentinel used in both generatePage and refinePage.
 // Replaces PAGE_CSS in prompts/output so the model copies a short token
 // instead of ~3 KB of CSS. Both functions re-inject the real CSS afterwards.
@@ -658,7 +681,7 @@ export async function analyzeUploadedImage(item, updateItem) {
  * @param {Function} opts.onChunk      - Streaming callback (chunk, fullSoFar)
  * @returns {string} Post-processed HTML string (includes LINK_GUARD)
  */
-export async function generatePage({ form, ctx, answers = {}, images = [], extraPrompt = "", ctaUrl = "", preflightQ = [], onChunk }) {
+export async function generatePage({ form, ctx, answers = {}, images = [], extraPrompt = "", ctaUrl = "", dossierPdfUrl = "", preflightQ = [], onChunk }) {
   // Format preflight answers as readable context
   const answersText = preflightQ
     .map(q => answers[q.id] ? `${q.question}\n→ ${answers[q.id]}` : null)
@@ -741,7 +764,7 @@ Lange Beschreibungen gehören in <p> oder .stat-l mit max 4 Wörtern.
 NAME: ${form.name}
 BESCHREIBUNG: ${form.description || "(keine)"}
 INHALTE: ${ctx}
-${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}\n` : ""}${ctaUrl ? `CTA-ZIEL-URL (PFLICHT): Alle CTAs (.btn-p, .btn-w, .btn-o, .cta-b-Button) → href="${ctaUrl}" target="_blank" rel="noopener noreferrer"\n` : ""}
+${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}\n` : ""}${ctaUrl && !dossierPdfUrl ? `CTA-ZIEL-URL (PFLICHT): Alle CTAs (.btn-p, .btn-w, .btn-o, .cta-b-Button) → href="${ctaUrl}" target="_blank" rel="noopener noreferrer"\n` : ""}${dossierPdfUrl ? `E-MAIL-CAPTURE-FORMULAR (PFLICHT — ersetzt den CTA-Button im .cta-b): Im CTA-BLOCK dieses Formular einsetzen: <form id="lead-form" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:500px;margin:0 auto"><input type="email" required placeholder="Ihre E-Mail-Adresse" style="flex:1;min-width:220px;padding:13px 18px;border-radius:8px;border:none;font-size:1rem;background:rgba(255,255,255,.15);color:#fff;outline:2px solid rgba(255,255,255,.4)"><button type="submit" class="btn btn-w">Dossier herunterladen</button></form> — kein onclick/href am Form nötig, JavaScript übernimmt den PDF-Download.\n` : ""}
 ━━ AUSGABE-FORMAT ━━
 1. <!DOCTYPE html>
 2. <head>: charset · viewport · <title> · 3× Google Font <link> · <style>:root{--p:#XXX;--pd:#XXX;--pl:#XXX;--font:'Name',system-ui,sans-serif}</style>
@@ -764,7 +787,8 @@ ${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}\n` : ""}${ctaUrl ? `CTA-ZIEL
 
   // Re-inject CSS (sentinel trick: model outputs placeholder, we fill it in)
   const withCss = raw.includes(CSS_SENTINEL) ? raw.replace(CSS_SENTINEL, PAGE_CSS) : raw;
-  return postProcessHtml(withCss);
+  const processed = postProcessHtml(withCss);
+  return dossierPdfUrl ? injectEmailCapture(processed, dossierPdfUrl) : processed;
 }
 
 /**
@@ -782,7 +806,7 @@ ${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}\n` : ""}${ctaUrl ? `CTA-ZIEL
  * @param {Function} opts.onChunk     - Streaming callback
  * @returns {string} Post-processed updated HTML string
  */
-export async function refinePage({ html, instruction, ctaUrl = "", onChunk }) {
+export async function refinePage({ html, instruction, ctaUrl = "", dossierPdfUrl = "", onChunk }) {
   // Strip PAGE_CSS (sentinel trick) AND the link guard script — the AI must
   // never see the guard code, otherwise it can reproduce it as visible text content.
   // Both are re-injected by postProcessHtml() after the stream completes.
@@ -841,5 +865,6 @@ TECHNISCHE REGELN (keine Ausnahmen):
 
   // Re-inject CSS before post-processing
   const withCss = raw.includes(CSS_SENTINEL) ? raw.replace(CSS_SENTINEL, PAGE_CSS) : raw;
-  return postProcessHtml(withCss);
+  const processed = postProcessHtml(withCss);
+  return dossierPdfUrl ? injectEmailCapture(processed, dossierPdfUrl) : processed;
 }
