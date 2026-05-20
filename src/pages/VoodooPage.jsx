@@ -560,8 +560,8 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
         });
       }
 
-      // Template flow skips repair (structure guaranteed). Freeform still benefits from it.
-      const domFixed = useTemplate ? rawHtml : repairPage(rawHtml);
+      // Always repair — removes script-leak text nodes + fixes broken anchors
+      const domFixed = repairPage(rawHtml);
 
       if (!domFixed.startsWith("<!")) {
         console.error("VoodooPage generate: unexpected response:", rawHtml.slice(0, 200));

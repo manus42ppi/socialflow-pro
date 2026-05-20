@@ -311,10 +311,10 @@ export function validatePage(html) {
     issues.push({ type: "warn", msg: `${broken.length} Nav-Link(s) ohne passende Section-ID: ${broken.map(b => "#" + b).join(", ")}` });
   }
 
-  // 3. Minimum section count
+  // 3. Minimum section count (templates have 5-6, freeform targets 7+)
   const sectionCount = (html.match(/<section[\s>]/gi) || []).length;
-  if (sectionCount < 5) {
-    issues.push({ type: "warn", msg: `Nur ${sectionCount} Sections gefunden — mindestens 7 erwartet` });
+  if (sectionCount < 4) {
+    issues.push({ type: "warn", msg: `Nur ${sectionCount} Sections gefunden — Seite neu generieren` });
   }
 
   return issues;
@@ -508,17 +508,17 @@ export function buildContext(form, stories, posts, items, products = []) {
  */
 export async function runPreflight(projectName, description, ctx) {
   const raw = await aiCall([{ role: "user", content:
-    `Analysiere dieses Projekt für eine Landing Page und stelle genau 4 gezielte Rückfragen an den Auftraggeber.
-Fokus: Zielgruppe, gewünschter Stil/Tonalität, wichtigste Conversion-Aktion, und ein Aspekt der in den Inhalten unklar ist.
-Nutze type "choice" mit 3-4 Optionen wo sinnvoll, sonst type "text".
+    `Analysiere dieses Projekt für eine Landing Page. Stelle GENAU EINE einzige Rückfrage — die wichtigste.
+Die Frage muss type "choice" haben mit exakt 3 kurzen Antwort-Optionen (max. 5 Wörter je Option).
+Fokus: Was ist das primäre Ziel der Seite?
 
 PROJEKT: ${projectName}
 BESCHREIBUNG: ${description || "(keine)"}
-INHALTE (Auszug): ${ctx.slice(0, 600)}
+INHALTE (Auszug): ${ctx.slice(0, 400)}
 
 NUR JSON, kein Markdown:
-{"questions":[{"id":"q1","question":"...","type":"text","choices":null},{"id":"q2","question":"...","type":"choice","choices":["A","B","C"]}]}`
-  }], 600);
+{"questions":[{"id":"q1","question":"...","type":"choice","choices":["Option A","Option B","Option C"]}]}`
+  }], 200);
 
   return parseJSON(raw)?.questions || [];
 }

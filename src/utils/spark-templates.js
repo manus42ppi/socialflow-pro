@@ -397,7 +397,7 @@ PFLICHT-REGELN:
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    1400,   // JSON ~500 Tokens; 1400 = sicherer Puffer (2.5×). 900 war zu knapp.
+    1000,   // JSON ~450 Tokens; 1000 = 2× Sicherheit. extractJSON fängt Reste ab.
     onChunk,
   );
 
