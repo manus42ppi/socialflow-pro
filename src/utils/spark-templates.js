@@ -12,7 +12,23 @@
 // bottom of this file.
 
 import { PAGE_CSS, LINK_GUARD } from "./spark.js";
-import { aiCallStream, parseJSON } from "./store.js";
+import { aiCallStream } from "./store.js";
+
+// Robustere JSON-Extraktion als das globale parseJSON:
+// Entfernt Markdown-Codeblöcke und extrahiert das erste vollständige {...} Objekt.
+function extractJSON(raw) {
+  // 1. Markdown Code-Blöcke entfernen
+  let s = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  // 2. Direkter Parse-Versuch
+  try { return JSON.parse(s); } catch {}
+  // 3. Erstes { ... } Objekt extrahieren (falls Präambel-Text vorhanden)
+  const start = s.indexOf("{");
+  const end   = s.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(s.slice(start, end + 1)); } catch {}
+  }
+  return null;
+}
 
 // ── HTML helpers ───────────────────────────────────────────────────────────────
 
@@ -306,6 +322,8 @@ export async function generateContent({
   const prompt =
 `Du bist Redakteur, Texter und Webdesigner. Analysiere die Projektdaten und erstelle strukturierten Inhalt für eine Landing Page.
 
+WICHTIG: Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein erklärender Text, kein Markdown, keine Codeblöcke. Fange direkt mit { an.
+
 TEMPLATE: ${tmpl.name}
 PROJEKT: ${form.name}
 BESCHREIBUNG: ${form.description || "(keine)"}
@@ -329,7 +347,9 @@ Erstelle NUR das folgende JSON (kein Markdown, kein Text davor oder danach):
 }
 
 PFLICHT-REGELN:
+• Antworte NUR mit dem JSON — kein Text davor, kein Text danach, keine Codeblöcke
 • Nur echte Inhalte aus den Projektdaten — kein Platzhalter, kein "Lorem ipsum"
+• Texte kurz halten: headline max. 8 Wörter, subtext/text max. 20 Wörter, card-text max. 15 Wörter
 • colors.primary: thematisch passend — Nachrichten/Politik → #C41230 oder #1565C0 | Reise/Natur → #2E7D32 oder #E65100 | Business → #1A237E | Kultur → #4A148C
 • colors.dark: deutlich dunkler als primary, für Überschriften und dunkle Hintergründe
 • colors.light: sehr heller Akzent für Hintergrundflächen (fast weiß)
@@ -343,11 +363,11 @@ PFLICHT-REGELN:
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    1200,
+    2500,   // 1200 war zu klein → JSON wurde abgeschnitten → Parse-Fehler
     onChunk,
   );
 
-  const content = parseJSON(raw);
+  const content = extractJSON(raw);
   if (!content) throw new Error("KI hat kein gültiges JSON zurückgegeben. Bitte erneut versuchen.");
 
   return renderTemplate(templateId, content, dossierPdfUrl);
