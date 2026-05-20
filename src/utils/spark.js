@@ -46,7 +46,7 @@ h3{font-size:1.05rem;font-weight:700;margin-bottom:7px}p{line-height:1.7}
 .card .ico{margin-bottom:14px}.card p{color:var(--m);font-size:.93rem;margin-top:6px;line-height:1.65}
 .img-r{display:grid;gap:28px;align-items:center}@media(min-width:768px){.img-r{grid-template-columns:1fr 1fr}}
 .img-r img{width:100%;border-radius:12px;box-shadow:var(--sh);aspect-ratio:16/10;object-fit:cover}
-.stat{font-size:2.6rem;font-weight:900;color:var(--p);display:block;line-height:1}.stat-l{font-size:.84rem;color:var(--m);margin-top:4px;display:block}
+.stat{font-size:2.6rem;font-weight:900;color:var(--p);display:block;line-height:1;white-space:nowrap;overflow:hidden;max-width:10ch}.stat-l{font-size:.84rem;color:var(--m);margin-top:4px;display:block;max-width:18ch}
 .quote{border-left:3px solid var(--p);padding:14px 20px;background:var(--s);border-radius:0 8px 8px 0;margin:16px 0;color:var(--m);line-height:1.7}
 .quote cite{display:block;font-size:.82rem;font-weight:700;color:var(--p);margin-top:10px;font-style:normal}
 .cta-b{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:16px;padding:clamp(40px,7vw,64px) clamp(24px,5vw,48px);text-align:center}
@@ -719,8 +719,23 @@ Hero:     .hero | .btns | .hero-img (Vollbreite-Bild, max-height:460px, border-r
 Buttons:  .btn-p (primär blau) | .btn-o (outline) | .btn-w (weiß, NUR in .cta-b)
 Content:  section .alt(grau BG) | .lbl | h2 | h3 | .lead | .quote + cite (Zitate)
 Cards:    .card (hover: translateY) | .ico (NUR SVG) | .tag (Badge)
-Stats:    .stat (NACKTE ZAHL: "98%", "2.400") + .stat-l (max 4 Wörter) — NUR STATS-Section
+Stats:    .stat = NUR die nackte Zahl/Kennzahl selbst (max ~6 Zeichen: "98%", "2.400", "14")
+          .stat-l = kurzes Label darunter (max 4 Wörter: "Kundenzufriedenheit", "Aktive Nutzer")
+          ⚠ REIHENFOLGE: .stat kommt ZUERST (die Zahl), .stat-l kommt DANACH (das Label)
 CTA:      .cta-b | footer .footer-g
+
+━━ STATS-SECTION: EXAKTES PFLICHT-FORMAT (nicht abweichen!) ━━
+<section id="stats" class="alt"><div class="w">
+  <span class="lbl">In Zahlen</span>
+  <div class="g g4">
+    <div><span class="stat">98%</span><span class="stat-l">Kundenzufriedenheit</span></div>
+    <div><span class="stat">2.400</span><span class="stat-l">Aktive Nutzer täglich</span></div>
+    <div><span class="stat">14</span><span class="stat-l">Tage kostenlos testen</span></div>
+    <div><span class="stat">5★</span><span class="stat-l">Durchschnittsbewertung</span></div>
+  </div>
+</div></section>
+VERBOTEN: <span class="stat">des deutschen Stroms soll bis 2030...</span> — das ist KEIN Stat!
+Lange Beschreibungen gehören in <p> oder .stat-l mit max 4 Wörtern.
 
 ━━ PROJEKT-DATEN ━━
 NAME: ${form.name}
