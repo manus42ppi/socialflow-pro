@@ -1,4 +1,4 @@
-import { Settings, LogOut, Layers, ChevronLeft, ChevronRight, ChevronDown, Plus, Zap, CheckCircle2, AlertCircle } from "lucide-react";
+import { Settings, LogOut, Layers, ChevronLeft, ChevronRight, ChevronDown, Plus, Zap, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { C, T, FONT, IW } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 import { NAV_GROUPS, NAV_UTILITY } from "../../constants/nav.js";
@@ -18,7 +18,7 @@ export default function Sidebar() {
     posts: allPosts, goChNav: onChNav, chFilt: activeCh,
     userWorkspaces, currentWorkspaceId, setCurrentWorkspaceId, currentWorkspace,
     projects: allProjects, voodooProjectId, setVoodooProjectId,
-    sparkJob, setSparkJob,
+    sparkJob, setSparkJob, delProject,
   } = useApp();
 
   const [wsOpen, setWsOpen] = useState(false);
@@ -467,31 +467,58 @@ export default function Sidebar() {
                       {wsProjects.map(p => {
                         const isP = active === "voodoo" && voodooProjectId === p.id;
                         return (
-                          <button key={p.id}
-                            onClick={() => { setVoodooProjectId(p.id); onNav("voodoo"); }}
-                            title={p.name}
-                            style={{
-                              width: "100%", height: 28, borderRadius: T.rSm,
-                              border: "none", cursor: "pointer",
-                              display: "flex", alignItems: "center", gap: 7,
-                              padding: "0 8px 0 10px", fontFamily: FONT,
-                              fontSize: 12, fontWeight: isP ? 600 : 400,
-                              transition: "all .1s",
-                              background: isP ? T.brand100 : "transparent",
-                              color: isP ? C.accent : T.gray500,
-                            }}
-                            onMouseEnter={e => { if (!isP) { e.currentTarget.style.background = T.brand25; e.currentTarget.style.color = T.gray700; } }}
-                            onMouseLeave={e => { if (!isP) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.gray500; } }}
+                          <div key={p.id} style={{ position: "relative", display: "flex", alignItems: "center" }}
+                            onMouseEnter={e => e.currentTarget.querySelector(".proj-del")?.style && (e.currentTarget.querySelector(".proj-del").style.opacity = "1")}
+                            onMouseLeave={e => e.currentTarget.querySelector(".proj-del")?.style && (e.currentTarget.querySelector(".proj-del").style.opacity = "0")}
                           >
-                            <div style={{ width: 1, height: 14, background: T.gray200, flexShrink: 0 }} />
-                            <span style={{
-                              width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-                              background: p.status === "live" ? "#22C55E" : T.gray300,
-                            }} />
-                            <span style={{ flex: 1, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {p.name}
-                            </span>
-                          </button>
+                            <button
+                              onClick={() => { setVoodooProjectId(p.id); onNav("voodoo"); }}
+                              title={p.name}
+                              style={{
+                                flex: 1, height: 28, borderRadius: T.rSm,
+                                border: "none", cursor: "pointer",
+                                display: "flex", alignItems: "center", gap: 7,
+                                padding: "0 24px 0 10px", fontFamily: FONT,
+                                fontSize: 12, fontWeight: isP ? 600 : 400,
+                                transition: "all .1s",
+                                background: isP ? T.brand100 : "transparent",
+                                color: isP ? C.accent : T.gray500,
+                              }}
+                              onMouseEnter={e => { if (!isP) { e.currentTarget.style.background = T.brand25; e.currentTarget.style.color = T.gray700; } }}
+                              onMouseLeave={e => { if (!isP) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.gray500; } }}
+                            >
+                              <div style={{ width: 1, height: 14, background: T.gray200, flexShrink: 0 }} />
+                              <span style={{
+                                width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                                background: p.status === "live" ? "#22C55E" : T.gray300,
+                              }} />
+                              <span style={{ flex: 1, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {p.name}
+                              </span>
+                            </button>
+                            {/* Delete button — appears on row hover */}
+                            <button
+                              className="proj-del"
+                              title={`"${p.name}" löschen`}
+                              onClick={e => {
+                                e.stopPropagation();
+                                if (!window.confirm(`Projekt "${p.name}" und alle zugehörigen Daten löschen?`)) return;
+                                if (voodooProjectId === p.id) setVoodooProjectId(null);
+                                delProject(p.id);
+                              }}
+                              style={{
+                                position: "absolute", right: 4,
+                                opacity: 0, transition: "opacity .15s",
+                                background: "none", border: "none", cursor: "pointer",
+                                color: T.gray400, padding: "3px 4px", borderRadius: 5,
+                                display: "flex", alignItems: "center",
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.color = "#EF4444"; e.currentTarget.style.background = "#FEF2F2"; }}
+                              onMouseLeave={e => { e.currentTarget.style.color = T.gray400; e.currentTarget.style.background = "none"; }}
+                            >
+                              <Trash2 size={11} strokeWidth={2}/>
+                            </button>
+                          </div>
                         );
                       })}
                       {/* Neues Projekt */}
