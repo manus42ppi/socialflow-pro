@@ -278,6 +278,8 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
   const [sourceFilter, setSourceFilter] = useState("all");
   const [urlInput, setUrlInput] = useState("");
   const [urlLabel, setUrlLabel] = useState("");
+  const [showDocPicker, setShowDocPicker] = useState(false);
+  const [docPickerQ, setDocPickerQ] = useState("");
 
   // ── Generation phase machine ──────────────────────────────────────────────
   // "idle" → "preflight-loading" → "preflight" → "searching" → "streaming"
@@ -951,9 +953,78 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                   </button>
                 )}
               </div>
+              {/* Library picker button */}
+              {items.filter(m => m.type==="document").length > 0 && (
+                <button onClick={() => { setDocPickerQ(""); setShowDocPicker(true); }}
+                  style={{ marginTop:5, background:"none", border:`1px solid ${T.gray200}`, borderRadius:6,
+                    color:T.gray500, fontSize:11, fontWeight:600, cursor:"pointer", padding:"4px 10px",
+                    display:"flex", alignItems:"center", gap:5, fontFamily:FONT, transition:"border-color .12s" }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor=C.accent}
+                  onMouseLeave={e => e.currentTarget.style.borderColor=T.gray200}>
+                  <FileText size={11} strokeWidth={IW}/>
+                  Aus Medienbibliothek wählen ({items.filter(m => m.type==="document").length})
+                </button>
+              )}
               <div style={{ fontSize:10, color:T.gray400, marginTop:4, paddingLeft:2 }}>
                 Wenn gesetzt, ersetzt Spark den CTA-Button durch ein Email-Eingabe-Formular. Bei Absenden öffnet sich die PDF-URL automatisch.
               </div>
+              {/* Doc picker overlay */}
+              {showDocPicker && (
+                <div style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,.45)", display:"flex", alignItems:"center", justifyContent:"center" }}
+                  onClick={() => setShowDocPicker(false)}>
+                  <div onClick={e => e.stopPropagation()}
+                    style={{ background:"#fff", borderRadius:14, width:420, maxHeight:480, display:"flex", flexDirection:"column",
+                      boxShadow:"0 20px 60px rgba(0,0,0,.25)", overflow:"hidden" }}>
+                    {/* Header */}
+                    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", borderBottom:`1px solid ${T.gray100}` }}>
+                      <FileText size={15} strokeWidth={IW} color={C.accent}/>
+                      <span style={{ flex:1, fontSize:13, fontWeight:700, color:C.text }}>Dokument aus Bibliothek wählen</span>
+                      <button onClick={() => setShowDocPicker(false)} style={{ background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:2 }}>
+                        <X size={14} strokeWidth={2.5}/>
+                      </button>
+                    </div>
+                    {/* Search */}
+                    <div style={{ padding:"10px 16px 6px", position:"relative" }}>
+                      <Search size={12} strokeWidth={IW} color={T.gray400}
+                        style={{ position:"absolute", left:24, top:"50%", transform:"translateY(-30%)", pointerEvents:"none" }}/>
+                      <input value={docPickerQ} onChange={e => setDocPickerQ(e.target.value)}
+                        placeholder="Dokument suchen…"
+                        autoFocus
+                        style={{ width:"100%", padding:"6px 8px 6px 26px", borderRadius:7, border:`1px solid ${T.gray200}`,
+                          fontSize:12, fontFamily:FONT, outline:"none", boxSizing:"border-box", background:T.gray50 }}/>
+                    </div>
+                    {/* List */}
+                    <div style={{ flex:1, overflowY:"auto", padding:"4px 12px 12px" }}>
+                      {items
+                        .filter(m => m.type==="document" && (!docPickerQ.trim() || m.name.toLowerCase().includes(docPickerQ.toLowerCase())))
+                        .map(doc => (
+                          <div key={doc.id} onClick={() => { upd({ dossierPdfUrl: doc.url }); setShowDocPicker(false); }}
+                            style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 10px", borderRadius:8,
+                              cursor:"pointer", transition:"background .1s",
+                              background: form.dossierPdfUrl===doc.url ? C.accent+"0F" : "transparent",
+                              border: form.dossierPdfUrl===doc.url ? `1.5px solid ${C.accent+"44"}` : "1.5px solid transparent",
+                              marginBottom:3 }}
+                            onMouseEnter={e => { if(form.dossierPdfUrl!==doc.url) e.currentTarget.style.background=T.gray50; }}
+                            onMouseLeave={e => { if(form.dossierPdfUrl!==doc.url) e.currentTarget.style.background="transparent"; }}>
+                            <div style={{ width:36, height:36, borderRadius:8, background:"#eef2ff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                              <FileText size={18} strokeWidth={1.5} color="#6366f1"/>
+                            </div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{doc.name}</div>
+                              {doc.size && <div style={{ fontSize:10, color:T.gray400 }}>{(doc.size/1024/1024).toFixed(1)} MB</div>}
+                            </div>
+                            {form.dossierPdfUrl===doc.url && <Check size={13} strokeWidth={3} color={C.accent}/>}
+                          </div>
+                        ))}
+                      {items.filter(m => m.type==="document").length === 0 && (
+                        <p style={{ fontSize:12, color:T.gray400, textAlign:"center", padding:"20px 0" }}>
+                          Keine Dokumente in der Bibliothek.<br/>Lade zuerst ein PDF hoch.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Source filters */}

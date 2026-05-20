@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Search, Upload, Settings, Image, Check, Trash2, Edit2, AlertTriangle, CheckSquare, X, BookmarkPlus, Bookmark, ChevronDown, Loader } from "lucide-react";
+import { Search, Upload, Settings, Image, Check, Trash2, Edit2, AlertTriangle, CheckSquare, X, BookmarkPlus, Bookmark, ChevronDown, Loader, FileText, FileVideo, File } from "lucide-react";
 import { C, FONT, IW } from "../constants/colors.js";
 import { AI } from "../utils/store.js";
 import { uid, fileToDataURL, getMediaType, fpos } from "../utils/store.js";
@@ -163,7 +163,13 @@ export default function MediaPage(){
         onMouseLeave={()=>setHov(false)}>
         {item.type==="video"
           ?<video src={item.url} style={{width:"100%",height:"auto",display:"block"}} muted/>
-          :<img src={item.url} alt={item.name} style={{width:"100%",height:"auto",display:"block"}} loading="lazy"/>}
+          :item.type==="document"
+            ?<div style={{width:"100%",aspectRatio:"4/3",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,background:"linear-gradient(135deg,#f8fafc 0%,#eef2ff 100%)",padding:12,boxSizing:"border-box"}}>
+               <FileText size={32} strokeWidth={1.5} color="#6366f1" style={{opacity:.7}}/>
+               <div style={{fontSize:11,fontWeight:600,color:"#4338ca",textAlign:"center",wordBreak:"break-word",lineHeight:1.3,maxWidth:"100%",overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{item.name}</div>
+               {item.size&&<div style={{fontSize:9,color:"#a5b4fc"}}>{(item.size/1024/1024).toFixed(1)} MB</div>}
+             </div>
+            :<img src={item.url} alt={item.name} style={{width:"100%",height:"auto",display:"block"}} loading="lazy"/>}
         {/* Analyzing overlay */}
         {item.analyzing&&<div style={{position:"absolute",inset:0,zIndex:1,background:"rgba(0,0,0,.55)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,borderRadius:10}}>
           <div style={{width:22,height:22,border:`3px solid ${C.accent}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
@@ -292,7 +298,7 @@ export default function MediaPage(){
         </div>
         {/* Type filter tabs */}
         <div style={{display:"flex",gap:3,background:C.borderLight,borderRadius:7,padding:3,flexShrink:0}}>
-          {[["all","Alle"],["image","Bilder"],["video","Videos"],["logo","Logos"]].map(([t,l])=>(
+          {[["all","Alle"],["image","Bilder"],["video","Videos"],["logo","Logos"],["document","Dokumente"]].map(([t,l])=>(
             <button key={t} onClick={()=>setF(t)} style={{padding:"5px 11px",borderRadius:5,border:"none",background:f===t?C.surface:"transparent",color:f===t?C.text:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT}}>{l}</button>
           ))}
         </div>
@@ -320,7 +326,7 @@ export default function MediaPage(){
             </button>
             <button onClick={()=>{setBatchMode(false);setSel(new Set());}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,color:C.textSoft,fontSize:11,fontWeight:600,padding:"4px 9px",cursor:"pointer",fontFamily:FONT}}>Abbrechen</button>
           </div>}
-        <input ref={ref} type="file" multiple accept="image/*,video/*" style={{display:"none"}} onChange={e=>upload(e.target.files)}/>
+        <input ref={ref} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.pptx,.ppt,.xls,.xlsx,.txt" style={{display:"none"}} onChange={e=>upload(e.target.files)}/>
       </div>
 
       {/* ── API key panel ── */}
