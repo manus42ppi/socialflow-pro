@@ -175,11 +175,11 @@ ${script}
 // Default colors: newspaper red / dark navy / warm cream
 // ═══════════════════════════════════════════════════════════════════════════════
 export function tEditorial(c, dossierPdfUrl = "") {
-  const heroImg = c.hero?.image?.url
-    ? `<img class="hero-img" src="${esc(c.hero.image.url)}" alt="${esc(c.hero.image.alt || "")}">`
-    : "";
-  const introImg = c.intro?.image?.url
-    ? `<img src="${esc(c.intro.image.url)}" alt="${esc(c.intro.image.alt || "")}" style="width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover">`
+  const heroImg  = c.hero?.image?.url ? `<img class="hero-img" src="${esc(c.hero.image.url)}" alt="${esc(c.hero.image.alt||"")}">` : "";
+  // Support both old schema (intro) and new (about)
+  const aboutSrc = c.about || c.intro;
+  const introImg = aboutSrc?.image?.url
+    ? `<img src="${esc(aboutSrc.image.url)}" alt="${esc(aboutSrc.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover">`
     : "";
 
   const body = `
@@ -198,9 +198,9 @@ ${nav(c)}
 </div></section>
 
 <section id="themen" class="alt"><div class="w">
-  ${c.themes?.label ? `<span class="lbl">${esc(c.themes.label)}</span>` : ""}
-  <h2>${esc(c.themes?.headline)}</h2>
-  <div class="g g3">${cards(c.themes?.items)}</div>
+  ${(c.features||c.themes)?.label ? `<span class="lbl">${esc((c.features||c.themes).label)}</span>` : ""}
+  <h2>${esc((c.features||c.themes)?.headline)}</h2>
+  <div class="g g3">${cards((c.features||c.themes)?.items)}</div>
 </div></section>
 
 <section id="zahlen"><div class="w">
@@ -209,11 +209,11 @@ ${nav(c)}
 </div></section>
 
 <section id="intro" class="alt"><div class="w">
-  <span class="lbl">${esc(c.intro?.label || "Hintergrund")}</span>
+  <span class="lbl">${esc(aboutSrc?.label || "Hintergrund")}</span>
   <div class="img-r">
     <div>
-      <h2>${esc(c.intro?.headline)}</h2>
-      <p class="lead">${esc(c.intro?.text)}</p>
+      <h2>${esc(aboutSrc?.headline)}</h2>
+      <p class="lead">${esc(aboutSrc?.text)}</p>
     </div>
     ${introImg}
   </div>
@@ -234,11 +234,10 @@ ${footer(c)}`;
 // Default colors: forest green / deep earth / warm beige
 // ═══════════════════════════════════════════════════════════════════════════════
 export function tEvent(c, dossierPdfUrl = "") {
-  const heroImg = c.hero?.image?.url
-    ? `<img class="hero-img" src="${esc(c.hero.image.url)}" alt="${esc(c.hero.image.alt || "")}">`
-    : "";
-  const introImg = c.intro?.image?.url
-    ? `<img src="${esc(c.intro.image.url)}" alt="${esc(c.intro.image.alt || "")}" style="width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover">`
+  const heroImg  = c.hero?.image?.url ? `<img class="hero-img" src="${esc(c.hero.image.url)}" alt="${esc(c.hero.image.alt||"")}">` : "";
+  const aboutSrc = c.about || c.intro;
+  const introImg = aboutSrc?.image?.url
+    ? `<img src="${esc(aboutSrc.image.url)}" alt="${esc(aboutSrc.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover">`
     : "";
 
   const body = `
@@ -257,9 +256,9 @@ ${nav(c)}
 </div></section>
 
 <section id="themen"><div class="w">
-  ${c.themes?.label ? `<span class="lbl">${esc(c.themes.label)}</span>` : ""}
-  <h2>${esc(c.themes?.headline)}</h2>
-  <div class="g g3">${cards(c.themes?.items)}</div>
+  ${(c.features||c.themes)?.label ? `<span class="lbl">${esc((c.features||c.themes).label)}</span>` : ""}
+  <h2>${esc((c.features||c.themes)?.headline)}</h2>
+  <div class="g g3">${cards((c.features||c.themes)?.items)}</div>
 </div></section>
 
 <section id="zahlen" class="alt"><div class="w">
@@ -268,22 +267,266 @@ ${nav(c)}
 </div></section>
 
 <section id="intro"><div class="w">
-  <span class="lbl">${esc(c.intro?.label || "Das Erlebnis")}</span>
+  <span class="lbl">${esc(aboutSrc?.label || "Das Erlebnis")}</span>
   <div class="img-r">
     ${introImg}
     <div>
-      <h2>${esc(c.intro?.headline)}</h2>
-      <p class="lead">${esc(c.intro?.text)}</p>
+      <h2>${esc(aboutSrc?.headline)}</h2>
+      <p class="lead">${esc(aboutSrc?.text)}</p>
     </div>
   </div>
 </div></section>
 
 ${quote(c.quote)}
-
 ${ctaSection(c.cta, dossierPdfUrl)}
-
 ${footer(c)}`;
 
+  return wrap(c, body, dossierPdfUrl);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPLATES #3–#10
+// All share: nav · hero · features(g3) · about(img-r) · stats(g4) · quote · cta · footer
+// Only section IDs, .alt alternation, img position, and color defaults differ.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── #3 Lead Capture ───────────────────────────────────────────────────────────
+export function tLeadCapture(c, dossierPdfUrl = "") {
+  const feat = c.features || c.themes;
+  const heroImg  = c.hero?.image?.url  ? `<img class="hero-img" src="${esc(c.hero.image.url)}"  alt="${esc(c.hero.image.alt||"")}">` : "";
+  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  if (!c.colors?.primary) { c = { ...c, colors: { primary:"#7C3AED", dark:"#4C1D95", light:"#EDE9FE", font:"Manrope", ...c.colors } }; }
+  const body = `<!-- NAV_IDS: hero,vorteile,inhalt,zahlen,cta -->
+${nav(c)}
+<section id="hero" class="hero"><div class="w">
+  ${c.hero?.label ? `<span class="lbl">${esc(c.hero.label)}</span>` : ""}
+  <h1>${esc(c.hero?.headline)}</h1>
+  <p>${esc(c.hero?.subtext)}</p>
+  <div class="btns"><a href="#cta" class="btn btn-p">${esc(c.hero?.cta1||"Kostenlos herunterladen")}</a>${c.hero?.cta2?`<a href="#vorteile" class="btn btn-o">${esc(c.hero.cta2)}</a>`:""}</div>
+  ${heroImg}
+</div></section>
+<section id="vorteile" class="alt"><div class="w">
+  ${feat?.label?`<span class="lbl">${esc(feat.label)}</span>`:""}
+  <h2>${esc(feat?.headline)}</h2>
+  <div class="g g3">${cards(feat?.items)}</div>
+</div></section>
+<section id="inhalt"><div class="w">
+  <span class="lbl">${esc(c.about?.label||"Was dich erwartet")}</span>
+  <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
+</div></section>
+<section id="zahlen" class="alt"><div class="w"><span class="lbl">Auf einen Blick</span><div class="g g4">${stats(c.stats)}</div></div></section>
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl);
+}
+
+// ── #4 Product Launch ─────────────────────────────────────────────────────────
+export function tProductLaunch(c, dossierPdfUrl = "") {
+  const feat = c.features || c.themes;
+  const heroImg  = c.hero?.image?.url  ? `<img class="hero-img" src="${esc(c.hero.image.url)}"  alt="${esc(c.hero.image.alt||"")}">` : "";
+  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  if (!c.colors?.primary) { c = { ...c, colors: { primary:"#E65100", dark:"#BF360C", light:"#FFF3E0", font:"Outfit", ...c.colors } }; }
+  const body = `<!-- NAV_IDS: hero,features,produkt,zahlen,cta -->
+${nav(c)}
+<section id="hero" class="hero"><div class="w">
+  ${c.hero?.label?`<span class="lbl">${esc(c.hero.label)}</span>`:""}
+  <h1>${esc(c.hero?.headline)}</h1>
+  <p>${esc(c.hero?.subtext)}</p>
+  <div class="btns"><a href="#cta" class="btn btn-p">${esc(c.hero?.cta1||"Jetzt kaufen")}</a>${c.hero?.cta2?`<a href="#features" class="btn btn-o">${esc(c.hero.cta2)}</a>`:""}</div>
+  ${heroImg}
+</div></section>
+<section id="features"><div class="w">
+  ${feat?.label?`<span class="lbl">${esc(feat.label)}</span>`:""}
+  <h2>${esc(feat?.headline)}</h2>
+  <div class="g g3">${cards(feat?.items)}</div>
+</div></section>
+<section id="zahlen" class="alt"><div class="w"><span class="lbl">Kennzahlen</span><div class="g g4">${stats(c.stats)}</div></div></section>
+<section id="produkt"><div class="w">
+  <span class="lbl">${esc(c.about?.label||"Das Produkt")}</span>
+  <div class="img-r">${aboutImg}<div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div></div>
+</div></section>
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl);
+}
+
+// ── #5 Service / Agentur ──────────────────────────────────────────────────────
+export function tService(c, dossierPdfUrl = "") {
+  const feat = c.features || c.themes;
+  const heroImg  = c.hero?.image?.url  ? `<img class="hero-img" src="${esc(c.hero.image.url)}"  alt="${esc(c.hero.image.alt||"")}">` : "";
+  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  if (!c.colors?.primary) { c = { ...c, colors: { primary:"#1A237E", dark:"#0D1B6E", light:"#E8EAF6", font:"Manrope", ...c.colors } }; }
+  const body = `<!-- NAV_IDS: hero,leistungen,ueber,zahlen,cta -->
+${nav(c)}
+<section id="hero" class="hero"><div class="w">
+  ${c.hero?.label?`<span class="lbl">${esc(c.hero.label)}</span>`:""}
+  <h1>${esc(c.hero?.headline)}</h1>
+  <p>${esc(c.hero?.subtext)}</p>
+  <div class="btns"><a href="#cta" class="btn btn-p">${esc(c.hero?.cta1||"Beratung anfragen")}</a>${c.hero?.cta2?`<a href="#leistungen" class="btn btn-o">${esc(c.hero.cta2)}</a>`:""}</div>
+  ${heroImg}
+</div></section>
+<section id="leistungen" class="alt"><div class="w">
+  ${feat?.label?`<span class="lbl">${esc(feat.label)}</span>`:""}
+  <h2>${esc(feat?.headline)}</h2>
+  <div class="g g3">${cards(feat?.items)}</div>
+</div></section>
+<section id="ueber"><div class="w">
+  <span class="lbl">${esc(c.about?.label||"Über uns")}</span>
+  <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
+</div></section>
+<section id="zahlen" class="alt"><div class="w"><span class="lbl">Unsere Zahlen</span><div class="g g4">${stats(c.stats)}</div></div></section>
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl);
+}
+
+// ── #6 App / SaaS ─────────────────────────────────────────────────────────────
+export function tAppSaas(c, dossierPdfUrl = "") {
+  const feat = c.features || c.themes;
+  const heroImg  = c.hero?.image?.url  ? `<img class="hero-img" src="${esc(c.hero.image.url)}"  alt="${esc(c.hero.image.alt||"")}">` : "";
+  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:16/9;object-fit:cover">` : "";
+  if (!c.colors?.primary) { c = { ...c, colors: { primary:"#0EA5E9", dark:"#0369A1", light:"#E0F2FE", font:"DM Sans", ...c.colors } }; }
+  const body = `<!-- NAV_IDS: hero,features,howto,zahlen,cta -->
+${nav(c)}
+<section id="hero" class="hero"><div class="w">
+  ${c.hero?.label?`<span class="lbl">${esc(c.hero.label)}</span>`:""}
+  <h1>${esc(c.hero?.headline)}</h1>
+  <p>${esc(c.hero?.subtext)}</p>
+  <div class="btns"><a href="#cta" class="btn btn-p">${esc(c.hero?.cta1||"Kostenlos testen")}</a>${c.hero?.cta2?`<a href="#features" class="btn btn-o">${esc(c.hero.cta2)}</a>`:""}</div>
+  ${heroImg}
+</div></section>
+<section id="features"><div class="w">
+  ${feat?.label?`<span class="lbl">${esc(feat.label)}</span>`:""}
+  <h2>${esc(feat?.headline)}</h2>
+  <div class="g g3">${cards(feat?.items)}</div>
+</div></section>
+<section id="howto" class="alt"><div class="w">
+  <span class="lbl">${esc(c.about?.label||"So funktioniert es")}</span>
+  <div class="img-r">${aboutImg}<div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div></div>
+</div></section>
+<section id="zahlen"><div class="w"><span class="lbl">Das sagen die Zahlen</span><div class="g g4">${stats(c.stats)}</div></div></section>
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl);
+}
+
+// ── #7 Kurs / Webinar ─────────────────────────────────────────────────────────
+export function tKurs(c, dossierPdfUrl = "") {
+  const feat = c.features || c.themes;
+  const heroImg  = c.hero?.image?.url  ? `<img class="hero-img" src="${esc(c.hero.image.url)}"  alt="${esc(c.hero.image.alt||"")}">` : "";
+  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:1/1;object-fit:cover">` : "";
+  if (!c.colors?.primary) { c = { ...c, colors: { primary:"#0D9488", dark:"#0F766E", light:"#CCFBF1", font:"DM Sans", ...c.colors } }; }
+  const body = `<!-- NAV_IDS: hero,inhalte,trainer,zahlen,cta -->
+${nav(c)}
+<section id="hero" class="hero"><div class="w">
+  ${c.hero?.label?`<span class="lbl">${esc(c.hero.label)}</span>`:""}
+  <h1>${esc(c.hero?.headline)}</h1>
+  <p>${esc(c.hero?.subtext)}</p>
+  <div class="btns"><a href="#cta" class="btn btn-p">${esc(c.hero?.cta1||"Jetzt anmelden")}</a>${c.hero?.cta2?`<a href="#inhalte" class="btn btn-o">${esc(c.hero.cta2)}</a>`:""}</div>
+  ${heroImg}
+</div></section>
+<section id="inhalte" class="alt"><div class="w">
+  ${feat?.label?`<span class="lbl">${esc(feat.label)}</span>`:""}
+  <h2>${esc(feat?.headline)}</h2>
+  <div class="g g3">${cards(feat?.items)}</div>
+</div></section>
+<section id="trainer"><div class="w">
+  <span class="lbl">${esc(c.about?.label||"Der Trainer")}</span>
+  <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
+</div></section>
+<section id="zahlen" class="alt"><div class="w"><span class="lbl">Auf einen Blick</span><div class="g g4">${stats(c.stats)}</div></div></section>
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl);
+}
+
+// ── #8 Local Business ─────────────────────────────────────────────────────────
+export function tLocalBusiness(c, dossierPdfUrl = "") {
+  const feat = c.features || c.themes;
+  const heroImg  = c.hero?.image?.url  ? `<img class="hero-img" src="${esc(c.hero.image.url)}"  alt="${esc(c.hero.image.alt||"")}">` : "";
+  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  if (!c.colors?.primary) { c = { ...c, colors: { primary:"#B45309", dark:"#92400E", light:"#FEF3C7", font:"Merriweather", ...c.colors } }; }
+  const body = `<!-- NAV_IDS: hero,angebot,ueber,zahlen,cta -->
+${nav(c)}
+<section id="hero" class="hero"><div class="w">
+  ${c.hero?.label?`<span class="lbl">${esc(c.hero.label)}</span>`:""}
+  <h1>${esc(c.hero?.headline)}</h1>
+  <p>${esc(c.hero?.subtext)}</p>
+  <div class="btns"><a href="#cta" class="btn btn-p">${esc(c.hero?.cta1||"Jetzt besuchen")}</a>${c.hero?.cta2?`<a href="#angebot" class="btn btn-o">${esc(c.hero.cta2)}</a>`:""}</div>
+  ${heroImg}
+</div></section>
+<section id="angebot"><div class="w">
+  ${feat?.label?`<span class="lbl">${esc(feat.label)}</span>`:""}
+  <h2>${esc(feat?.headline)}</h2>
+  <div class="g g3">${cards(feat?.items)}</div>
+</div></section>
+<section id="ueber" class="alt"><div class="w">
+  <span class="lbl">${esc(c.about?.label||"Unsere Geschichte")}</span>
+  <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
+</div></section>
+<section id="zahlen"><div class="w"><span class="lbl">Das sind wir</span><div class="g g4">${stats(c.stats)}</div></div></section>
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl);
+}
+
+// ── #9 Case Study ─────────────────────────────────────────────────────────────
+export function tCaseStudy(c, dossierPdfUrl = "") {
+  const feat = c.features || c.themes;
+  const heroImg  = c.hero?.image?.url  ? `<img class="hero-img" src="${esc(c.hero.image.url)}"  alt="${esc(c.hero.image.alt||"")}">` : "";
+  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover">` : "";
+  if (!c.colors?.primary) { c = { ...c, colors: { primary:"#1D4ED8", dark:"#1E3A8A", light:"#EFF6FF", font:"Manrope", ...c.colors } }; }
+  const body = `<!-- NAV_IDS: hero,loesung,ergebnis,zahlen,cta -->
+${nav(c)}
+<section id="hero" class="hero"><div class="w">
+  ${c.hero?.label?`<span class="lbl">${esc(c.hero.label)}</span>`:""}
+  <h1>${esc(c.hero?.headline)}</h1>
+  <p>${esc(c.hero?.subtext)}</p>
+  <div class="btns"><a href="#cta" class="btn btn-p">${esc(c.hero?.cta1||"Ähnliche Ergebnisse")}</a>${c.hero?.cta2?`<a href="#loesung" class="btn btn-o">${esc(c.hero.cta2)}</a>`:""}</div>
+  ${heroImg}
+</div></section>
+<section id="ergebnis" class="alt"><div class="w">
+  <span class="lbl">${esc(c.about?.label||"Die Herausforderung")}</span>
+  <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
+</div></section>
+<section id="loesung"><div class="w">
+  ${feat?.label?`<span class="lbl">${esc(feat.label)}</span>`:""}
+  <h2>${esc(feat?.headline)}</h2>
+  <div class="g g3">${cards(feat?.items)}</div>
+</div></section>
+<section id="zahlen" class="alt"><div class="w"><span class="lbl">Messbare Ergebnisse</span><div class="g g4">${stats(c.stats)}</div></div></section>
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl);
+}
+
+// ── #10 Video Hero ────────────────────────────────────────────────────────────
+export function tVideoHero(c, dossierPdfUrl = "") {
+  const feat = c.features || c.themes;
+  // Video placeholder (16:9 ratio with play button overlay)
+  const videoBox = `<div style="width:100%;max-width:800px;margin:28px auto 0;border-radius:12px;overflow:hidden;position:relative;aspect-ratio:16/9;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.3)">
+  ${c.hero?.image?.url ? `<img src="${esc(c.hero.image.url)}" alt="Video Thumbnail" style="width:100%;height:100%;object-fit:cover;opacity:.8">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e)"></div>`}
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+    <a href="${esc(c.cta?.videoUrl||"#cta")}" target="_blank" rel="noopener" style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.4);text-decoration:none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--p)"><polygon points="5,3 19,12 5,21"/></svg>
+    </a>
+  </div>
+</div>`;
+  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  if (!c.colors?.primary) { c = { ...c, colors: { primary:"#DC2626", dark:"#991B1B", light:"#FEF2F2", font:"DM Sans", ...c.colors } }; }
+  const body = `<!-- NAV_IDS: hero,highlights,ueber,zahlen,cta -->
+${nav(c)}
+<section id="hero" class="hero"><div class="w">
+  ${c.hero?.label?`<span class="lbl">${esc(c.hero.label)}</span>`:""}
+  <h1>${esc(c.hero?.headline)}</h1>
+  <p>${esc(c.hero?.subtext)}</p>
+  <div class="btns"><a href="#cta" class="btn btn-p">${esc(c.hero?.cta1||"Jetzt ansehen")}</a>${c.hero?.cta2?`<a href="#highlights" class="btn btn-o">${esc(c.hero.cta2)}</a>`:""}</div>
+  ${videoBox}
+</div></section>
+<section id="highlights" class="alt"><div class="w">
+  ${feat?.label?`<span class="lbl">${esc(feat.label)}</span>`:""}
+  <h2>${esc(feat?.headline)}</h2>
+  <div class="g g3">${cards(feat?.items)}</div>
+</div></section>
+<section id="ueber"><div class="w">
+  <span class="lbl">${esc(c.about?.label||"Über den Creator")}</span>
+  <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
+</div></section>
+<section id="zahlen" class="alt"><div class="w"><span class="lbl">Die Community</span><div class="g g4">${stats(c.stats)}</div></div></section>
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
   return wrap(c, body, dossierPdfUrl);
 }
 
@@ -292,20 +535,16 @@ ${footer(c)}`;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const TEMPLATES = [
-  {
-    id:          "editorial",
-    name:        "Editorial Dossier",
-    description: "News-Specials · Hintergrundberichte · Verlags-Content",
-    icon:        "📰",
-    fn:          tEditorial,
-  },
-  {
-    id:          "event",
-    name:        "Event & Erlebnis",
-    description: "Leserreisen · Events · Erlebnisangebote",
-    icon:        "✈️",
-    fn:          tEvent,
-  },
+  { id:"editorial",  name:"Editorial Dossier",  description:"News-Specials · Hintergrundberichte · Verlags-Content", icon:"📰", fn:tEditorial },
+  { id:"event",      name:"Event & Erlebnis",    description:"Leserreisen · Events · Erlebnisangebote",               icon:"✈️", fn:tEvent },
+  { id:"lead",       name:"Lead Capture",        description:"E-Mail-Listen · Freebies · Downloads",                  icon:"🎁", fn:tLeadCapture },
+  { id:"product",    name:"Product Launch",      description:"Neue Produkte · E-Commerce · Shop",                     icon:"🛍️", fn:tProductLaunch },
+  { id:"service",    name:"Service / Agentur",   description:"B2B · Dienstleistungen · Beratung",                     icon:"💼", fn:tService },
+  { id:"saas",       name:"App / SaaS",          description:"Software · Tools · Webapps",                            icon:"💻", fn:tAppSaas },
+  { id:"kurs",       name:"Kurs / Webinar",      description:"Weiterbildung · Online-Kurse · Webinare",               icon:"🎓", fn:tKurs },
+  { id:"local",      name:"Local Business",      description:"Restaurant · Shop · Praxis · Handwerk",                 icon:"📍", fn:tLocalBusiness },
+  { id:"casestudy",  name:"Case Study",          description:"Portfolio · Referenzen · Erfolgsgeschichten",           icon:"📊", fn:tCaseStudy },
+  { id:"video",      name:"Video Hero",          description:"Video-Storytelling · Creator · Kanal",                  icon:"🎬", fn:tVideoHero },
 ];
 
 export function renderTemplate(templateId, content, dossierPdfUrl = "") {
@@ -367,10 +606,10 @@ Erstelle NUR das folgende JSON (kein Markdown, kein Text davor oder danach):
 {
   "meta": {"title": "..."},
   "colors": {"primary": "#...", "dark": "#...", "light": "#...", "font": "..."},
-  "nav": {"logo": "...", "links": [{"label": "...", "anchor": "intro"}, {"label": "...", "anchor": "themen"}, {"label": "...", "anchor": "zahlen"}]},
+  "nav": {"logo": "...", "links": [{"label": "...", "anchor": "features"}, {"label": "...", "anchor": "zahlen"}, {"label": "...", "anchor": "cta"}]},
   "hero": {"label": "...", "headline": "...", "subtext": "...", "cta1": "...", "cta2": "...", "image": {"url": "...", "alt": "..."}},
-  "intro": {"label": "...", "headline": "...", "text": "...", "image": {"url": "...", "alt": "..."}},
-  "themes": {"label": "...", "headline": "...", "items": [{"title": "...", "text": "..."}, {"title": "...", "text": "..."}, {"title": "...", "text": "..."}]},
+  "features": {"label": "...", "headline": "...", "items": [{"title": "...", "text": "..."}, {"title": "...", "text": "..."}, {"title": "...", "text": "..."}]},
+  "about": {"label": "...", "headline": "...", "text": "...", "image": {"url": "...", "alt": "..."}},
   "stats": [{"num": "35+", "desc": "Jahre Erfahrung"}, {"num": "98%", "desc": "Kundenzufriedenheit"}, {"num": "14", "desc": "Länder"}, {"num": "2.400", "desc": "Aktive Nutzer"}],
   "quote": {"text": "...", "author": "...", "role": "..."},
   "cta": {"label": "...", "headline": "...", "subtext": "...", "buttonText": "..."},
@@ -391,7 +630,7 @@ PFLICHT-REGELN:
 • hero.headline: max. 8 Wörter — emotional, direkt, konkret
 • themes.items: GENAU 3 Einträge
 • stats: GENAU 4 Einträge
-• nav.links[].anchor NUR aus: "intro", "themen", "zahlen"
+• nav.links[].anchor NUR aus: "features", "zahlen", "cta"
 • Bilder: hero.image.url und intro.image.url aus den gegebenen Bild-URLs wählen — bei 2+ Bildern verschiedene verwenden
 • Wenn keine Bilder: hero.image und intro.image als null${dossierPdfUrl ? `\n• cta.buttonText: "Dossier herunterladen"` : ""}`;
 
