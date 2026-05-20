@@ -14,18 +14,46 @@
 import { PAGE_CSS, LINK_GUARD } from "./spark.js";
 import { aiCallStream } from "./store.js";
 
-// Robustere JSON-Extraktion als das globale parseJSON:
-// Entfernt Markdown-Codeblöcke und extrahiert das erste vollständige {...} Objekt.
+// Robuste JSON-Extraktion mit Bracket-Counter.
+// Probleme die der naive lastIndexOf-Ansatz NICHT löst:
+//  - Modell schreibt nach dem JSON noch Erklärtext mit {} (z.B. CSS-Snippets)
+//  - lastIndexOf("}") findet dann den falschen schließenden Bracket
+//  - Unescaped " in deutschen Texten (»"tolles" Produkt«) bricht JSON.parse
+// Diese Version zählt Brackets unter Berücksichtigung von Strings + Escape-Chars.
 function extractJSON(raw) {
-  // 1. Markdown Code-Blöcke entfernen
+  // 1. Markdown-Codeblöcke entfernen
   let s = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  // 2. Direkter Parse-Versuch
+
+  // 2. Direkter Parse-Versuch (perfekter Output)
   try { return JSON.parse(s); } catch {}
-  // 3. Erstes { ... } Objekt extrahieren (falls Präambel-Text vorhanden)
-  const start = s.indexOf("{");
-  const end   = s.lastIndexOf("}");
-  if (start !== -1 && end > start) {
-    try { return JSON.parse(s.slice(start, end + 1)); } catch {}
+
+  // 3. Bracket-counting: findet das ERSTE vollständige {...} Objekt
+  const startIdx = s.indexOf("{");
+  if (startIdx === -1) return null;
+
+  let depth = 0, inStr = false, escaped = false, endIdx = -1;
+  for (let i = startIdx; i < s.length; i++) {
+    const ch = s[i];
+    if (escaped)          { escaped = false; continue; }
+    if (ch === "\\" && inStr) { escaped = true;  continue; }
+    if (ch === '"')        { inStr = !inStr;  continue; }
+    if (inStr)             continue;
+    if (ch === "{")        depth++;
+    else if (ch === "}") { depth--; if (depth === 0) { endIdx = i; break; } }
+  }
+
+  if (endIdx > startIdx) {
+    let json = s.slice(startIdx, endIdx + 1);
+    // 4. Direkter Parse auf extrahiertem JSON
+    try { return JSON.parse(json); } catch {}
+    // 5. Häufige LLM-Fehler reparieren:
+    //    a) Trailing commas vor ] oder }
+    //    b) Unescaped " innerhalb von Strings → durch ' ersetzen
+    json = json
+      .replace(/,\s*([}\]])/g, "$1")             // trailing comma
+      .replace(/"([^"]*)"([^"]*)"([^"]*)"/g,     // "word "inner" word" → "word 'inner' word"
+               (_, a, b, c) => `"${a}'${b}'${c}"`);
+    try { return JSON.parse(json); } catch {}
   }
   return null;
 }
@@ -350,8 +378,9 @@ Erstelle NUR das folgende JSON (kein Markdown, kein Text davor oder danach):
 }
 
 PFLICHT-REGELN:
-• Antworte NUR mit dem JSON — kein Text davor, kein Text danach, keine Codeblöcke
-• Nur echte Inhalte aus den Projektdaten — kein Platzhalter, kein "Lorem ipsum"
+• Antworte NUR mit dem JSON — kein Text davor, kein Text danach, keine Codeblöcke, kein Markdown
+• NIEMALS Anführungszeichen (") innerhalb von JSON-String-Werten — stattdessen Apostroph (') verwenden
+• Nur echte Inhalte aus den Projektdaten — kein Platzhalter, kein Lorem ipsum
 • Texte kurz halten: headline max. 8 Wörter, subtext/text max. 20 Wörter, card-text max. 15 Wörter
 • stats.num: AUSSCHLIESSLICH die nackte Zahl/Kennzahl (max 6 Zeichen: "35+", "98%", "5 Mio.", "695 g") — niemals ein Satz oder Label!
 • stats.desc: kurzes Label, max. 3 Wörter ("Jahre Erfahrung", "Kundenzufriedenheit", "Aktive Nutzer")
@@ -368,12 +397,17 @@ PFLICHT-REGELN:
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    900,    // JSON ist ~500 Tokens; 900 = sicherer Puffer. Weniger = schneller.
+    1400,   // JSON ~500 Tokens; 1400 = sicherer Puffer (2.5×). 900 war zu knapp.
     onChunk,
   );
 
   const content = extractJSON(raw);
-  if (!content) throw new Error("KI hat kein gültiges JSON zurückgegeben. Bitte erneut versuchen.");
+  if (!content) {
+    // Debug: ersten 400 Zeichen des Raw-Output im Error zeigen
+    const preview = raw.slice(0, 400).replace(/\n/g, "↵");
+    console.error("[Spark] JSON-Parse fehlgeschlagen. Raw-Anfang:", preview);
+    throw new Error(`KI-Antwort konnte nicht geparst werden (${raw.length} Zeichen). Bitte erneut versuchen.`);
+  }
 
   return renderTemplate(templateId, content, dossierPdfUrl);
 }
