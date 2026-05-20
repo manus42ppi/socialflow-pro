@@ -654,7 +654,7 @@ export async function analyzeUploadedImage(item, updateItem) {
  * @param {Function} opts.onChunk      - Streaming callback (chunk, fullSoFar)
  * @returns {string} Post-processed HTML string (includes LINK_GUARD)
  */
-export async function generatePage({ form, ctx, answers = {}, images = [], extraPrompt = "", preflightQ = [], onChunk }) {
+export async function generatePage({ form, ctx, answers = {}, images = [], extraPrompt = "", ctaUrl = "", preflightQ = [], onChunk }) {
   // Format preflight answers as readable context
   const answersText = preflightQ
     .map(q => answers[q.id] ? `${q.question}\n→ ${answers[q.id]}` : null)
@@ -699,6 +699,7 @@ PROJEKT: ${form.name}
 BESCHREIBUNG: ${form.description || "(keine)"}
 INHALTE: ${ctx}
 ${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}` : ""}
+${ctaUrl ? `\n⚠️ CTA-ZIEL-URL (PFLICHT, absolut keine Ausnahme): Jeder primäre Call-to-Action-Button (.btn-p, .btn-w, .btn-o) und der Button im .cta-b-Block erhält zwingend href="${ctaUrl}". Kein "#", kein Platzhalter — ausschließlich diese URL. Setze target="_blank" rel="noopener noreferrer" bei externen Links.` : ""}
 
 AUSGABE-FORMAT (exakt einhalten):
 1. <!DOCTYPE html>
@@ -745,7 +746,7 @@ QUALITÄTS-REGELN (keine Ausnahmen):
  * @param {Function} opts.onChunk     - Streaming callback
  * @returns {string} Post-processed updated HTML string
  */
-export async function refinePage({ html, instruction, onChunk }) {
+export async function refinePage({ html, instruction, ctaUrl = "", onChunk }) {
   // Strip PAGE_CSS (sentinel trick) AND the link guard script — the AI must
   // never see the guard code, otherwise it can reproduce it as visible text content.
   // Both are re-injected by postProcessHtml() after the stream completes.
@@ -793,7 +794,7 @@ TECHNISCHE REGELN (keine Ausnahmen):
 - ANCHOR-KONSISTENZ (kritisch): Jeder href="#xyz" MUSS eine Section mit GENAU id="xyz" haben. Bei Änderungen an Nav-Links immer auch die Section-IDs anpassen — und umgekehrt
 - KEIN opacity:0 oder display:none auf sichtbarem Content
 - KEIN zusätzliches CSS außer :root Farbvariablen
-- JS nur wenn nötig, Content ohne JS vollständig sichtbar`;
+- JS nur wenn nötig, Content ohne JS vollständig sichtbar${ctaUrl ? `\n- CTA-ZIEL-URL BEIBEHALTEN (Pflicht): Alle CTA-Buttons (.btn-p, .btn-w, .btn-o, .cta-b Buttons) behalten zwingend href="${ctaUrl}" — diese URL darf durch die Anweisung niemals verändert werden` : ""}`;
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],

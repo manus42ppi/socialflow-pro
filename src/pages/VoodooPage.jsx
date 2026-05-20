@@ -137,7 +137,7 @@ export default function VoodooPage() {
     const id = uid();
     const slug = slugify(newName) + "-" + id.slice(0,4);
     const p = {
-      id, slug, name: newName.trim(), description: "",
+      id, slug, name: newName.trim(), description: "", ctaUrl: "",
       storyIds: [], postIds: [], mediaIds: [], productIds: [], externalUrls: [],
       generatedHtml: null, lastGeneratedAt: null, status: "draft",
       workspaceId: currentWorkspaceId || "ws-ppi-media",
@@ -495,6 +495,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
         answers,
         images: autoImages,
         extraPrompt: genPromptRef.current.trim(),
+        ctaUrl: (form.ctaUrl||"").trim(),
         preflightQ,
         onChunk: (_chunk, full) => {
           setGenChars(full.length);
@@ -559,14 +560,14 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
       // One automatic retry for transient errors (server overload, rate limit)
       let rawHtml;
       try {
-        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, onChunk: onChunkCb });
+        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), onChunk: onChunkCb });
       } catch (firstErr) {
         // Short pause then retry — handles 529 overload / momentary network blips
         setRefineMsg("⏳ Kurze Pause – erneuter Versuch…");
         await new Promise(r => setTimeout(r, 2500));
         setRefineMsg("");
         setSparkChars(0);
-        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, onChunk: onChunkCb });
+        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), onChunk: onChunkCb });
       }
 
       // 1. DOM repair: structural anchor fixes via DOMParser (0 tokens)
@@ -704,15 +705,46 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           <div style={{ flex:1, overflowY:"auto", padding:"20px 24px" }}>
 
             {/* Description */}
-            <div style={{ marginBottom:20 }}>
+            <div style={{ marginBottom:12 }}>
               <label style={{ fontSize:11, fontWeight:700, color:T.gray500, display:"block", marginBottom:4, textTransform:"uppercase", letterSpacing:".06em" }}>Beschreibung</label>
               <textarea
                 value={form.description||""}
                 onChange={e => upd({description:e.target.value})}
-                placeholder="Worum geht es bei diesem Projekt?"
+                placeholder="Worum geht es bei diesem Projekt? Zielgruppe, Ton, Ziel der Seite…"
                 rows={2}
                 style={{ width:"100%", resize:"vertical", padding:"8px 10px", borderRadius:8, border:`1px solid ${T.gray200}`, fontSize:13, fontFamily:FONT, outline:"none", color:C.text, boxSizing:"border-box" }}
               />
+            </div>
+
+            {/* CTA URL */}
+            <div style={{ marginBottom:20 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:T.gray500, display:"block", marginBottom:4, textTransform:"uppercase", letterSpacing:".06em" }}>
+                CTA-Button Ziel-URL
+              </label>
+              <div style={{ display:"flex", alignItems:"center", gap:8, background: form.ctaUrl ? C.accent+"0A" : "#fff",
+                border:`1.5px solid ${form.ctaUrl ? C.accent+"55" : T.gray200}`,
+                borderRadius:8, padding:"6px 10px", transition:"all .15s" }}>
+                <ExternalLink size={14} strokeWidth={IW} color={form.ctaUrl ? C.accent : T.gray400} style={{ flexShrink:0 }}/>
+                <input
+                  type="url"
+                  value={form.ctaUrl||""}
+                  onChange={e => upd({ ctaUrl: e.target.value })}
+                  placeholder="https://dein-shop.de/produkt  oder  https://cal.com/…"
+                  style={{
+                    flex:1, border:"none", outline:"none", fontSize:13,
+                    fontFamily:FONT, color:C.text, background:"transparent",
+                    minWidth:0,
+                  }}
+                />
+                {form.ctaUrl && (
+                  <button onClick={() => upd({ ctaUrl:"" })} style={{ background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:0, lineHeight:1 }}>
+                    <X size={12} strokeWidth={2.5}/>
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize:10, color:T.gray400, marginTop:4, paddingLeft:2 }}>
+                Spark setzt diese URL hinter alle CTA-Buttons der generierten Seite.
+              </div>
             </div>
 
             {/* Source filters */}
