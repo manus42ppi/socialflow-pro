@@ -46,7 +46,7 @@ h3{font-size:1.05rem;font-weight:700;margin-bottom:7px}p{line-height:1.7}
 .card .ico{margin-bottom:14px}.card p{color:var(--m);font-size:.93rem;margin-top:6px;line-height:1.65}
 .img-r{display:grid;gap:28px;align-items:center}@media(min-width:768px){.img-r{grid-template-columns:1fr 1fr}}
 .img-r img{width:100%;border-radius:12px;box-shadow:var(--sh);aspect-ratio:16/10;object-fit:cover}
-.stat{font-size:2.6rem;font-weight:900;color:var(--p);display:block;line-height:1;white-space:nowrap;overflow:hidden;max-width:10ch}.stat-l{font-size:.84rem;color:var(--m);margin-top:4px;display:block;max-width:18ch}
+.stat{font-size:2.6rem;font-weight:900;color:var(--p);display:block;line-height:1;white-space:nowrap;overflow:hidden;max-width:8ch}.stat-l{font-size:.84rem;color:var(--m);margin-top:4px;display:block;max-width:16ch;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .quote{border-left:3px solid var(--p);padding:14px 20px;background:var(--s);border-radius:0 8px 8px 0;margin:16px 0;color:var(--m);line-height:1.7}
 .quote cite{display:block;font-size:.82rem;font-weight:700;color:var(--p);margin-top:10px;font-style:normal}
 .cta-b{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:16px;padding:clamp(40px,7vw,64px) clamp(24px,5vw,48px);text-align:center}

@@ -57,9 +57,12 @@ function cards(items) {
 }
 
 function stats(items) {
-  return (items || []).map(s =>
-    `<div><span class="stat">${esc(s.value)}</span><span class="stat-l">${esc(s.label)}</span></div>`
-  ).join("\n");
+  return (items || []).map(s => {
+    // Support both old schema (value/label) and new (num/desc) to stay backward-compatible
+    const number = s.num  ?? s.value ?? "";
+    const desc   = s.desc ?? s.label ?? "";
+    return `<div><span class="stat">${esc(number)}</span><span class="stat-l">${esc(desc)}</span></div>`;
+  }).join("\n");
 }
 
 function quote(c) {
@@ -327,8 +330,8 @@ WICHTIG: Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein erklärender Text, k
 TEMPLATE: ${tmpl.name}
 PROJEKT: ${form.name}
 BESCHREIBUNG: ${form.description || "(keine)"}
-INHALTE:
-${ctx}
+INHALTE (Auszug, max. 1500 Zeichen):
+${ctx.slice(0, 1500)}
 ${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}\n` : ""}${answersText ? `AUFTRAGGEBER-VORGABEN:\n${answersText}\n` : ""}BILDER (exakt diese URLs verwenden, nicht erfinden):
 ${imagesText}
 
@@ -340,7 +343,7 @@ Erstelle NUR das folgende JSON (kein Markdown, kein Text davor oder danach):
   "hero": {"label": "...", "headline": "...", "subtext": "...", "cta1": "...", "cta2": "...", "image": {"url": "...", "alt": "..."}},
   "intro": {"label": "...", "headline": "...", "text": "...", "image": {"url": "...", "alt": "..."}},
   "themes": {"label": "...", "headline": "...", "items": [{"title": "...", "text": "..."}, {"title": "...", "text": "..."}, {"title": "...", "text": "..."}]},
-  "stats": [{"value": "...", "label": "..."}, {"value": "...", "label": "..."}, {"value": "...", "label": "..."}, {"value": "...", "label": "..."}],
+  "stats": [{"num": "35+", "desc": "Jahre Erfahrung"}, {"num": "98%", "desc": "Kundenzufriedenheit"}, {"num": "14", "desc": "Länder"}, {"num": "2.400", "desc": "Aktive Nutzer"}],
   "quote": {"text": "...", "author": "...", "role": "..."},
   "cta": {"label": "...", "headline": "...", "subtext": "...", "buttonText": "..."},
   "footer": {"groups": [{"title": "...", "links": [{"label": "...", "href": "#"}, {"label": "...", "href": "#"}, {"label": "...", "href": "#"}]}, {"title": "...", "links": [{"label": "...", "href": "#"}, {"label": "...", "href": "#"}]}], "copyright": "..."}
@@ -350,20 +353,22 @@ PFLICHT-REGELN:
 • Antworte NUR mit dem JSON — kein Text davor, kein Text danach, keine Codeblöcke
 • Nur echte Inhalte aus den Projektdaten — kein Platzhalter, kein "Lorem ipsum"
 • Texte kurz halten: headline max. 8 Wörter, subtext/text max. 20 Wörter, card-text max. 15 Wörter
-• colors.primary: thematisch passend — Nachrichten/Politik → #C41230 oder #1565C0 | Reise/Natur → #2E7D32 oder #E65100 | Business → #1A237E | Kultur → #4A148C
-• colors.dark: deutlich dunkler als primary, für Überschriften und dunkle Hintergründe
-• colors.light: sehr heller Akzent für Hintergrundflächen (fast weiß)
-• colors.font: Merriweather (Zeitung/Editorial) | DM Sans (Reise/Erlebnis/Freundlich) | Manrope (Business/B2B) | Outfit (Sport/Energie)
+• stats.num: AUSSCHLIESSLICH die nackte Zahl/Kennzahl (max 6 Zeichen: "35+", "98%", "5 Mio.", "695 g") — niemals ein Satz oder Label!
+• stats.desc: kurzes Label, max. 3 Wörter ("Jahre Erfahrung", "Kundenzufriedenheit", "Aktive Nutzer")
+• colors.primary: thematisch passend — Nachrichten/Politik → #C41230 | Reise/Natur → #2E7D32 | Business → #1A237E | Sport/Bike → #E65100 | Kultur → #4A148C
+• colors.dark: deutlich dunkler als primary
+• colors.light: sehr heller Akzent (fast weiß)
+• colors.font: Merriweather (Editorial) | DM Sans (Reise) | Manrope (Business/B2B) | Outfit (Sport/Bike)
 • hero.headline: max. 8 Wörter — emotional, direkt, konkret
-• themes.items: GENAU 3 Einträge, jeweils title (max. 5 Wörter) + text (1-2 Sätze)
-• stats: GENAU 4 Werte — konkrete Zahlen aus dem Kontext (bei Reise: Tage, Preis, max. Teilnehmer, Abfahrtsdatum als Zahl)
+• themes.items: GENAU 3 Einträge
+• stats: GENAU 4 Einträge
 • nav.links[].anchor NUR aus: "intro", "themen", "zahlen"
 • Bilder: hero.image.url und intro.image.url aus den gegebenen Bild-URLs wählen — bei 2+ Bildern verschiedene verwenden
-• Wenn keine Bilder verfügbar: hero.image und intro.image weglassen (null statt leerer String)${dossierPdfUrl ? `\n• cta.buttonText: "Dossier herunterladen" — das Email-Formular wird automatisch generiert` : ""}`;
+• Wenn keine Bilder: hero.image und intro.image als null${dossierPdfUrl ? `\n• cta.buttonText: "Dossier herunterladen"` : ""}`;
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    2500,   // 1200 war zu klein → JSON wurde abgeschnitten → Parse-Fehler
+    900,    // JSON ist ~500 Tokens; 900 = sicherer Puffer. Weniger = schneller.
     onChunk,
   );
 

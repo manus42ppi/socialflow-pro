@@ -446,6 +446,15 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
   // ── Step 1: Pre-flight — Spark asks clarifying questions ─────────────────
   async function startPreflight() {
     if (busy || totalSources === 0) return;
+
+    // Template mode: structure is predetermined → preflight skipped entirely.
+    // Saves ~20-30 s AI call + user interaction time.
+    const useTemplate = form.templateId && form.templateId !== "freeform";
+    if (useTemplate) {
+      generate({});
+      return;
+    }
+
     setGenPhase("preflight-loading");
     setPreflightA({});
     const ctx = buildContext(form, stories, posts, items, products);
