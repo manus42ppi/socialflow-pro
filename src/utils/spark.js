@@ -20,8 +20,8 @@ import { stockSearch, skGet } from "../components/StockSearch.jsx";
 // and the page is truncated. The AI only overrides :root colour variables.
 export const PAGE_CSS = `*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--p:#2563EB;--pd:#1E3A8A;--pl:#EFF6FF;--bg:#fff;--s:#F8FAFC;--t:#0f172a;--m:#64748b;--r:8px;--sh:0 2px 14px rgba(0,0,0,.08)}
-body{font-family:system-ui,-apple-system,sans-serif;color:var(--t);background:var(--bg);line-height:1.65}
-a{text-decoration:none;color:inherit}img{max-width:100%;height:auto;border-radius:6px}ul{list-style:none}
+body{font-family:var(--font,system-ui,-apple-system,sans-serif);color:var(--t);background:var(--bg);line-height:1.65;font-size:16px}
+a{text-decoration:none;color:inherit}img{max-width:100%;height:auto}ul{list-style:none}
 .w{max-width:1100px;margin:0 auto;padding:0 clamp(16px,4vw,28px)}
 nav{position:sticky;top:0;z-index:9;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #e2e8f0}
 .ni{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:14px clamp(16px,4vw,28px)}
@@ -29,29 +29,33 @@ nav{position:sticky;top:0;z-index:9;background:rgba(255,255,255,.96);backdrop-fi
 .nl a{padding:5px 12px;border-radius:6px;color:var(--m);font-size:.875rem;font-weight:500}.nl a:hover{background:#f1f5f9;color:var(--t)}
 .nav-cta{padding:8px 16px!important;background:var(--p);color:#fff!important;border-radius:var(--r);font-weight:700!important}.nav-cta:hover{background:var(--pd)!important}
 .hero{padding:clamp(60px,10vw,96px) clamp(16px,4vw,28px);text-align:center;background:linear-gradient(140deg,var(--pl)0%,#f0fdf4 100%)}
-.hero h1{font-size:clamp(2.1rem,5vw,3.6rem);font-weight:900;line-height:1.08;letter-spacing:-.03em;margin-bottom:18px;color:var(--t)}
-.hero p{font-size:clamp(1rem,2.2vw,1.18rem);color:var(--m);max-width:560px;margin:0 auto 32px}
+.hero h1{font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:900;line-height:1.06;letter-spacing:-.035em;margin-bottom:18px;color:var(--t)}
+.hero p{font-size:clamp(1rem,2.2vw,1.2rem);color:var(--m);max-width:580px;margin:0 auto 32px;line-height:1.7}
+.hero-img{width:100%;max-height:460px;object-fit:cover;border-radius:12px;margin-top:28px;box-shadow:0 8px 32px rgba(0,0,0,.12);display:block}
 .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 26px;border-radius:var(--r);font-weight:700;font-size:.97rem;cursor:pointer;transition:all .18s;border:2px solid transparent}
-.btn-p{background:var(--p);color:#fff}.btn-p:hover{background:var(--pd);transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.3)}
-.btn-o{border-color:var(--p);color:var(--p)}.btn-o:hover{background:var(--pl)}
-section{padding:clamp(52px,8vw,80px) clamp(16px,4vw,28px)}.alt{background:var(--s)}
-.lbl{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--p);margin-bottom:10px}
-h2{font-size:clamp(1.55rem,3.2vw,2.3rem);font-weight:800;line-height:1.15;margin-bottom:10px}
-h3{font-size:1.02rem;font-weight:700;margin-bottom:6px}
-.lead{color:var(--m);font-size:1rem;max-width:540px;margin-bottom:36px;line-height:1.7}
-.g{display:grid;gap:20px}.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.card{background:#fff;border-radius:var(--r);padding:24px;box-shadow:var(--sh);border:1px solid #e8edf2}
-.card .ico{font-size:1.7rem;margin-bottom:12px}.card p{color:var(--m);font-size:.9rem;margin-top:5px;line-height:1.6}
-.stat{font-size:2.4rem;font-weight:900;color:var(--p);display:block;line-height:1}.stat-l{font-size:.82rem;color:var(--m);margin-top:3px}
-.cta-b{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:14px;padding:clamp(36px,6vw,56px) clamp(20px,4vw,40px);text-align:center}
-.cta-b h2{color:#fff;margin-bottom:10px}.cta-b p{color:rgba(255,255,255,.82);margin-bottom:26px;max-width:480px;margin-left:auto;margin-right:auto}
-.btn-w{background:#fff;color:var(--p)}.btn-w:hover{opacity:.9;transform:translateY(-1px)}
-.img-r{display:grid;gap:24px;align-items:center}@media(min-width:768px){.img-r{grid-template-columns:1fr 1fr}}
-.tag{display:inline-block;background:var(--pl);color:var(--p);border-radius:20px;padding:3px 11px;font-size:.78rem;font-weight:700;margin-right:6px;margin-bottom:6px}
-footer{background:#0f172a;color:#94a3b8;padding:32px clamp(16px,4vw,28px);text-align:center;font-size:.85rem;line-height:2}
-footer a{color:#94a3b8}.footer-g{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
-@media(max-width:600px){.nl{display:none}}`;
+.btn{display:inline-flex;align-items:center;gap:6px;padding:13px 28px;border-radius:var(--r);font-weight:700;font-size:1rem;cursor:pointer;transition:all .18s;border:2px solid transparent;line-height:1}
+.btn-p{background:var(--p);color:#fff}.btn-p:hover{background:var(--pd);transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,99,235,.35)}
+.btn-o{border-color:var(--p);color:var(--p)}.btn-o:hover{background:var(--pl);transform:translateY(-1px)}
+section{padding:clamp(56px,9vw,88px) clamp(16px,4vw,28px)}.alt{background:var(--s)}
+.lbl{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--p);margin-bottom:12px;display:block}
+h2{font-size:clamp(1.65rem,3.5vw,2.5rem);font-weight:800;line-height:1.12;margin-bottom:12px}
+h3{font-size:1.05rem;font-weight:700;margin-bottom:7px}p{line-height:1.7}
+.lead{color:var(--m);font-size:1.05rem;max-width:560px;margin-bottom:40px;line-height:1.75}
+.g{display:grid;gap:22px}.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:#fff;border-radius:var(--r);padding:26px;box-shadow:var(--sh);border:1px solid #e8edf2;transition:transform .2s,box-shadow .2s}.card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.12)}
+.card .ico{margin-bottom:14px}.card p{color:var(--m);font-size:.93rem;margin-top:6px;line-height:1.65}
+.img-r{display:grid;gap:28px;align-items:center}@media(min-width:768px){.img-r{grid-template-columns:1fr 1fr}}
+.img-r img{width:100%;border-radius:12px;box-shadow:var(--sh);aspect-ratio:16/10;object-fit:cover}
+.stat{font-size:2.6rem;font-weight:900;color:var(--p);display:block;line-height:1}.stat-l{font-size:.84rem;color:var(--m);margin-top:4px;display:block}
+.quote{border-left:3px solid var(--p);padding:14px 20px;background:var(--s);border-radius:0 8px 8px 0;margin:16px 0;color:var(--m);line-height:1.7}
+.quote cite{display:block;font-size:.82rem;font-weight:700;color:var(--p);margin-top:10px;font-style:normal}
+.cta-b{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:16px;padding:clamp(40px,7vw,64px) clamp(24px,5vw,48px);text-align:center}
+.cta-b h2{color:#fff;margin-bottom:12px}.cta-b p{color:rgba(255,255,255,.85);margin-bottom:28px;max-width:520px;margin-left:auto;margin-right:auto}
+.btn-w{background:#fff;color:var(--p);font-weight:800}.btn-w:hover{opacity:.93;transform:translateY(-2px)}
+.tag{display:inline-block;background:var(--pl);color:var(--p);border-radius:20px;padding:4px 13px;font-size:.78rem;font-weight:700;margin-right:6px;margin-bottom:6px}
+footer{background:#0f172a;color:#94a3b8;padding:40px clamp(16px,4vw,28px);text-align:center;font-size:.875rem;line-height:2}
+footer a{color:#94a3b8}.footer-g{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+@media(max-width:640px){.nl{display:none}.g3,.g4{grid-template-columns:1fr}.img-r{grid-template-columns:1fr}}`;
 
 // ── Link guard v2 ─────────────────────────────────────────────────────────────
 // Injected before </body> in every generated/refined page.
@@ -666,64 +670,81 @@ export async function generatePage({ form, ctx, answers = {}, images = [], extra
         `Bild ${i + 1}: src="${img.url}" alt="${img.alt}"`).join("\n")}`
     : "BILDER: Keine verfügbar – setze Farbflächen, Verläufe oder CSS-Grafiken als visuelle Akzente.";
 
+  // Build image instruction block — hero image must be used prominently if available
+  const heroImg   = images[0];
+  const extraImgs = images.slice(1);
+  const imageBlock = images.length > 0
+    ? `BILDER (PFLICHT – prominent einsetzen, keine Thumbnails):
+• HERO: <img class="hero-img" src="${heroImg.url}" alt="${heroImg.alt}"> direkt nach .btns einsetzen${extraImgs.length > 0 ? `\n• CONTENT: ${extraImgs.map((img, i) => `Bild ${i+2}: src="${img.url}" alt="${img.alt}"`).join(" | ")} → in .img-r (links Text, rechts Bild) oder .card img (aspect-ratio:16/10;object-fit:cover)` : ""}`
+    : "BILDER: Keine verfügbar – Farbflächen, SVG-Grafiken oder CSS-Muster als visuelle Akzente.";
+
   const prompt =
 `${SPARK_PERSONA}
 
-Nutze die integrierte Websuche um aktuelle Best-Practice-Beispiele, Farbwelten und Conversion-Patterns für das Thema "${form.name}" zu recherchieren und direkt anzuwenden.
+━━ SCHRITT 1 — SECTION-ID-CONTRACT (ZUERST, vor allem anderen) ━━
+Schreibe als ALLERERSTE Zeile im <body>:
+<!-- NAV_IDS: hero,[id2],[id3],[id4],stats,cta -->
+Regeln für die IDs:
+• Ersetze [id2]–[id4] durch kurze Begriffe ohne Sonderzeichen (z.B.: vorteile, leistungen, ablauf, team, faq)
+• Diese IDs sind BINDEND — jeder nav href="#xyz" UND jede <section id="xyz"> MÜSSEN exakt aus dieser Liste stammen
+• Kein ID darf abweichen (kein Bindestrich vs. Unterstrich, keine Großschreibung, kein Tippfehler)
 
-LANDING PAGE ANATOMIE (ALLE 7 Sections vollständig):
-• NAV   – sticky, Logo links, 3-4 interne #anchor-Links, CTA-Button rechts
-• HERO  – starke emotionale H1 (Problem→Lösung), Subtext, 2 CTAs (.btn-p + .btn-o)
-• BENEFITS – 3er-Grid (.g3) mit den 3 stärksten Vorteilen
-• CONTENT  – Kerninhalt aus den Projektdaten, mit Bildunterstützung wenn vorhanden
-• STATS    – 3-4 starke Kennzahlen (.g4 .stat + .stat-l)
-• CTA-BLOCK – (.cta-b) letzter Conversion-Push mit prominentem Button
-• FOOTER   – (.footer-g) gruppierte Links + Copyright
+━━ SCHRITT 2 — GOOGLE FONT (thematisch passend wählen) ━━
+Füge im <head> 3 <link>-Tags + in :root --font ein:
+• Modern/Tech/SaaS   → Plus Jakarta Sans: https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap
+• Freundlich/Kinder  → DM Sans:          https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap
+• Sport/Energie      → Outfit:           https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap
+• Business/B2B       → Manrope:          https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap
+• Universal/vertrauenswürdig → Inter:    https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap
 
-${answersText ? `AUFTRAGGEBER-VORGABEN:\n${answersText}\n` : ""}
-${imagesText}
+━━ LANDING PAGE — 7 SECTIONS (alle PFLICHT, keine weglassen) ━━
+• NAV       – sticky, Logo links, exakt die NAV_IDS-Ankerpunkte als Links, rechts .nav-cta
+• HERO      – emotionale H1 (Problem→Lösung), 1-2 Sätze Subtext, .btns mit 2 CTAs${heroImg ? `, dann <img class="hero-img" src="${heroImg.url}" alt="${heroImg.alt}">` : ""}
+• BENEFITS  – .g3 mit 3 starken Vorteilen (.card + monochrome SVG .ico + h3 + p)
+• CONTENT   – Kerninhalt aus Projektdaten, mindestens 1 Bild in .img-r wenn Bilder vorhanden
+• STATS     – .g4 mit 3-4 Kennzahlen (.stat nackte Zahl + .stat-l max 4-Wort-Label)
+• CTA-BLOCK – .cta-b mit starker Headline, 1-2 Sätze und prominentem .btn-w
+• FOOTER    – .footer-g mit gruppierten Links + Copyright-Zeile
 
-VERFÜGBARE CSS-KLASSEN — Semantik strikt einhalten, keine Zweckentfremdung:
-Layout:   .w (max 1100px zentriert)  |  .g .g2 .g3 .g4 (responsive Grids)  |  .img-r (Text+Bild nebeneinander)
-Nav:      nav .ni .logo .nl .nav-cta  — alle Links AUSSCHLIESSLICH href="#section-id"
-Hero:     .hero (Gradient-Hintergrund)  |  .btns (Button-Reihe)
-Buttons:  .btn-p (primär, blau gefüllt)  |  .btn-o (outline, blau Rand)  |  .btn-w (weiß, für .cta-b)
-Content:  section .alt(grau) .lbl(Label) h2(Titel) h3(Untertitel) .lead(Intro-Text)
-Cards:    .card (weißes Panel)  |  .ico (NUR SVG, KEIN Emoji)  |  .tag (Kategorie-Badge)
-STATS:    .stat = AUSSCHLIESSLICH nackte Zahlenwerte ("2.400", "98%", "14 Tage") — NIEMALS für Labels, Lesezeiten oder Text
-          .stat-l = kurze Beschriftung DIREKT unter .stat (max 4 Wörter)
-CTA:      .cta-b (blauer Verlauf-Block)
-Footer:   footer .footer-g
+VOLLSTÄNDIGKEITS-PFLICHT: Alle 7 Sections MÜSSEN im HTML erscheinen.
+→ Wenn Token-Budget knapp: Inhalt kürzen, aber KEINE Section weglassen.
 
-PROJEKT: ${form.name}
+${answersText ? `━━ AUFTRAGGEBER-VORGABEN ━━\n${answersText}\n` : ""}
+${imageBlock}
+
+━━ CSS-KLASSEN (semantisch strikt, keine Zweckentfremdung) ━━
+Layout:   .w | .g .g2 .g3 .g4 | .img-r (Text+Bild, Bild mit aspect-ratio:16/10)
+Nav:      nav .ni .logo .nl .nav-cta
+Hero:     .hero | .btns | .hero-img (Vollbreite-Bild, max-height:460px, border-radius:12px)
+Buttons:  .btn-p (primär blau) | .btn-o (outline) | .btn-w (weiß, NUR in .cta-b)
+Content:  section .alt(grau BG) | .lbl | h2 | h3 | .lead | .quote + cite (Zitate)
+Cards:    .card (hover: translateY) | .ico (NUR SVG) | .tag (Badge)
+Stats:    .stat (NACKTE ZAHL: "98%", "2.400") + .stat-l (max 4 Wörter) — NUR STATS-Section
+CTA:      .cta-b | footer .footer-g
+
+━━ PROJEKT-DATEN ━━
+NAME: ${form.name}
 BESCHREIBUNG: ${form.description || "(keine)"}
 INHALTE: ${ctx}
-${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}` : ""}
-${ctaUrl ? `\n⚠️ CTA-ZIEL-URL (PFLICHT, absolut keine Ausnahme): Jeder primäre Call-to-Action-Button (.btn-p, .btn-w, .btn-o) und der Button im .cta-b-Block erhält zwingend href="${ctaUrl}". Kein "#", kein Platzhalter — ausschließlich diese URL. Setze target="_blank" rel="noopener noreferrer" bei externen Links.` : ""}
-
-AUSGABE-FORMAT (exakt einhalten):
+${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}\n` : ""}${ctaUrl ? `CTA-ZIEL-URL (PFLICHT): Alle CTAs (.btn-p, .btn-w, .btn-o, .cta-b-Button) → href="${ctaUrl}" target="_blank" rel="noopener noreferrer"\n` : ""}
+━━ AUSGABE-FORMAT ━━
 1. <!DOCTYPE html>
-2. <head>: charset · viewport · <title> · <style>:root{--p:#XXX;--pd:#XXX;--pl:#XXX}</style>
-3. <style>${CSS_SENTINEL}</style>   ← EXAKT SO schreiben — CSS wird automatisch eingefügt
-4. <body>: vollständiges semantisches HTML
+2. <head>: charset · viewport · <title> · 3× Google Font <link> · <style>:root{--p:#XXX;--pd:#XXX;--pl:#XXX;--font:'Name',system-ui,sans-serif}</style>
+3. <style>${CSS_SENTINEL}</style>
+4. <body>: Erste Zeile <!-- NAV_IDS: hero,... --> → dann vollständiges HTML
 5. </body></html>
 
-QUALITÄTS-REGELN (keine Ausnahmen):
-- EMOJI-VERBOT (absolut, keine Ausnahmen): Niemals Emojis oder Unicode-Piktogramme — weder in <div class="ico">, noch in Überschriften, Listenpunkten oder Fließtext. Emojis verraten sofort KI-generierten Content. Einzig erlaubt: monochrome SVG mit stroke="currentColor". Beispiel: <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><circle cx="12" cy="12" r="10"/></svg></div>
-- STAT-VERBOT: .stat/.stat-l NUR für nackte Zahlenwerte in der STATS-Section ("2.400 Nutzer", "98%"). Texte wie "Lesedauer 7 min", "Jeden Samstag", "Kategorie Route" etc. sind KEINE Stats — diese als normaler h3/p-Text schreiben
-- KEIN zusätzliches CSS außer :root Farbvariablen in Schritt 2
-- Navigation: AUSSCHLIESSLICH #anchor-Links — niemals href="/" oder href="https://..." in der Nav
-- ANCHOR-KONSISTENZ (kritisch): BEVOR du ausgibst — gehe alle href="#xyz" durch und stelle sicher dass im Body exakt id="xyz" existiert. Kein einziger #anchor darf ohne passendes id="" bleiben
-- KEIN opacity:0 oder display:none auf sichtbarem Content
-- JS nur wenn unbedingt nötig, max 10 Zeilen, Content ohne JS vollständig sichtbar
-- KEINE Platzhalter-Texte — nur echte Inhalte aus den Projektdaten
-- Antworte NUR mit HTML (<!DOCTYPE html> … </html>) — kein Markdown`;
+━━ QUALITÄTS-REGELN ━━
+- EMOJI-VERBOT: Nur monochrome SVG erlaubt (stroke="currentColor") — null Emojis, null Unicode-Piktogramme
+- STAT-VERBOT: .stat/.stat-l ausschließlich für nackte Zahlenwerte — niemals für Labels oder Texte
+- ANCHOR-KONSISTENZ: Jeder href="#xyz" hat zwingend id="xyz" — vor Ausgabe alle Anker gegen IDs prüfen
+- Nur echte Inhalte aus Projektdaten — null Platzhalter, null "Lorem ipsum"
+- Antworte NUR mit HTML (<!DOCTYPE html>…</html>) — kein Markdown, kein Text davor`;
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    6000,   // +2000 vs before: web search consumes 1000-2500 tokens before HTML starts
+    4500,   // No web search → full budget für HTML. 4500 reicht für 7 vollständige Sections.
     onChunk,
-    [WEB_SEARCH_TOOL],
   );
 
   // Re-inject CSS (sentinel trick: model outputs placeholder, we fill it in)

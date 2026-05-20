@@ -50,6 +50,14 @@ function repairPage(html) {
     }
     leaks.forEach(n => n.parentNode?.removeChild(n));
 
+    // 1b. Extract the <!-- NAV_IDS: hero,vorteile,... --> manifest written by the model.
+    // When present, it gives us the authoritative ordered list of intended section IDs,
+    // making anchor repair positional (Strategy 0) instead of relying on fuzzy text matching.
+    const manifestMatch = html.match(/<!--\s*NAV_IDS:\s*([^-\n>]+)/i);
+    const declaredIds = manifestMatch
+      ? manifestMatch[1].split(",").map(s => s.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "")).filter(Boolean)
+      : null;
+
     // 2. Fix broken nav anchors
     const anchors  = [...doc.querySelectorAll('a[href^="#"]')];
     const sections = [...doc.querySelectorAll("section")];
@@ -57,6 +65,20 @@ function repairPage(html) {
     anchors.forEach(a => {
       const id = a.getAttribute("href").slice(1);
       if (!id || doc.getElementById(id)) return; // already valid
+
+      // Strategy 0 (manifest-based): look up the declared position of this ID,
+      // then assign it to the section at the same index that still lacks an id.
+      if (declaredIds) {
+        const pos = declaredIds.indexOf(id.toLowerCase());
+        if (pos >= 0) {
+          // Try the section at the same ordinal position first
+          const byPos = sections[pos];
+          if (byPos && !byPos.id) { byPos.id = id; return; }
+          // Fall back to any section without an id
+          const anyEmpty = sections.find(s => !s.id);
+          if (anyEmpty) { anyEmpty.id = id; return; }
+        }
+      }
 
       // Strategy A: find a section whose heading text fuzzy-matches the id
       const keyword = id.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
@@ -511,8 +533,9 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
         throw new Error("Die KI hat keine gültige HTML-Seite zurückgegeben. Bitte erneut versuchen.");
       }
 
-      // 2. AI repair loop: up to 2 additional refinements if validatePage still finds issues
-      const html = await autoRepairLoop(domFixed);
+      // 2. AI repair loop: max 1 attempt, Tier 1+2 only (no full refinePage fallback).
+      //    Better initial generation (Section Contract + no web search) makes Tier 3 unnecessary.
+      const html = await autoRepairLoop(domFixed, 1, 2);
 
       const res = await fetch("/deploy-site", {
         method:"POST",
