@@ -132,9 +132,12 @@ function quote(c) {
 </div></section>`;
 }
 
-function ctaSection(cta, dossierPdfUrl, ctaUrl = "") {
+function ctaSection(cta, dossierPdfUrl, ctaUrl = "", pdfMode = "email") {
   let action;
-  if (dossierPdfUrl) {
+  if (dossierPdfUrl && pdfMode === "direct") {
+    // Direct PDF download button — no email required
+    action = `<div class="btns"><a href="${esc(dossierPdfUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-w">${esc(cta?.buttonText || "PDF herunterladen")}</a></div>`;
+  } else if (dossierPdfUrl) {
     // Email-capture form: enter email → PDF opens in new tab
     action = `<div style="max-width:520px;margin:0 auto">
       <p style="color:rgba(255,255,255,.75);font-size:.88rem;margin-bottom:14px">
@@ -207,12 +210,13 @@ export function buildEmailScript(pdfUrl) {
 // Internal alias for wrap()
 function emailScript(pdfUrl) { return buildEmailScript(pdfUrl); }
 
-function wrap(c, body, dossierPdfUrl, _ctaUrl) {
+function wrap(c, body, dossierPdfUrl, _ctaUrl, pdfMode = "email") {
   const p = c.colors?.primary || "#2563EB";
   const d = c.colors?.dark    || "#1E3A8A";
   const l = c.colors?.light   || "#EFF6FF";
   const f = c.colors?.font    || "Inter";
-  const script = dossierPdfUrl ? emailScript(dossierPdfUrl) : "";
+  // Only inject email-capture script in email mode; direct mode needs no JS
+  const script = (dossierPdfUrl && pdfMode !== "direct") ? emailScript(dossierPdfUrl) : "";
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -237,7 +241,7 @@ ${script}
 // Use for: news specials, publisher deep-dives, background reports
 // Default colors: newspaper red / dark navy / warm cream
 // ═══════════════════════════════════════════════════════════════════════════════
-export function tEditorial(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tEditorial(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
   // Support both old schema (intro) and new (about)
@@ -282,11 +286,11 @@ ${nav(c)}
 
 ${quote(c.quote)}
 
-${ctaSection(c.cta, dossierPdfUrl, ctaUrl)}
+${ctaSection(c.cta, dossierPdfUrl, ctaUrl, pdfMode)}
 
 ${footer(c)}`;
 
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -294,7 +298,7 @@ ${footer(c)}`;
 // Use for: reader journeys, travel packages, events, experiences
 // Default colors: forest green / deep earth / warm beige
 // ═══════════════════════════════════════════════════════════════════════════════
-export function tEvent(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tEvent(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
   const aboutSrc = c.about || c.intro;
@@ -337,10 +341,10 @@ ${nav(c)}
 </div></section>
 
 ${quote(c.quote)}
-${ctaSection(c.cta, dossierPdfUrl, ctaUrl)}
+${ctaSection(c.cta, dossierPdfUrl, ctaUrl, pdfMode)}
 ${footer(c)}`;
 
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -350,7 +354,7 @@ ${footer(c)}`;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ── #3 Lead Capture ───────────────────────────────────────────────────────────
-export function tLeadCapture(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tLeadCapture(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const feat = c.features || c.themes;
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
@@ -374,12 +378,12 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Auf einen Blick</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl,pdfMode)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ── #4 Product Launch ─────────────────────────────────────────────────────────
-export function tProductLaunch(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tProductLaunch(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const feat = c.features || c.themes;
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
@@ -403,12 +407,12 @@ ${nav(c)}
   <span class="lbl">${esc(c.about?.label||"Das Produkt")}</span>
   <div class="img-r">${aboutImg}<div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div></div>
 </div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl,pdfMode)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ── #5 Service / Agentur ──────────────────────────────────────────────────────
-export function tService(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tService(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const feat = c.features || c.themes;
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
@@ -432,12 +436,12 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Unsere Zahlen</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl,pdfMode)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ── #6 App / SaaS ─────────────────────────────────────────────────────────────
-export function tAppSaas(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tAppSaas(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const feat = c.features || c.themes;
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
@@ -461,12 +465,12 @@ ${nav(c)}
   <div class="img-r">${aboutImg}<div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div></div>
 </div></section>
 <section id="zahlen"><div class="w"><span class="lbl">Das sagen die Zahlen</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl,pdfMode)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ── #7 Kurs / Webinar ─────────────────────────────────────────────────────────
-export function tKurs(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tKurs(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const feat = c.features || c.themes;
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
@@ -490,12 +494,12 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Auf einen Blick</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl,pdfMode)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ── #8 Local Business ─────────────────────────────────────────────────────────
-export function tLocalBusiness(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tLocalBusiness(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const feat = c.features || c.themes;
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
@@ -519,12 +523,12 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen"><div class="w"><span class="lbl">Das sind wir</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl,pdfMode)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ── #9 Case Study ─────────────────────────────────────────────────────────────
-export function tCaseStudy(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tCaseStudy(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const feat = c.features || c.themes;
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
@@ -548,12 +552,12 @@ ${nav(c)}
   <div class="g g3">${cards(feat?.items)}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Messbare Ergebnisse</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl,pdfMode)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ── #10 Video Hero ────────────────────────────────────────────────────────────
-export function tVideoHero(c, dossierPdfUrl = "", ctaUrl = "") {
+export function tVideoHero(c, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const feat = c.features || c.themes;
   const heroBg = imgBg(c.hero?.image);
   const heroClass = imgCls(c.hero?.image);
@@ -587,8 +591,8 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Die Community</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl, ctaUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl,pdfMode)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -608,10 +612,10 @@ export const TEMPLATES = [
   { id:"video",      name:"Video Hero",          description:"Video-Storytelling · Creator · Kanal",                  icon:"🎬", fn:tVideoHero },
 ];
 
-export function renderTemplate(templateId, content, dossierPdfUrl = "", ctaUrl = "") {
+export function renderTemplate(templateId, content, dossierPdfUrl = "", ctaUrl = "", pdfMode = "email") {
   const tmpl = TEMPLATES.find(t => t.id === templateId);
   if (!tmpl) throw new Error(`Unbekanntes Template: ${templateId}`);
-  return tmpl.fn(content, dossierPdfUrl, ctaUrl);
+  return tmpl.fn(content, dossierPdfUrl, ctaUrl, pdfMode);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

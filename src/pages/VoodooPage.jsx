@@ -630,15 +630,17 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           extraPrompt: genPromptRef.current.trim(),
           ctaUrl: (form.ctaUrl||"").trim(),
           dossierPdfUrl: safeDossierUrl,
+          pdfMode: form.pdfMode || "email",
           preflightQ,
           onChunk: (_chunk, full) => {
             setGenChars(full.length);
             setSparkJob(j => j ? { ...j, chars: full.length } : j);
           },
         });
-        // Freeform: AI generates the lead form HTML but doesn't include the JS handler.
+        // Freeform email mode: AI generates the lead form HTML but not the JS handler.
         // Inject emailScript so form submission actually opens the PDF.
-        if (safeDossierUrl) {
+        // Direct mode: no script needed — plain <a href> link handles everything.
+        if (safeDossierUrl && (form.pdfMode || "email") !== "direct") {
           const script = buildEmailScript(safeDossierUrl);
           rawHtml = rawHtml.includes("</body>")
             ? rawHtml.replace(/<\/body>/i, script + "\n</body>")
@@ -705,14 +707,14 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
       // One automatic retry for transient errors (server overload, rate limit)
       let rawHtml;
       try {
-        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), dossierPdfUrl: (form.dossierPdfUrl||"").trim(), onChunk: onChunkCb });
+        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), dossierPdfUrl: (form.dossierPdfUrl||"").trim(), pdfMode: form.pdfMode || "email", onChunk: onChunkCb });
       } catch (firstErr) {
         // Short pause then retry — handles 529 overload / momentary network blips
         setRefineMsg("⏳ Kurze Pause – erneuter Versuch…");
         await new Promise(r => setTimeout(r, 2500));
         setRefineMsg("");
         setSparkChars(0);
-        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), dossierPdfUrl: (form.dossierPdfUrl||"").trim(), onChunk: onChunkCb });
+        rawHtml = await refinePage({ html: form.generatedHtml, instruction: p, ctaUrl: (form.ctaUrl||"").trim(), dossierPdfUrl: (form.dossierPdfUrl||"").trim(), pdfMode: form.pdfMode || "email", onChunk: onChunkCb });
       }
 
       // 1. DOM repair: structural anchor fixes via DOMParser (0 tokens)
@@ -1052,8 +1054,32 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                   </div>
                 </div>
               )}
+              {/* PDF mode toggle — only shown when a PDF URL is set */}
+              {form.dossierPdfUrl && !(form.dossierPdfUrl||"").startsWith("data:") && (
+                <div style={{ display:"flex", gap:6, marginTop:8 }}>
+                  {[
+                    { id:"email",  label:"Email-Formular", hint:"Leads sammeln" },
+                    { id:"direct", label:"Direkter Download", hint:"Kein Formular" },
+                  ].map(opt => {
+                    const active = (form.pdfMode||"email") === opt.id;
+                    return (
+                      <button key={opt.id} onClick={() => upd({ pdfMode: opt.id })}
+                        style={{
+                          flex:1, padding:"6px 8px", borderRadius:7, border:`1.5px solid ${active ? C.accent : T.gray200}`,
+                          background: active ? C.accent+"0F" : "#fff", cursor:"pointer",
+                          fontFamily:FONT, transition:"all .15s", textAlign:"center",
+                        }}>
+                        <div style={{ fontSize:11, fontWeight:700, color: active ? C.accent : T.gray600 }}>{opt.label}</div>
+                        <div style={{ fontSize:10, color: active ? C.accent+"99" : T.gray400, marginTop:1 }}>{opt.hint}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div style={{ fontSize:10, color:T.gray400, marginTop:4, paddingLeft:2 }}>
-                Wenn gesetzt, ersetzt Spark den CTA-Button durch ein Email-Eingabe-Formular. Bei Absenden öffnet sich die PDF-URL automatisch.
+                {(form.pdfMode||"email") === "direct"
+                  ? "Spark setzt einen direkten Download-Button auf die PDF-URL — kein Formular."
+                  : "Wenn gesetzt, ersetzt Spark den CTA-Button durch ein Email-Eingabe-Formular. Bei Absenden öffnet sich die PDF-URL automatisch."}
               </div>
               {/* Doc picker overlay */}
               {showDocPicker && (
