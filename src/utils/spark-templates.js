@@ -105,13 +105,24 @@ function quote(c) {
 </div></section>`;
 }
 
-function ctaSection(cta, dossierPdfUrl) {
-  const action = dossierPdfUrl
-    ? `<form id="lead-form" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:500px;margin:0 auto">
+function ctaSection(cta, dossierPdfUrl, ctaUrl = "") {
+  let action;
+  if (dossierPdfUrl) {
+    // Email-capture form: enter email → PDF opens in new tab
+    action = `<div style="max-width:520px;margin:0 auto">
+      <p style="color:rgba(255,255,255,.75);font-size:.88rem;margin-bottom:14px">
+        📄 Jetzt E-Mail eingeben und das Dossier kostenlos herunterladen.
+      </p>
+      <form id="lead-form" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
         <input type="email" required placeholder="Ihre E-Mail-Adresse" style="flex:1;min-width:220px;padding:13px 18px;border-radius:8px;border:none;font-size:1rem;background:rgba(255,255,255,.15);color:#fff;outline:2px solid rgba(255,255,255,.4)">
-        <button type="submit" class="btn btn-w">${esc(cta?.buttonText || "Jetzt sichern")}</button>
-      </form>`
-    : `<div class="btns"><a href="#" class="btn btn-w">${esc(cta?.buttonText || "Jetzt lesen")}</a></div>`;
+        <button type="submit" class="btn btn-w">${esc(cta?.buttonText || "Dossier herunterladen")}</button>
+      </form>
+    </div>`;
+  } else if (ctaUrl) {
+    action = `<div class="btns"><a href="${esc(ctaUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-w">${esc(cta?.buttonText || "Jetzt starten")}</a></div>`;
+  } else {
+    action = `<div class="btns"><a href="#" class="btn btn-w">${esc(cta?.buttonText || "Jetzt starten")}</a></div>`;
+  }
 
   return `<section id="cta" class="cta-b"><div class="w">
   ${cta?.label ? `<span class="lbl" style="color:rgba(255,255,255,.7)">${esc(cta.label)}</span>` : ""}
@@ -135,21 +146,36 @@ function footer(c) {
 
 function emailScript(pdfUrl) {
   return `<script>
-/* Spark email-capture */
+/* Spark email-capture v2 */
 (function(){
   var U=${JSON.stringify(pdfUrl)};
+  if(!U){return;}
   document.addEventListener('submit',function(e){
-    if(!e.target.querySelector('input[type="email"]'))return;
+    var form=e.target;
+    if(!form.querySelector('input[type="email"]'))return;
     e.preventDefault();
-    var b=e.target.querySelector('button[type="submit"]');
-    if(b){b.textContent='Wird vorbereitet…';b.disabled=true;}
-    setTimeout(function(){window.open(U,'_blank');if(b){b.textContent='Dossier geöffnet ✔';b.disabled=false;}},700);
+    var email=form.querySelector('input[type="email"]').value||'';
+    var b=form.querySelector('button[type="submit"]');
+    if(b){b.textContent='Wird geöffnet…';b.disabled=true;}
+    /* Open PDF in new tab */
+    setTimeout(function(){
+      window.open(U,'_blank','noopener');
+      /* Replace form with thank-you message */
+      var wrap=form.closest('div')||form.parentNode;
+      if(wrap){
+        wrap.innerHTML='<div style="background:rgba(255,255,255,.15);border-radius:12px;padding:24px 32px;text-align:center;backdrop-filter:blur(8px)">'
+          +'<div style="font-size:2rem;margin-bottom:8px">✅</div>'
+          +'<div style="color:#fff;font-size:1.1rem;font-weight:700;margin-bottom:6px">Dossier wird geöffnet!</div>'
+          +'<div style="color:rgba(255,255,255,.75);font-size:.9rem">Das PDF öffnet sich in einem neuen Tab.<br>Vielen Dank für Ihr Interesse.</div>'
+          +'</div>';
+      }
+    },600);
   });
 })();
 </script>`;
 }
 
-function wrap(c, body, dossierPdfUrl) {
+function wrap(c, body, dossierPdfUrl, _ctaUrl) {
   const p = c.colors?.primary || "#2563EB";
   const d = c.colors?.dark    || "#1E3A8A";
   const l = c.colors?.light   || "#EFF6FF";
@@ -179,7 +205,7 @@ ${script}
 // Use for: news specials, publisher deep-dives, background reports
 // Default colors: newspaper red / dark navy / warm cream
 // ═══════════════════════════════════════════════════════════════════════════════
-export function tEditorial(c, dossierPdfUrl = "") {
+export function tEditorial(c, dossierPdfUrl = "", ctaUrl = "") {
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
   // Support both old schema (intro) and new (about)
@@ -226,11 +252,11 @@ ${nav(c)}
 
 ${quote(c.quote)}
 
-${ctaSection(c.cta, dossierPdfUrl)}
+${ctaSection(c.cta, dossierPdfUrl, ctaUrl)}
 
 ${footer(c)}`;
 
-  return wrap(c, body, dossierPdfUrl);
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -238,7 +264,7 @@ ${footer(c)}`;
 // Use for: reader journeys, travel packages, events, experiences
 // Default colors: forest green / deep earth / warm beige
 // ═══════════════════════════════════════════════════════════════════════════════
-export function tEvent(c, dossierPdfUrl = "") {
+export function tEvent(c, dossierPdfUrl = "", ctaUrl = "") {
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
   const aboutSrc = c.about || c.intro;
@@ -283,10 +309,10 @@ ${nav(c)}
 </div></section>
 
 ${quote(c.quote)}
-${ctaSection(c.cta, dossierPdfUrl)}
+${ctaSection(c.cta, dossierPdfUrl, ctaUrl)}
 ${footer(c)}`;
 
-  return wrap(c, body, dossierPdfUrl);
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -296,7 +322,7 @@ ${footer(c)}`;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ── #3 Lead Capture ───────────────────────────────────────────────────────────
-export function tLeadCapture(c, dossierPdfUrl = "") {
+export function tLeadCapture(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
@@ -320,12 +346,12 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Auf einen Blick</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ── #4 Product Launch ─────────────────────────────────────────────────────────
-export function tProductLaunch(c, dossierPdfUrl = "") {
+export function tProductLaunch(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
@@ -349,12 +375,12 @@ ${nav(c)}
   <span class="lbl">${esc(c.about?.label||"Das Produkt")}</span>
   <div class="img-r">${aboutImg}<div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div></div>
 </div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ── #5 Service / Agentur ──────────────────────────────────────────────────────
-export function tService(c, dossierPdfUrl = "") {
+export function tService(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
@@ -378,12 +404,12 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Unsere Zahlen</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ── #6 App / SaaS ─────────────────────────────────────────────────────────────
-export function tAppSaas(c, dossierPdfUrl = "") {
+export function tAppSaas(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
@@ -407,12 +433,12 @@ ${nav(c)}
   <div class="img-r">${aboutImg}<div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div></div>
 </div></section>
 <section id="zahlen"><div class="w"><span class="lbl">Das sagen die Zahlen</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ── #7 Kurs / Webinar ─────────────────────────────────────────────────────────
-export function tKurs(c, dossierPdfUrl = "") {
+export function tKurs(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
@@ -436,12 +462,12 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Auf einen Blick</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ── #8 Local Business ─────────────────────────────────────────────────────────
-export function tLocalBusiness(c, dossierPdfUrl = "") {
+export function tLocalBusiness(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
@@ -465,12 +491,12 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen"><div class="w"><span class="lbl">Das sind wir</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ── #9 Case Study ─────────────────────────────────────────────────────────────
-export function tCaseStudy(c, dossierPdfUrl = "") {
+export function tCaseStudy(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
@@ -494,12 +520,12 @@ ${nav(c)}
   <div class="g g3">${cards(feat?.items)}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Messbare Ergebnisse</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ── #10 Video Hero ────────────────────────────────────────────────────────────
-export function tVideoHero(c, dossierPdfUrl = "") {
+export function tVideoHero(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
   const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
   const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
@@ -533,8 +559,8 @@ ${nav(c)}
   <div class="img-r"><div><h2>${esc(c.about?.headline)}</h2><p class="lead">${esc(c.about?.text)}</p></div>${aboutImg}</div>
 </div></section>
 <section id="zahlen" class="alt"><div class="w"><span class="lbl">Die Community</span><div class="g g4">${stats(c.stats)}</div></div></section>
-${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl)}${footer(c)}`;
-  return wrap(c, body, dossierPdfUrl);
+${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
+  return wrap(c, body, dossierPdfUrl, ctaUrl);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -554,10 +580,10 @@ export const TEMPLATES = [
   { id:"video",      name:"Video Hero",          description:"Video-Storytelling · Creator · Kanal",                  icon:"🎬", fn:tVideoHero },
 ];
 
-export function renderTemplate(templateId, content, dossierPdfUrl = "") {
+export function renderTemplate(templateId, content, dossierPdfUrl = "", ctaUrl = "") {
   const tmpl = TEMPLATES.find(t => t.id === templateId);
   if (!tmpl) throw new Error(`Unbekanntes Template: ${templateId}`);
-  return tmpl.fn(content, dossierPdfUrl);
+  return tmpl.fn(content, dossierPdfUrl, ctaUrl);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

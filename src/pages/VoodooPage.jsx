@@ -564,7 +564,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           else if (content.intro) content.intro.image = { url: parallelImages[1].url, alt: parallelImages[1].alt || "" };
         }
 
-        rawHtml = renderTemplate(form.templateId, content, safeDossierUrl);
+        rawHtml = renderTemplate(form.templateId, content, safeDossierUrl, (form.ctaUrl||"").trim());
       } else {
         // Freeform flow: AI generates full HTML. Images needed in prompt.
         const selectedMedia = (form.mediaIds||[])
