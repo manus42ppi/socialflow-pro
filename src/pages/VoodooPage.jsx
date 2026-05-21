@@ -31,7 +31,7 @@ import {
   buildRepairInstruction, generateMissingSections,
 } from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
-import { TEMPLATES, generateContent } from "../utils/spark-templates.js";
+import { TEMPLATES, generateContent, generateContentJSON, renderTemplate } from "../utils/spark-templates.js";
 
 // Dynamic — uses the same origin as the running app so the link always
 // points to a deployment that has functions/site/[slug].js available.
@@ -501,45 +501,6 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
     // the user navigates away — the async work continues regardless.
     setSparkJob({ projectId: form.id, projectName: form.name, workspaceId: form.workspaceId, type: "generate", chars: 0, status: "running" });
 
-    // ── 3-phase image strategy ────────────────────────────────────────────
-    // Phase 1: project-selected media (user explicitly picked these)
-    // Documents and data: URLs are excluded — they're not usable as image sources in HTML.
-    const selectedMedia = (form.mediaIds||[])
-      .map(id => items.find(x=>x.id===id))
-      .filter(m => m && m.type !== "document" && !(m.url||"").startsWith("data:application"));
-    let autoImages = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name }));
-
-    // Phase 2: workspace media library keyword search — free, instant, no API
-    if (autoImages.length < 4) {
-      const searchQuery = `${form.name} ${form.description||""}`.trim();
-      const libraryHits = searchMediaLibrary(items, searchQuery, {
-        count: 4 - autoImages.length,
-        workspaceId: currentWorkspaceId,
-      });
-      // Deduplicate against already-selected images
-      const usedUrls = new Set(autoImages.map(i => i.url));
-      const freshLib = libraryHits.filter(i => !usedUrls.has(i.url));
-      autoImages = [...autoImages, ...freshLib];
-    }
-
-    // Phase 3: stock API — only if still under 2 images after library search
-    if (autoImages.length < 2) {
-      const searchQuery = `${form.name} ${form.description||""}`.trim();
-      const found = await searchImages(
-        searchQuery,
-        4 - autoImages.length,
-        uploadItem,
-        currentWorkspaceId,
-      );
-      // Fire-and-forget KI analysis for each newly uploaded stock image
-      found.forEach(img => {
-        if (img.uploadedItem) analyzeUploadedImage(img.uploadedItem, updateItem);
-      });
-      autoImages = [...autoImages, ...found.map(img => ({ url: img.url, alt: img.alt }))];
-    }
-
-    setGenPhase("streaming");
-
     const ctx = buildContext(form, stories, posts, items, products);
 
     const useTemplate = form.templateId && form.templateId !== "freeform";
@@ -549,23 +510,79 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
     try {
       let rawHtml;
       if (useTemplate) {
-        // Template flow: AI generates small content JSON (~700 tokens) → rendered locally.
+        // Template flow — PARALLEL: AI content JSON + image search run simultaneously.
+        // After both complete, inject images into content, then render template locally.
         // No repair loop needed — structure is guaranteed by the template function.
-        rawHtml = await generateContent({
+
+        // Extract image search into a separate promise
+        const imageSearchPromise = (async () => {
+          // Phase 1: project-selected media
+          const selectedMedia = (form.mediaIds||[])
+            .map(id => items.find(x=>x.id===id))
+            .filter(m => m && m.type !== "document" && !(m.url||"").startsWith("data:application"));
+          let imgs = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name }));
+          // Phase 2: library keyword search
+          if (imgs.length < 4) {
+            const searchQuery = `${form.name} ${form.description||""}`.trim();
+            const libraryHits = searchMediaLibrary(items, searchQuery, { count: 4 - imgs.length, workspaceId: currentWorkspaceId });
+            const usedUrls = new Set(imgs.map(i => i.url));
+            imgs = [...imgs, ...libraryHits.filter(i => !usedUrls.has(i.url))];
+          }
+          // Phase 3: stock API — only if still under 2 images
+          if (imgs.length < 2) {
+            const searchQuery = `${form.name} ${form.description||""}`.trim();
+            const found = await searchImages(searchQuery, 4 - imgs.length, uploadItem, currentWorkspaceId);
+            found.forEach(img => { if (img.uploadedItem) analyzeUploadedImage(img.uploadedItem, updateItem); });
+            imgs = [...imgs, ...found.map(img => ({ url: img.url, alt: img.alt }))];
+          }
+          return imgs;
+        })();
+
+        const contentPromise = generateContentJSON({
           templateId: form.templateId,
           form,
           ctx,
           answers,
-          images: autoImages,
           extraPrompt: genPromptRef.current.trim(),
-          dossierPdfUrl: safeDossierUrl,
           preflightQ,
           onChunk: (_chunk, full) => {
             setGenChars(full.length);
             setSparkJob(j => j ? { ...j, chars: full.length } : j);
           },
         });
+
+        // Wait for both in parallel
+        const [content, parallelImages] = await Promise.all([contentPromise, imageSearchPromise]);
+
+        // Inject images into content JSON before rendering
+        if (parallelImages[0]) {
+          if (!content.hero) content.hero = {};
+          content.hero.image = { url: parallelImages[0].url, alt: parallelImages[0].alt || "" };
+        }
+        if (parallelImages[1]) {
+          if (content.about) content.about.image = { url: parallelImages[1].url, alt: parallelImages[1].alt || "" };
+          else if (content.intro) content.intro.image = { url: parallelImages[1].url, alt: parallelImages[1].alt || "" };
+        }
+
+        rawHtml = renderTemplate(form.templateId, content, safeDossierUrl);
       } else {
+        // Freeform flow: AI generates full HTML. Images needed in prompt.
+        const selectedMedia = (form.mediaIds||[])
+          .map(id => items.find(x=>x.id===id))
+          .filter(m => m && m.type !== "document" && !(m.url||"").startsWith("data:application"));
+        let autoImages = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name }));
+        if (autoImages.length < 4) {
+          const sq = `${form.name} ${form.description||""}`.trim();
+          const hits = searchMediaLibrary(items, sq, { count: 4 - autoImages.length, workspaceId: currentWorkspaceId });
+          const used = new Set(autoImages.map(i => i.url));
+          autoImages = [...autoImages, ...hits.filter(i => !used.has(i.url))];
+        }
+        if (autoImages.length < 2) {
+          const sq = `${form.name} ${form.description||""}`.trim();
+          const found = await searchImages(sq, 4 - autoImages.length, uploadItem, currentWorkspaceId);
+          found.forEach(img => { if (img.uploadedItem) analyzeUploadedImage(img.uploadedItem, updateItem); });
+          autoImages = [...autoImages, ...found.map(img => ({ url: img.url, alt: img.alt }))];
+        }
         // Freeform flow: AI generates full HTML (~4500 tokens). Slower but unrestricted.
         rawHtml = await generatePage({
           form,
