@@ -24,7 +24,8 @@ export const parseJSON = raw => { try{return JSON.parse(raw.replace(/```json|```
 // Calls onChunk(newChunk, fullTextSoFar) after each token.
 // Returns the complete text when the stream ends.
 // Uses stream:true so the Worker bypasses the 30s buffer timeout.
-export async function aiCallStream(messages, max_tokens = 800, onChunk = null, tools = null) {
+// Internal: one attempt of streaming. Throws on network/stream/API errors.
+async function _aiStreamOnce(messages, max_tokens, onChunk, tools) {
   const body = { model: "claude-sonnet-4-6", max_tokens, messages, stream: true };
   if (tools?.length) body.tools = tools;
   const r = await fetch("/ai", {
@@ -53,15 +54,41 @@ export async function aiCallStream(messages, max_tokens = 800, onChunk = null, t
       if (raw === "[DONE]") continue;
       try {
         const ev = JSON.parse(raw);
+        // Detect Anthropic SSE error events (e.g. overloaded, rate-limit)
+        if (ev.type === "error") {
+          throw new Error(ev.error?.message || "Anthropic stream error");
+        }
         if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta") {
           const chunk = ev.delta.text;
           full += chunk;
           onChunk?.(chunk, full);
         }
-      } catch { /* ignore malformed lines */ }
+      } catch (parseErr) {
+        // Re-throw real errors; ignore malformed SSE lines
+        if (parseErr.message !== "Unexpected token") throw parseErr;
+      }
     }
   }
   return full;
+}
+
+/**
+ * Streaming AI call with automatic 1-retry on transient connection errors.
+ * "Error in input stream" / "Failed to fetch" → retries once after 1.5 s.
+ */
+export async function aiCallStream(messages, max_tokens = 800, onChunk = null, tools = null) {
+  try {
+    return await _aiStreamOnce(messages, max_tokens, onChunk, tools);
+  } catch (err) {
+    // Transient stream / network errors → one silent retry
+    const isTransient = /input stream|fetch|network|Failed to fetch|overloaded/i.test(err.message);
+    if (isTransient) {
+      await new Promise(r => setTimeout(r, 1500));
+      // Reset accumulated text before retry so onChunk starts fresh
+      return await _aiStreamOnce(messages, max_tokens, onChunk, tools);
+    }
+    throw err;
+  }
 }
 
 // ── KV STORAGE HELPERS ──────────────────────────────────────────────────────

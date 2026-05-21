@@ -330,6 +330,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
   );
   // Shown during the auto-repair loop ("Repariere... 1/2")
   const [repairStatus, setRepairStatus] = useState("");
+  const [genError, setGenError] = useState("");
 
   // ── Sync from AppContext when background generation completes ─────────────
   // generate() and sparkRefine() call onSave() even when this component is
@@ -523,6 +524,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
   async function generate(answers = {}) {
     setGenPhase("searching");
     setGenChars(0);
+    setGenError("");
     // Announce to global sparkJob so the Sidebar pill appears even when
     // the user navigates away — the async work continues regardless.
     setSparkJob({ projectId: form.id, projectName: form.name, workspaceId: form.workspaceId, type: "generate", chars: 0, status: "running" });
@@ -674,7 +676,10 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
       console.error("VoodooPage generate error:", e);
       setSparkJob(j => j ? { ...j, status: "error" } : j);
       setTimeout(() => setSparkJob(j => j?.status === "error" ? null : j), 7000);
-      alert("Generierung fehlgeschlagen:\n" + e.message);
+      const isNetwork = /input stream|fetch|network|Failed to fetch/i.test(e.message);
+      setGenError(isNetwork
+        ? "Verbindungsfehler — bitte nochmal versuchen."
+        : e.message || "Unbekannter Fehler");
     }
     setGenPhase("idle");
     setGenChars(0);
@@ -1315,6 +1320,23 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                     }}>
                       <Zap size={12} strokeWidth={2}/> Live-Seite ansehen
                     </button>
+                  )}
+                  {genError && (
+                    <div style={{
+                      marginTop:10, padding:"10px 12px", borderRadius:8,
+                      background:"#FEF2F2", border:"1px solid #FECACA",
+                    }}>
+                      <div style={{ fontSize:12, color:"#B91C1C", fontWeight:600, marginBottom:6 }}>
+                        {genError}
+                      </div>
+                      <button onClick={() => { setGenError(""); startPreflight(); }} style={{
+                        width:"100%", padding:"7px 0", borderRadius:6, border:"none",
+                        background:"#DC2626", color:"#fff",
+                        fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:FONT,
+                      }}>
+                        Nochmal versuchen
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
