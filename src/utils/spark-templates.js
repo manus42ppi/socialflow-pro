@@ -608,51 +608,31 @@ export async function generateContentJSON({
     .filter(Boolean).join("\n\n");
 
   const prompt =
-`Du bist Redakteur, Texter und Webdesigner. Analysiere die Projektdaten und erstelle strukturierten Inhalt für eine Landing Page.
+`Landing-Page-Content-JSON für Template "${tmpl.name}".
+Antworte NUR mit dem JSON-Objekt (kein Text, kein Markdown, direkt mit { beginnen).
 
-WICHTIG: Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein erklärender Text, kein Markdown, keine Codeblöcke. Fange direkt mit { an.
-
-TEMPLATE: ${tmpl.name}
 PROJEKT: ${form.name}
 BESCHREIBUNG: ${form.description || "(keine)"}
-INHALTE (Auszug, max. 1500 Zeichen):
-${ctx.slice(0, 1500)}
-${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}\n` : ""}${answersText ? `AUFTRAGGEBER-VORGABEN:\n${answersText}\n` : ""}BILDER: werden nach der KI-Antwort separat eingesetzt. hero.image und about.image MÜSSEN null sein.
+INHALTE:
+${ctx.slice(0, 1200)}
+${extraPrompt ? `WÜNSCHE: ${extraPrompt}\n` : ""}${answersText ? `VORGABEN:\n${answersText}\n` : ""}
+JSON-Schema (exakt dieses Format, alle Felder befüllen):
+{"meta":{"title":""},"colors":{"primary":"#hex","dark":"#hex","light":"#hex","font":"Name"},"nav":{"logo":"","links":[{"label":"","anchor":"features"},{"label":"","anchor":"zahlen"},{"label":"","anchor":"cta"}]},"hero":{"label":"","headline":"","subtext":"","cta1":"","cta2":"","image":null},"features":{"label":"","headline":"","items":[{"title":"","text":""},{"title":"","text":""},{"title":"","text":""}]},"about":{"label":"","headline":"","text":"","image":null},"stats":[{"num":"35+","desc":"Jahre"},{"num":"98%","desc":"Zufriedenheit"},{"num":"14","desc":"Länder"},{"num":"2.4k","desc":"Nutzer"}],"quote":{"text":"","author":"","role":""},"cta":{"label":"","headline":"","subtext":"","buttonText":""},"footer":{"groups":[{"title":"","links":[{"label":"","href":"#"},{"label":"","href":"#"}]},{"title":"","links":[{"label":"","href":"#"},{"label":"","href":"#"}]}],"copyright":""}}
 
-Erstelle NUR das folgende JSON (kein Markdown, kein Text davor oder danach):
-{
-  "meta": {"title": "..."},
-  "colors": {"primary": "#...", "dark": "#...", "light": "#...", "font": "..."},
-  "nav": {"logo": "...", "links": [{"label": "...", "anchor": "features"}, {"label": "...", "anchor": "zahlen"}, {"label": "...", "anchor": "cta"}]},
-  "hero": {"label": "...", "headline": "...", "subtext": "...", "cta1": "...", "cta2": "...", "image": null},
-  "features": {"label": "...", "headline": "...", "items": [{"title": "...", "text": "..."}, {"title": "...", "text": "..."}, {"title": "...", "text": "..."}]},
-  "about": {"label": "...", "headline": "...", "text": "...", "image": null},
-  "stats": [{"num": "35+", "desc": "Jahre Erfahrung"}, {"num": "98%", "desc": "Kundenzufriedenheit"}, {"num": "14", "desc": "Länder"}, {"num": "2.400", "desc": "Aktive Nutzer"}],
-  "quote": {"text": "...", "author": "...", "role": "..."},
-  "cta": {"label": "...", "headline": "...", "subtext": "...", "buttonText": "..."},
-  "footer": {"groups": [{"title": "...", "links": [{"label": "...", "href": "#"}, {"label": "...", "href": "#"}, {"label": "...", "href": "#"}]}, {"title": "...", "links": [{"label": "...", "href": "#"}, {"label": "...", "href": "#"}]}], "copyright": "..."}
-}
-
-PFLICHT-REGELN:
-• Antworte NUR mit dem JSON — kein Text davor, kein Text danach, keine Codeblöcke, kein Markdown
-• NIEMALS Anführungszeichen (") innerhalb von JSON-String-Werten — stattdessen Apostroph (') verwenden
-• Nur echte Inhalte aus den Projektdaten — kein Platzhalter, kein Lorem ipsum
-• Texte kurz halten: headline max. 8 Wörter, subtext/text max. 20 Wörter, card-text max. 15 Wörter
-• stats.num: AUSSCHLIESSLICH die nackte Zahl/Kennzahl (max 6 Zeichen: "35+", "98%", "5 Mio.", "695 g") — niemals ein Satz oder Label!
-• stats.desc: kurzes Label, max. 3 Wörter ("Jahre Erfahrung", "Kundenzufriedenheit", "Aktive Nutzer")
-• colors.primary: thematisch passend — Nachrichten/Politik → #C41230 | Reise/Natur → #2E7D32 | Business → #1A237E | Sport/Bike → #E65100 | Kultur → #4A148C | Energie/Klima → #059669
-• colors.dark: deutlich dunkler als primary
-• colors.light: sehr heller Akzent (fast weiß)
-• colors.font: Merriweather (Editorial) | DM Sans (Reise) | Manrope (Business/B2B) | Outfit (Sport/Bike) | Nunito (Kinder/Bildung) | Poppins (Tech/App)
-• hero.headline: max. 8 Wörter — emotional, direkt, konkret
-• features.items: GENAU 3 Einträge
-• stats: GENAU 4 Einträge
-• hero.image: MUSS null sein — wird separat eingesetzt
-• about.image: MUSS null sein — wird separat eingesetzt${tmpl.id === "kurs" || tmpl.id === "local" ? "\n• nav.links[].anchor NUR aus: \"features\", \"zahlen\", \"cta\"" : ""}${` \n• cta.buttonText: "${answersText || extraPrompt ? "passend zum Kontext" : "Jetzt starten"}"` }`;
+REGELN:
+• Nur ' (Apostroph) in String-Werten — niemals "
+• Echte Inhalte aus Projektdaten — kein Lorem ipsum
+• headline ≤8 Wörter | subtext/text ≤20 Wörter | card.text ≤12 Wörter
+• stats.num: NUR Zahl/Kennzahl max.6 Zeichen ("35+","98%","5 Mio.") — KEIN Satz
+• stats.desc: max.3 Wörter | features.items: GENAU 3 | stats: GENAU 4
+• hero.image + about.image: MÜSSEN null bleiben (werden separat eingesetzt)
+• colors.primary: Nachrichten→#C41230 | Reise→#2E7D32 | Business→#1A237E | Sport→#E65100 | Tech→#0EA5E9 | Kultur→#4A148C
+• colors.font: Merriweather=Editorial | DM Sans=Reise/Tech | Manrope=B2B | Outfit=Sport | Poppins=App${tmpl.id === "kurs" || tmpl.id === "local" ? "\n• nav.links[].anchor nur: \"features\",\"zahlen\",\"cta\"" : ""}
+• cta.buttonText: "${answersText || extraPrompt ? "passend zum Kontext" : "Jetzt starten"}"`;
 
   const raw = await aiCallStream(
     [{ role: "user", content: prompt }],
-    900,
+    750,
     onChunk,
   );
 

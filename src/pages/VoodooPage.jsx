@@ -551,6 +551,9 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           },
         });
 
+        // Switch to streaming phase so the live token-counter becomes visible
+        setGenPhase("streaming");
+
         // Wait for both in parallel
         const [content, parallelImages] = await Promise.all([contentPromise, imageSearchPromise]);
 
