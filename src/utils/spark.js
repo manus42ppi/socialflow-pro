@@ -298,9 +298,9 @@ export function validatePage(html) {
   if (!html) return [];
   const issues = [];
 
-  // 1. Script content visible as text (guard code outside <script> tags)
+  // 1. Script content visible as text (JS code outside <script> tags)
   const withoutScripts = html.replace(/<script[\s\S]*?<\/script>/gi, "<!-- script -->");
-  if (/document\.addEventListener|Spark link guard/.test(withoutScripts)) {
+  if (/document\.addEventListener|Spark link guard|e\.preventDefault\(\)|window\.open\(/.test(withoutScripts)) {
     issues.push({ type: "error", msg: "Script-Code als sichtbarer Text — Seite einmal neu verfeinern um den Fehler zu beheben" });
   }
 
@@ -777,7 +777,7 @@ ${extraPrompt ? `BESONDERE WÜNSCHE: ${extraPrompt}\n` : ""}${ctaUrl && !dossier
 5. </body></html>
 
 ━━ QUALITÄTS-REGELN ━━
-- EMOJI-VERBOT: Nur monochrome SVG erlaubt (stroke="currentColor") — null Emojis, null Unicode-Piktogramme
+- EMOJI-TOTALVERBOT: Null Emojis, null Unicode-Piktogramme in ANY Teil der Seite (weder in Texten, noch als Icons, noch als Buttons). Einzige erlaubte Icons: monochrome SVG mit stroke="currentColor". Jedes einzelne Emoji ist ein harter Fehler.
 - STAT-VERBOT: .stat/.stat-l ausschließlich für nackte Zahlenwerte — niemals für Labels oder Texte
 - ANCHOR-KONSISTENZ: Jeder href="#xyz" hat zwingend id="xyz" — vor Ausgabe alle Anker gegen IDs prüfen
 - Nur echte Inhalte aus Projektdaten — null Platzhalter, null "Lorem ipsum"

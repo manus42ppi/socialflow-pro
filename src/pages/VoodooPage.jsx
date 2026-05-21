@@ -31,7 +31,7 @@ import {
   buildRepairInstruction, generateMissingSections,
 } from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
-import { TEMPLATES, generateContent, generateContentJSON, renderTemplate } from "../utils/spark-templates.js";
+import { TEMPLATES, generateContent, generateContentJSON, renderTemplate, buildEmailScript } from "../utils/spark-templates.js";
 
 // Dynamic — uses the same origin as the running app so the link always
 // points to a deployment that has functions/site/[slug].js available.
@@ -55,14 +55,40 @@ function repairPage(html) {
   try {
     const doc = new DOMParser().parseFromString(html, "text/html");
 
-    // 1. Remove script-leak text nodes (JS code rendered as visible text)
+    // 1. Remove script-leak text nodes — JS code rendered as VISIBLE text
+    //    IMPORTANT: only remove text nodes that are NOT inside <script>/<style>
+    //    (the walker visits those too; accidentally removing their content would break the guard)
+    const isInCode = (n) => {
+      let p = n.parentNode;
+      while (p && p !== doc.body) {
+        const tag = (p.tagName || "").toLowerCase();
+        if (tag === "script" || tag === "style") return true;
+        p = p.parentNode;
+      }
+      return false;
+    };
+    const looksLikeScript = (t) =>
+      t.includes("document.addEventListener") ||
+      t.includes("Spark link guard") ||
+      t.includes("e.preventDefault") ||
+      t.includes("window.open(") ||
+      (t.includes("function(") && t.includes("{") && t.length > 40);
+
+    // Strip emoji from visible text (AI ignores the "no emoji" rule despite instructions)
+    const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1FFFF}\u{FE00}-\u{FEFF}]/gu;
+
     const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null);
     const leaks = [];
     let node;
     while ((node = walker.nextNode())) {
       const t = node.textContent || "";
-      if (t.includes("document.addEventListener") || t.includes("Spark link guard")) {
-        leaks.push(node);
+      if (!isInCode(node)) {
+        if (looksLikeScript(t)) { leaks.push(node); continue; }
+        // Strip emoji from visible text nodes
+        if (EMOJI_RE.test(t)) {
+          EMOJI_RE.lastIndex = 0;
+          node.textContent = t.replace(EMOJI_RE, "").replace(/\s{2,}/g, " ").trim();
+        }
       }
     }
     leaks.forEach(n => n.parentNode?.removeChild(n));
@@ -520,20 +546,21 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           const selectedMedia = (form.mediaIds||[])
             .map(id => items.find(x=>x.id===id))
             .filter(m => m && m.type !== "document" && !(m.url||"").startsWith("data:application"));
-          let imgs = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name }));
+          // Include focusPoint from media library items so templates can apply object-position
+          let imgs = selectedMedia.map(m => ({ url: m.url, alt: m.description||m.altText||m.name, focusPoint: m.focusPoint }));
           // Phase 2: library keyword search
           if (imgs.length < 4) {
             const searchQuery = `${form.name} ${form.description||""}`.trim();
             const libraryHits = searchMediaLibrary(items, searchQuery, { count: 4 - imgs.length, workspaceId: currentWorkspaceId });
             const usedUrls = new Set(imgs.map(i => i.url));
-            imgs = [...imgs, ...libraryHits.filter(i => !usedUrls.has(i.url))];
+            imgs = [...imgs, ...libraryHits.filter(i => !usedUrls.has(i.url)).map(h => ({ url: h.url, alt: h.alt || h.description || "", focusPoint: h.focusPoint }))];
           }
-          // Phase 3: stock API — only if still under 2 images
+          // Phase 3: stock API — only if still under 2 images (stock images have no focusPoint)
           if (imgs.length < 2) {
             const searchQuery = `${form.name} ${form.description||""}`.trim();
             const found = await searchImages(searchQuery, 4 - imgs.length, uploadItem, currentWorkspaceId);
             found.forEach(img => { if (img.uploadedItem) analyzeUploadedImage(img.uploadedItem, updateItem); });
-            imgs = [...imgs, ...found.map(img => ({ url: img.url, alt: img.alt }))];
+            imgs = [...imgs, ...found.map(img => ({ url: img.url, alt: img.alt, focusPoint: null }))];
           }
           return imgs;
         })();
@@ -557,14 +584,20 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
         // Wait for both in parallel
         const [content, parallelImages] = await Promise.all([contentPromise, imageSearchPromise]);
 
-        // Inject images into content JSON before rendering
+        // Inject images into content JSON before rendering.
+        // Include focusPoint as objectPosition so templates can use object-position CSS.
+        const toImgObj = (img) => ({
+          url: img.url,
+          alt: img.alt || "",
+          objectPosition: img.focusPoint ? `${img.focusPoint.x}% ${img.focusPoint.y}%` : "center",
+        });
         if (parallelImages[0]) {
           if (!content.hero) content.hero = {};
-          content.hero.image = { url: parallelImages[0].url, alt: parallelImages[0].alt || "" };
+          content.hero.image = toImgObj(parallelImages[0]);
         }
         if (parallelImages[1]) {
-          if (content.about) content.about.image = { url: parallelImages[1].url, alt: parallelImages[1].alt || "" };
-          else if (content.intro) content.intro.image = { url: parallelImages[1].url, alt: parallelImages[1].alt || "" };
+          if (content.about) content.about.image = toImgObj(parallelImages[1]);
+          else if (content.intro) content.intro.image = toImgObj(parallelImages[1]);
         }
 
         rawHtml = renderTemplate(form.templateId, content, safeDossierUrl, (form.ctaUrl||"").trim());
@@ -601,6 +634,14 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
             setSparkJob(j => j ? { ...j, chars: full.length } : j);
           },
         });
+        // Freeform: AI generates the lead form HTML but doesn't include the JS handler.
+        // Inject emailScript so form submission actually opens the PDF.
+        if (safeDossierUrl) {
+          const script = buildEmailScript(safeDossierUrl);
+          rawHtml = rawHtml.includes("</body>")
+            ? rawHtml.replace(/<\/body>/i, script + "\n</body>")
+            : rawHtml + "\n" + script;
+        }
       }
 
       // Always repair — removes script-leak text nodes + fixes broken anchors

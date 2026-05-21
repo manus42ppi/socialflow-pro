@@ -58,10 +58,37 @@ function extractJSON(raw) {
   return null;
 }
 
+// ── Image helpers — focus-point aware ─────────────────────────────────────────
+// objectPosition comes from media item's focusPoint (injected before renderTemplate())
+
+/** style attr for a hero <section> with background-image */
+function imgBg(img) {
+  if (!img?.url) return "";
+  const pos = img.objectPosition || "center";
+  return ` style="background-image:url('${esc(img.url)}');background-position:${esc(pos)}"`;
+}
+
+/** class attr value for a hero <section> (with or without bg image) */
+function imgCls(img) {
+  return `"hero${img?.url ? " hero-bg" : ""}"`;
+}
+
+/** Renders a responsive <img> with correct focus-point object-position */
+function imgEl(img, ratio = "16/10") {
+  if (!img?.url) return "";
+  const pos = img.objectPosition || "center";
+  return `<img src="${esc(img.url)}" alt="${esc(img.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:${ratio};object-fit:cover;object-position:${esc(pos)}">`;
+}
+
 // ── HTML helpers ───────────────────────────────────────────────────────────────
+
+// Strip emoji/unicode pictographs before HTML-escaping — prevents AI emoji from showing
+const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}\u{1F900}-\u{1F9FF}]/gu;
 
 function esc(s) {
   return String(s || "")
+    .replace(EMOJI_RE, "")   // strip any emoji the AI snuck in
+    .trim()
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -111,7 +138,7 @@ function ctaSection(cta, dossierPdfUrl, ctaUrl = "") {
     // Email-capture form: enter email → PDF opens in new tab
     action = `<div style="max-width:520px;margin:0 auto">
       <p style="color:rgba(255,255,255,.75);font-size:.88rem;margin-bottom:14px">
-        📄 Jetzt E-Mail eingeben und das Dossier kostenlos herunterladen.
+        Jetzt E-Mail eingeben und das Dossier kostenlos herunterladen.
       </p>
       <form id="lead-form" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
         <input type="email" required placeholder="Ihre E-Mail-Adresse" style="flex:1;min-width:220px;padding:13px 18px;border-radius:8px;border:none;font-size:1rem;background:rgba(255,255,255,.15);color:#fff;outline:2px solid rgba(255,255,255,.4)">
@@ -144,7 +171,12 @@ function footer(c) {
 </div></footer>`;
 }
 
-function emailScript(pdfUrl) {
+/**
+ * Generates the email-capture JavaScript block.
+ * Exported so freeform pages can inject it too (not just template pages).
+ */
+export function buildEmailScript(pdfUrl) {
+  if (!pdfUrl) return "";
   return `<script>
 /* Spark email-capture v2 */
 (function(){
@@ -156,17 +188,15 @@ function emailScript(pdfUrl) {
     e.preventDefault();
     var email=form.querySelector('input[type="email"]').value||'';
     var b=form.querySelector('button[type="submit"]');
-    if(b){b.textContent='Wird geöffnet…';b.disabled=true;}
-    /* Open PDF in new tab */
+    if(b){b.textContent='Wird geoeffnet…';b.disabled=true;}
     setTimeout(function(){
       window.open(U,'_blank','noopener');
-      /* Replace form with thank-you message */
       var wrap=form.closest('div')||form.parentNode;
       if(wrap){
-        wrap.innerHTML='<div style="background:rgba(255,255,255,.15);border-radius:12px;padding:24px 32px;text-align:center;backdrop-filter:blur(8px)">'
-          +'<div style="font-size:2rem;margin-bottom:8px">✅</div>'
-          +'<div style="color:#fff;font-size:1.1rem;font-weight:700;margin-bottom:6px">Dossier wird geöffnet!</div>'
-          +'<div style="color:rgba(255,255,255,.75);font-size:.9rem">Das PDF öffnet sich in einem neuen Tab.<br>Vielen Dank für Ihr Interesse.</div>'
+        wrap.innerHTML='<div style="background:rgba(255,255,255,.15);border-radius:12px;padding:24px 32px;text-align:center">'
+          +'<div style="font-size:1.5rem;margin-bottom:8px;color:#fff">OK</div>'
+          +'<div style="color:#fff;font-size:1.1rem;font-weight:700;margin-bottom:6px">Dossier wird geoeffnet!</div>'
+          +'<div style="color:rgba(255,255,255,.75);font-size:.9rem">Das PDF oeffnet sich in einem neuen Tab.</div>'
           +'</div>';
       }
     },600);
@@ -174,6 +204,8 @@ function emailScript(pdfUrl) {
 })();
 </script>`;
 }
+// Internal alias for wrap()
+function emailScript(pdfUrl) { return buildEmailScript(pdfUrl); }
 
 function wrap(c, body, dossierPdfUrl, _ctaUrl) {
   const p = c.colors?.primary || "#2563EB";
@@ -206,13 +238,11 @@ ${script}
 // Default colors: newspaper red / dark navy / warm cream
 // ═══════════════════════════════════════════════════════════════════════════════
 export function tEditorial(c, dossierPdfUrl = "", ctaUrl = "") {
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
   // Support both old schema (intro) and new (about)
   const aboutSrc = c.about || c.intro;
-  const introImg = aboutSrc?.image?.url
-    ? `<img src="${esc(aboutSrc.image.url)}" alt="${esc(aboutSrc.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover">`
-    : "";
+  const introImg = imgEl(aboutSrc?.image, "16/10");
 
   const body = `
 <!-- NAV_IDS: hero,themen,zahlen,intro,cta -->
@@ -265,12 +295,10 @@ ${footer(c)}`;
 // Default colors: forest green / deep earth / warm beige
 // ═══════════════════════════════════════════════════════════════════════════════
 export function tEvent(c, dossierPdfUrl = "", ctaUrl = "") {
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
   const aboutSrc = c.about || c.intro;
-  const introImg = aboutSrc?.image?.url
-    ? `<img src="${esc(aboutSrc.image.url)}" alt="${esc(aboutSrc.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover">`
-    : "";
+  const introImg = imgEl(aboutSrc?.image, "16/10");
 
   const body = `
 <!-- NAV_IDS: hero,themen,zahlen,intro,cta -->
@@ -324,9 +352,9 @@ ${footer(c)}`;
 // ── #3 Lead Capture ───────────────────────────────────────────────────────────
 export function tLeadCapture(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
-  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
+  const aboutImg = imgEl(c.about?.image, "4/3");
   if (!c.colors?.primary) { c = { ...c, colors: { primary:"#7C3AED", dark:"#4C1D95", light:"#EDE9FE", font:"Manrope", ...c.colors } }; }
   const body = `<!-- NAV_IDS: hero,vorteile,inhalt,zahlen,cta -->
 ${nav(c)}
@@ -353,9 +381,9 @@ ${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
 // ── #4 Product Launch ─────────────────────────────────────────────────────────
 export function tProductLaunch(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
-  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
+  const aboutImg = imgEl(c.about?.image, "4/3");
   if (!c.colors?.primary) { c = { ...c, colors: { primary:"#E65100", dark:"#BF360C", light:"#FFF3E0", font:"Outfit", ...c.colors } }; }
   const body = `<!-- NAV_IDS: hero,features,produkt,zahlen,cta -->
 ${nav(c)}
@@ -382,9 +410,9 @@ ${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
 // ── #5 Service / Agentur ──────────────────────────────────────────────────────
 export function tService(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
-  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
+  const aboutImg = imgEl(c.about?.image, "4/3");
   if (!c.colors?.primary) { c = { ...c, colors: { primary:"#1A237E", dark:"#0D1B6E", light:"#E8EAF6", font:"Manrope", ...c.colors } }; }
   const body = `<!-- NAV_IDS: hero,leistungen,ueber,zahlen,cta -->
 ${nav(c)}
@@ -411,9 +439,9 @@ ${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
 // ── #6 App / SaaS ─────────────────────────────────────────────────────────────
 export function tAppSaas(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
-  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:16/9;object-fit:cover">` : "";
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
+  const aboutImg = imgEl(c.about?.image, "16/9");
   if (!c.colors?.primary) { c = { ...c, colors: { primary:"#0EA5E9", dark:"#0369A1", light:"#E0F2FE", font:"DM Sans", ...c.colors } }; }
   const body = `<!-- NAV_IDS: hero,features,howto,zahlen,cta -->
 ${nav(c)}
@@ -440,9 +468,9 @@ ${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
 // ── #7 Kurs / Webinar ─────────────────────────────────────────────────────────
 export function tKurs(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
-  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:1/1;object-fit:cover">` : "";
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
+  const aboutImg = imgEl(c.about?.image, "1/1");
   if (!c.colors?.primary) { c = { ...c, colors: { primary:"#0D9488", dark:"#0F766E", light:"#CCFBF1", font:"DM Sans", ...c.colors } }; }
   const body = `<!-- NAV_IDS: hero,inhalte,trainer,zahlen,cta -->
 ${nav(c)}
@@ -469,9 +497,9 @@ ${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
 // ── #8 Local Business ─────────────────────────────────────────────────────────
 export function tLocalBusiness(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
-  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
+  const aboutImg = imgEl(c.about?.image, "4/3");
   if (!c.colors?.primary) { c = { ...c, colors: { primary:"#B45309", dark:"#92400E", light:"#FEF3C7", font:"Merriweather", ...c.colors } }; }
   const body = `<!-- NAV_IDS: hero,angebot,ueber,zahlen,cta -->
 ${nav(c)}
@@ -498,9 +526,9 @@ ${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
 // ── #9 Case Study ─────────────────────────────────────────────────────────────
 export function tCaseStudy(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
-  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover">` : "";
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
+  const aboutImg = imgEl(c.about?.image, "16/10");
   if (!c.colors?.primary) { c = { ...c, colors: { primary:"#1D4ED8", dark:"#1E3A8A", light:"#EFF6FF", font:"Manrope", ...c.colors } }; }
   const body = `<!-- NAV_IDS: hero,loesung,ergebnis,zahlen,cta -->
 ${nav(c)}
@@ -527,18 +555,18 @@ ${quote(c.quote)}${ctaSection(c.cta,dossierPdfUrl,ctaUrl)}${footer(c)}`;
 // ── #10 Video Hero ────────────────────────────────────────────────────────────
 export function tVideoHero(c, dossierPdfUrl = "", ctaUrl = "") {
   const feat = c.features || c.themes;
-  const heroBg = c.hero?.image?.url ? ` style="background-image:url('${esc(c.hero.image.url)}')"` : "";
-  const heroClass = `"hero${c.hero?.image?.url ? ' hero-bg' : ''}"`;
+  const heroBg = imgBg(c.hero?.image);
+  const heroClass = imgCls(c.hero?.image);
   // Video placeholder (16:9 ratio with play button overlay)
   const videoBox = `<div style="width:100%;max-width:800px;margin:28px auto 0;border-radius:12px;overflow:hidden;position:relative;aspect-ratio:16/9;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.3)">
-  ${c.hero?.image?.url ? `<img src="${esc(c.hero.image.url)}" alt="Video Thumbnail" style="width:100%;height:100%;object-fit:cover;opacity:.8">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e)"></div>`}
+  ${c.hero?.image?.url ? `<img src="${esc(c.hero.image.url)}" alt="Video Thumbnail" style="width:100%;height:100%;object-fit:cover;object-position:${esc(c.hero.image.objectPosition||"center")};opacity:.8">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e)"></div>`}
   <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
     <a href="${esc(c.cta?.videoUrl||"#cta")}" target="_blank" rel="noopener" style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.4);text-decoration:none">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--p)"><polygon points="5,3 19,12 5,21"/></svg>
     </a>
   </div>
 </div>`;
-  const aboutImg = c.about?.image?.url ? `<img src="${esc(c.about.image.url)}" alt="${esc(c.about.image.alt||"")}" style="width:100%;border-radius:12px;aspect-ratio:4/3;object-fit:cover">` : "";
+  const aboutImg = imgEl(c.about?.image, "4/3");
   if (!c.colors?.primary) { c = { ...c, colors: { primary:"#DC2626", dark:"#991B1B", light:"#FEF2F2", font:"DM Sans", ...c.colors } }; }
   const body = `<!-- NAV_IDS: hero,highlights,ueber,zahlen,cta -->
 ${nav(c)}
@@ -620,6 +648,7 @@ JSON-Schema (exakt dieses Format, alle Felder befüllen):
 {"meta":{"title":""},"colors":{"primary":"#hex","dark":"#hex","light":"#hex","font":"Name"},"nav":{"logo":"","links":[{"label":"","anchor":"features"},{"label":"","anchor":"zahlen"},{"label":"","anchor":"cta"}]},"hero":{"label":"","headline":"","subtext":"","cta1":"","cta2":"","image":null},"features":{"label":"","headline":"","items":[{"title":"","text":""},{"title":"","text":""},{"title":"","text":""}]},"about":{"label":"","headline":"","text":"","image":null},"stats":[{"num":"35+","desc":"Jahre"},{"num":"98%","desc":"Zufriedenheit"},{"num":"14","desc":"Länder"},{"num":"2.4k","desc":"Nutzer"}],"quote":{"text":"","author":"","role":""},"cta":{"label":"","headline":"","subtext":"","buttonText":""},"footer":{"groups":[{"title":"","links":[{"label":"","href":"#"},{"label":"","href":"#"}]},{"title":"","links":[{"label":"","href":"#"},{"label":"","href":"#"}]}],"copyright":""}}
 
 REGELN:
+• KEIN Emoji in KEINEM Feld — weder in title, text, desc, buttonText noch elsewhere
 • Nur ' (Apostroph) in String-Werten — niemals "
 • Echte Inhalte aus Projektdaten — kein Lorem ipsum
 • headline ≤8 Wörter | subtext/text ≤20 Wörter | card.text ≤12 Wörter
