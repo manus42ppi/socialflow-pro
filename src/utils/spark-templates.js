@@ -180,10 +180,13 @@ function footer(c) {
  */
 export function buildEmailScript(pdfUrl) {
   if (!pdfUrl) return "";
+  // JSON.stringify does NOT escape </script> — a URL containing "</script>" would
+  // break out of the script tag. Replace </ with <\/ to prevent early tag closing.
+  const safeU = JSON.stringify(pdfUrl).replace(/<\//g, "<\\/");
   return `<script>
 /* Spark email-capture v2 */
 (function(){
-  var U=${JSON.stringify(pdfUrl)};
+  var U=${safeU};
   if(!U){return;}
   document.addEventListener('submit',function(e){
     var form=e.target;
