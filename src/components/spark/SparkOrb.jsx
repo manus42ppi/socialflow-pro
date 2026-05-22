@@ -305,17 +305,24 @@ export default function SparkOrb() {
 
   // ── Toggle handler ────────────────────────────────────────────────────────
   const toggle = () => {
+    if (!hasSR) {
+      // Show panel with hint instead of silently doing nothing
+      setOpen(true);
+      if (msgs.length === 0) {
+        setMsgs([{ from: "spark", text: "Spracherkennung ist in deinem Browser nicht verfügbar. Bitte nutze Chrome oder Edge für den vollen Spark-Erfahrung.", ts: Date.now() }]);
+      }
+      return;
+    }
     if (active) setActive(false);
     else        setActive(true);
   };
 
-  // ── Hide if browser has no SpeechRecognition support ─────────────────────
+  // ── Browser SpeechRecognition support ────────────────────────────────────
   const hasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-  if (!hasSR) return null;
 
   // ── Derived colours ───────────────────────────────────────────────────────
-  const orbColor = ORB[vs];
-  const label    = STATE_LABEL[vs];
+  const orbColor = hasSR ? ORB[vs] : T.gray400;   // grey-out when SR unavailable
+  const label    = hasSR ? STATE_LABEL[vs] : "Kein Mikrofon-Support";
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
