@@ -67,9 +67,12 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
             <div style={{position:"relative",flexShrink:0}}>
               {form.type==="video"
                 ?<video src={form.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} controls muted/>
-                :<img ref={imgRef} src={form.url} alt="" onMouseDown={imgMD}
-                  style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block",cursor:fmode?"crosshair":"default",userSelect:"none"}}/>
+                :<img ref={imgRef} src={form.url} alt=""
+                  style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block",userSelect:"none"}}/>
               }
+              {/* Transparent overlay to capture focus-point clicks — sits above img and color palette */}
+              {fmode&&<div onMouseDown={imgMD}
+                style={{position:"absolute",inset:0,zIndex:10,cursor:"crosshair"}}/>}
               {/* Focal point dot */}
               <div style={{position:"absolute",left:`${fp.x}%`,top:`${fp.y}%`,transform:"translate(-50%,-50%)",pointerEvents:"none",zIndex:2}}>
                 <div style={{width:24,height:24,borderRadius:"50%",border:"3px solid #fff",background:`${C.accent}90`,boxShadow:"0 0 0 2px rgba(0,0,0,.4),0 0 12px rgba(0,0,0,.3)"}}/>

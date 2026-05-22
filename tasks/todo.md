@@ -29,9 +29,10 @@
   `MediaPage` übergibt `onUpdate={onUpdate}` als separaten Prop neben `onSave`.  
   Bild-Score + Plattform-Fit Tabs bleiben nach Reload erhalten.
 
-- 🔜 **K-2: Fokuspunkt-Overlay Z-Index**  
-  Klick auf Bild setzt keinen Fokuspunkt. Overlay liegt unter img-Container.  
-  Fix: `position:absolute; zIndex:10; cursor:crosshair` auf dem Overlay-Div.
+- ✅ **K-2: Fokuspunkt-Overlay Z-Index** (Mai 2026)  
+  Transparentes Overlay-Div (position:absolute; inset:0; zIndex:10; cursor:crosshair) über dem Bild,  
+  nur wenn fmode aktiv. Fängt Klicks zuverlässig ab — auch wenn Farbpalette-Strip oder andere  
+  absolute Kinder Events blockieren würden.
 
 - 📋 **K-3: Voodoo Spark Dev-Mode Hinweis**  
   "HTTP 404" statt erklärendem Text wenn Wrangler nicht läuft.  
