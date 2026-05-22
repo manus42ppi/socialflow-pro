@@ -602,7 +602,7 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
           else if (content.intro) content.intro.image = toImgObj(parallelImages[1]);
         }
 
-        rawHtml = renderTemplate(form.templateId, content, safeDossierUrl, (form.ctaUrl||"").trim());
+        rawHtml = renderTemplate(form.templateId, content, safeDossierUrl, (form.ctaUrl||"").trim(), form.pdfMode || "email");
       } else {
         // Freeform flow: AI generates full HTML. Images needed in prompt.
         const selectedMedia = (form.mediaIds||[])

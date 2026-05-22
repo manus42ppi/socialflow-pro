@@ -26,7 +26,12 @@ const { count: BUILD_NUMBER, sha: BUILD_SHA } = getBuildMeta();
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  server: { allowedHosts: true },
+  server: {
+    allowedHosts: true,
+    // When accessed via Wrangler proxy (port 8788), HMR WebSocket must still
+    // connect directly to Vite (port 5173) — Wrangler doesn't forward WS.
+    hmr: { port: 5173 },
+  },
   define: {
     __BUILD_NUMBER__: JSON.stringify(BUILD_NUMBER),
     __BUILD_SHA__:    JSON.stringify(BUILD_SHA),
