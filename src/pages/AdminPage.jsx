@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Users, Shield, Key, Settings, Bell, Globe, Database, Activity, ChevronRight, Plus, Trash2, Edit3, Check, X, AlertCircle, Info, CheckCircle, ChevronDown, ChevronUp, Edit2, ExternalLink, Save, Send, Sparkles, Wifi, WifiOff, Mail, Phone, Building2, MapPin, User } from "lucide-react";
-import { C, FONT, IW, CSS } from "../constants/colors.js";
+import { C, T, FONT, IW, CSS, TYPO } from "../constants/colors.js";
 import { CHANNELS, ROLES, DEMO_USERS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { storeGet, storeSet } from "../utils/store.js";
 import { skGet, skSet } from "../components/StockSearch.jsx";
@@ -267,7 +267,7 @@ function AdminPage(){
   // Small helpers
   const Toggle=({val,onChange})=><div onClick={()=>onChange(!val)} style={{width:36,height:20,borderRadius:10,background:val?C.accent:C.border,display:"flex",alignItems:"center",padding:"0 2px",cursor:"pointer",transition:"all .2s",justifyContent:val?"flex-end":"flex-start"}}><div style={{width:16,height:16,borderRadius:"50%",background:"#fff"}}/></div>;
   const SavedBadge=({id})=>flash===id?<span style={{fontSize:11,color:C.success,fontWeight:700,display:"flex",alignItems:"center",gap:4}}><Check size={11} strokeWidth={2.5}/>Gespeichert</span>:null;
-  const SH=({label,children,action})=><div style={{marginBottom:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontWeight:700,fontSize:12,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em"}}>{label}</div>{action}</div>{children}</div>;
+  const SH=({label,children,action})=><div style={{marginBottom:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{...TYPO.nano}}>{label}</div>{action}</div>{children}</div>;
 
   // Tabs by role: admins see everything; editors + viewers also get channels (their own accounts)
   const ALL_TABS=[["profile","Profil",User],["channels","Meine Kanäle",Globe],["apikeys","API-Keys",Key],["team","Team",Users],["workspaces","Mandanten",Building2],["settings","Einstellungen",Settings]];
@@ -325,7 +325,7 @@ function AdminPage(){
 
         {/* ── Nutzungskontext ── */}
         <Card style={{padding:"16px 20px"}}>
-          <div style={{fontWeight:700,fontSize:12,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",marginBottom:12}}>Wie nutzt du SocialFlow?</div>
+          <div style={{...TYPO.nano,marginBottom:12}}>Wie nutzt du SocialFlow?</div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {[["creator","🎨","Content Creator","Persönliche Accounts, Solo-Projekte"],["business","🏢","Unternehmen","Firmenseiten & Business-Accounts"],["agency","🚀","Agentur","Mehrere Kunden & Marken"]].map(([id,emoji,label,desc])=>(
               <div key={id} onClick={()=>saveUsageType(id)} style={{flex:1,minWidth:140,padding:"12px 14px",borderRadius:10,border:`2px solid ${usageType===id?C.accent:C.border}`,background:usageType===id?C.accentLight:"transparent",cursor:"pointer",transition:"all .15s"}}>
@@ -339,10 +339,10 @@ function AdminPage(){
 
         {/* ── Meine persönlichen Accounts ── */}
         <div>
-          <div style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+          <div style={{...TYPO.body,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
             <User size={15} strokeWidth={IW} color={C.accent}/>
             Meine Accounts
-            <span style={{fontSize:11,color:C.textMute,fontWeight:400}}>— nur für dich sichtbar</span>
+            <span style={{...TYPO.caption,color:C.textMute}}>— nur für dich sichtbar</span>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {CHANNELS.map(info=>{
@@ -400,10 +400,10 @@ function AdminPage(){
 
         {/* ── Team/Workspace-Accounts (admin only) ── */}
         {me.role==="admin"&&<div>
-          <div style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+          <div style={{...TYPO.body,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
             <Users size={15} strokeWidth={IW} color={C.textMid}/>
             Team-Accounts (Workspace)
-            <span style={{fontSize:11,color:C.textMute,fontWeight:400}}>— geteilt mit allen Teammitgliedern</span>
+            <span style={{...TYPO.caption,color:C.textMute}}>— geteilt mit allen Teammitgliedern</span>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {CHANNELS.map(info=>{
@@ -504,7 +504,7 @@ function AdminPage(){
       {/* ── TEAM ── */}
       {tab==="team"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
         <Card style={{padding:"16px 20px"}}>
-          <div style={{fontWeight:500,fontSize:12,marginBottom:10}}>Mitglied einladen</div>
+          <div style={{...TYPO.nano,marginBottom:10}}>Mitglied einladen</div>
           <div style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
             <div style={{flex:1,minWidth:200}}><TIn label="E-Mail" icon={Mail} placeholder="kollege@firma.com" value={invE} onChange={e=>setInvE(e.target.value)}/></div>
             <div><FL>Rolle</FL><select value={invR} onChange={e=>setInvR(e.target.value)} style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:FONT,outline:"none"}}>
@@ -673,7 +673,7 @@ function AdminPage(){
           </select></div>
         </Card>}
         <Card style={{padding:"14px 18px"}}>
-          <div style={{fontWeight:500,fontSize:12,marginBottom:12}}>E-Mail Benachrichtigungen</div>
+          <div style={{...TYPO.nano,marginBottom:12}}>E-Mail Benachrichtigungen</div>
           {[["onSched","Post geplant"],["onAppr","Freigabe angefordert"],["onPub","Post veröffentlicht"],["onErr","Fehler beim Posten"]].map(([key,label])=>(
             <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.borderLight}`}}>
               <span style={{fontSize:13,color:C.textMid}}>{label}</span>

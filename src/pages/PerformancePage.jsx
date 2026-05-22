@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Eye, TrendingUp, Star, Activity } from "lucide-react";
-import { C, T, FONT } from "../constants/colors.js";
+import { C, T, FONT, TYPO } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { Card, SCrd } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
@@ -44,7 +44,7 @@ function PerformancePage(){
   const {order,dragId,setDragId,overId,setOverId,drop}=useSections("performance","default",['stats','channels','posts']);
 
   const perRight=<div style={{display:"flex",gap:3,background:T.gray100,borderRadius:T.rMd,padding:3}}>
-    {[["7d","7T"],["30d","30T"],["90d","90T"]].map(([v,l])=><button key={v} onClick={()=>setPer(v)} style={{padding:"4px 9px",borderRadius:6,border:"none",background:per===v?"#fff":"transparent",color:per===v?C.text:C.textSoft,fontWeight:600,fontSize:11,cursor:"pointer",fontFamily:FONT}}>{l}</button>)}
+    {[["7d","7T"],["30d","30T"],["90d","90T"]].map(([v,l])=><button key={v} onClick={()=>setPer(v)} style={{padding:"4px 9px",borderRadius:6,border:"none",background:per===v?"#fff":"transparent",color:per===v?C.text:C.textSoft,fontWeight:600,...TYPO.caption,cursor:"pointer",fontFamily:FONT}}>{l}</button>)}
   </div>;
 
   const statsContent=(
@@ -65,7 +65,7 @@ function PerformancePage(){
             <div style={{fontWeight:800,fontSize:14}}>{ch.label}</div>
           </div>
           {[["Reichweite",d.reach.toLocaleString("de")],["Impressionen",d.imp.toLocaleString("de")],["Engagement",d.eng],["Follower",d.fol.toLocaleString("de")],["Klicks",d.clk]].map(([l,v])=>(
-            <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0"}}><span style={{color:C.textSoft}}>{l}</span><span style={{fontWeight:700}}>{v}</span></div>
+            <div key={l} style={{display:"flex",justifyContent:"space-between",...TYPO.caption,padding:"3px 0"}}><span style={{color:C.textSoft}}>{l}</span><span style={{fontWeight:700,color:C.text}}>{v}</span></div>
           ))}
         </Card>;
       })}
@@ -89,9 +89,9 @@ function PerformancePage(){
               <div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||p.content?.slice(0,40)||"–"}</div>
               <div style={{display:"flex",gap:3,marginTop:2}}>{p.channels?.map(c=><ChIco key={c} id={c} size={11}/>)}</div>
             </div>
-            <div style={{display:"flex",gap:14,fontSize:12,flexShrink:0}}>
-              <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{(p.reach/1000).toFixed(1)}K</div><div style={{color:C.textMute,fontSize:10}}>Reach</div></div>
-              <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{p.eng}</div><div style={{color:C.textMute,fontSize:10}}>Eng.</div></div>
+            <div style={{display:"flex",gap:14,...TYPO.caption,flexShrink:0}}>
+              <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{(p.reach/1000).toFixed(1)}K</div><div style={{...TYPO.nano,color:C.textMute}}>Reach</div></div>
+              <div style={{textAlign:"center"}}><div style={{fontWeight:700}}>{p.eng}</div><div style={{...TYPO.nano,color:C.textMute}}>Eng.</div></div>
             </div>
           </div>
         ))}
@@ -101,8 +101,8 @@ function PerformancePage(){
 
   const widgetMap={
     stats:{title:'Übersicht',right:perRight,content:statsContent},
-    channels:{title:'Kanäle',right:<span style={{fontSize:11,color:C.textMute}}>{CHANNELS.length} Kanäle</span>,content:channelsContent},
-    posts:{title:'Top Posts',right:<span style={{fontSize:11,color:C.textMute}}>{top.length} Posts</span>,content:topPostsContent},
+    channels:{title:'Kanäle',right:<span style={{...TYPO.caption,color:C.textMute}}>{CHANNELS.length} Kanäle</span>,content:channelsContent},
+    posts:{title:'Top Posts',right:<span style={{...TYPO.caption,color:C.textMute}}>{top.length} Posts</span>,content:topPostsContent},
   };
 
   return(

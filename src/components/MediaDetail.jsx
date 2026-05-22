@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { BarChart2, Check, X, FileText, Tag, MapPin, Sparkles } from "lucide-react";
-import { C, FONT, IW } from "../constants/colors.js";
+import { C, T, FONT, IW, TYPO } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { AI } from "../utils/store.js";
 import { Sp, Btn, Card, FL, TIn } from "./ui/index.jsx";
@@ -56,7 +56,7 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
 
         {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 18px",borderBottom:`1px solid ${C.borderLight}`,flexShrink:0}}>
-          <div style={{fontWeight:800,fontSize:15,color:C.text}}>Medien-Details</div>
+          <div style={{...TYPO.title}}>Medien-Details</div>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMute,cursor:"pointer"}}><X size={20} strokeWidth={2}/></button>
         </div>
 
@@ -115,7 +115,7 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
               {/* AI subjects detected */}
               {aiData?.subjects?.length>0&&(
                 <div style={{padding:"8px 10px",background:"#fff",borderRadius:8,border:`1px solid ${C.border}`}}>
-                  <div style={{fontSize:10,fontWeight:700,color:C.textMute,marginBottom:5,letterSpacing:".04em"}}>ERKANNTE ELEMENTE</div>
+                  <div style={{...TYPO.nano,marginBottom:5}}>Erkannte Elemente</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                     {aiData.subjects.map((s,i)=>(
                       <span key={i} style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:`${C.ai1}15`,color:C.purple,fontWeight:600,border:`1px solid ${C.ai1}30`}}>{s}</span>
@@ -145,7 +145,7 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
             {/* Tab bar */}
             <div style={{display:"flex",borderBottom:`1px solid ${C.borderLight}`,background:C.bg,flexShrink:0}}>
               {[["meta","📝 Metadaten"],["score","📊 Bild-Score"],["platforms","📱 Plattform-Fit"]].map(([id,label])=>(
-                <button key={id} onClick={()=>setActiveTab(id)} style={{padding:"10px 16px",border:"none",borderBottom:`2px solid ${activeTab===id?C.accent:"transparent"}`,background:"transparent",color:activeTab===id?C.accent:C.textMid,fontWeight:activeTab===id?700:500,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}}>
+                <button key={id} onClick={()=>setActiveTab(id)} style={{padding:"10px 16px",border:"none",borderBottom:`2px solid ${activeTab===id?C.accent:"transparent"}`,background:"transparent",color:activeTab===id?C.accent:C.textMid,fontWeight:activeTab===id?700:500,...TYPO.caption,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}}>
                   {label}
                 </button>
               ))}
@@ -218,9 +218,9 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
                     {/* Improvements */}
                     {aiData.improvements?.length>0&&(
                       <div style={{padding:"10px 12px",background:`${C.ai1}08`,borderRadius:9,border:`1px solid ${C.ai1}25`}}>
-                        <div style={{fontSize:10.5,fontWeight:700,color:C.purple,marginBottom:7,letterSpacing:".04em"}}>💡 VERBESSERUNGEN</div>
+                        <div style={{...TYPO.nano,color:C.purple,marginBottom:7}}>💡 Verbesserungen</div>
                         {aiData.improvements.map((tip,i)=>(
-                          <div key={i} style={{fontSize:12,color:C.textMid,display:"flex",gap:6,marginBottom:5,lineHeight:1.5}}>
+                          <div key={i} style={{...TYPO.caption,color:C.textMid,display:"flex",gap:6,marginBottom:5,lineHeight:1.5}}>
                             <span style={{color:C.ai1,flexShrink:0,fontWeight:700}}>{i+1}.</span>{tip}
                           </div>
                         ))}

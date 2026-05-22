@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Eye, BookOpen, Sparkles, Search, Calendar, Image, FileText, Send, ChevronDown, X, Check, Upload, Edit2, Save } from "lucide-react";
-import { C, T, CSS, FONT, IW } from "../constants/colors.js";
+import { C, T, CSS, FONT, IW, TYPO } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { uid, fpos } from "../utils/store.js";
 import { AI } from "../utils/store.js";
@@ -118,7 +118,7 @@ export default function Editor(){
 
             {/* Kanäle */}
             <div>
-              <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginBottom:5,letterSpacing:".02em"}}>Kanäle</div>
+              <div style={{...TYPO.nano,marginBottom:5}}>Kanäle</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                 {CHANNELS.map(c=>(
                   <button key={c.id} onClick={()=>togCh(c.id)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:8,border:`1.5px solid ${form.channels?.includes(c.id)?c.color:C.border}`,background:form.channels?.includes(c.id)?c.color+"12":C.bg,color:form.channels?.includes(c.id)?c.color:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}}>
@@ -131,7 +131,7 @@ export default function Editor(){
             {/* Kampagne */}
             {campaigns?.length>0&&(
               <div>
-                <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginBottom:5,letterSpacing:".02em"}}>Kampagne (optional)</div>
+                <div style={{...TYPO.nano,marginBottom:5}}>Kampagne (optional)</div>
                 <div style={{position:"relative",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,overflow:"hidden"}}>
                   <select value={form.campaignId||""} onChange={e=>setForm(f=>({...f,campaignId:e.target.value||null}))} style={{width:"100%",padding:"8px 12px",border:"none",background:"transparent",fontSize:13,fontFamily:FONT,color:C.text,outline:"none",appearance:"none",cursor:"pointer"}}>
                     <option value="">— Keine Kampagne —</option>
@@ -165,7 +165,7 @@ export default function Editor(){
 
             {/* Mediendatei */}
             <div>
-              <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginBottom:5,letterSpacing:".02em"}}>Mediendatei</div>
+              <div style={{...TYPO.nano,marginBottom:5}}>Mediendatei</div>
               {media?(
                 <div style={{display:"flex",gap:10,alignItems:"center",background:C.bg,borderRadius:8,padding:"8px 12px",border:`1px solid ${C.border}`}}>
                   <img src={media.url} alt="" style={{width:44,height:44,objectFit:"cover",objectPosition:fpos(media),borderRadius:6,flexShrink:0}}/>
@@ -196,7 +196,7 @@ export default function Editor(){
               <div>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                   <div style={{flex:1,height:1,background:C.borderLight}}/>
-                  <span style={{fontSize:10,fontWeight:600,color:C.textMute,letterSpacing:".04em",flexShrink:0}}>Kanal-Anpassung</span>
+                  <span style={{...TYPO.nano,flexShrink:0}}>Kanal-Anpassung</span>
                   <div style={{flex:1,height:1,background:C.borderLight}}/>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>

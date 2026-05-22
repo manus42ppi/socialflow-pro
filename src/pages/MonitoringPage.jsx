@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useApp } from "../context/AppContext.jsx";
-import { C, FONT } from "../constants/colors.js";
+import { C, T, FONT, TYPO } from "../constants/colors.js";
 import { storeGet, storeSet, uid } from "../utils/store.js";
 import { igMonitor } from "../utils/store.js";
 import {
@@ -222,19 +222,19 @@ function AccountCard({ account, onRefresh, onRemove, onUseAsInspiration }) {
           {/* Stats row */}
           <div style={{ display: "flex", gap: 16, marginTop: 4, flexWrap: "wrap" }}>
             {account.profile?.followersCount != null && (
-              <span style={{ display: "flex", alignItems: "center", gap: 4, color: C.textMid, fontSize: 12, fontFamily: FONT }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 4, ...TYPO.caption, color: C.textMid }}>
                 <Users size={12} strokeWidth={IW} />
                 {fmtK(account.profile.followersCount)} Follower
               </span>
             )}
             {account.profile?.mediaCount != null && (
-              <span style={{ display: "flex", alignItems: "center", gap: 4, color: C.textMid, fontSize: 12, fontFamily: FONT }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 4, ...TYPO.caption, color: C.textMid }}>
                 <Instagram size={12} strokeWidth={IW} />
                 {account.profile.mediaCount} Posts
               </span>
             )}
             {account.lastFetched && (
-              <span style={{ color: C.textMute, fontSize: 11, fontFamily: FONT }}>
+              <span style={{ ...TYPO.caption, color: C.textMute }}>
                 Aktualisiert {timeAgo(account.lastFetched)}
               </span>
             )}
@@ -548,7 +548,7 @@ export default function MonitoringPage() {
         {/* Info note */}
         <div style={{
           marginTop: 12, display: "flex", alignItems: "flex-start", gap: 7,
-          color: C.textMute, fontSize: 11,
+          ...TYPO.caption, color: C.textMute,
         }}>
           <Info size={12} strokeWidth={IW} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>

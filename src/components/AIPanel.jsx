@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BarChart2, Zap, Edit2, Hash, Layers, Sparkles, Check, X } from "lucide-react";
-import { C, T, FONT, IW } from "../constants/colors.js";
+import { C, T, FONT, IW, TYPO } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { AI } from "../utils/store.js";
 import { Sp, Btn } from "./ui/index.jsx";
@@ -36,8 +36,8 @@ function ScoreBar({label,score,hint}){
   return(
     <div style={{marginBottom:10}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-        <span style={{fontSize:11,fontWeight:700,color:C.textMid}}>{label}</span>
-        <span style={{fontSize:11,fontWeight:800,color:barColor}}>{score}/25</span>
+        <span style={{...TYPO.caption,fontWeight:700,color:C.textMid}}>{label}</span>
+        <span style={{...TYPO.caption,fontWeight:800,color:barColor}}>{score}/25</span>
       </div>
       <div style={{height:5,borderRadius:3,background:C.borderLight,overflow:"hidden",marginBottom:3}}>
         <div style={{height:"100%",width:`${pct}%`,borderRadius:3,background:barColor,transition:"width .6s ease"}}/>
@@ -113,7 +113,7 @@ export default function AIPanel({content,chId,onApply,onApplyHT}){
       {/* ── Emoji strip ── */}
       {emojis.length>0&&(
         <div style={{padding:"7px 12px",background:"#fff",borderBottom:`1px solid ${C.border}`,display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
-          <span style={{fontSize:10,fontWeight:700,color:C.textMute,marginRight:2}}>EMOJIS:</span>
+          <span style={{...TYPO.nano,marginRight:2}}>Emojis:</span>
           {emojis.map((e,i)=>(
             <button key={i} onClick={()=>copy(e,`e${i}`)} style={{fontSize:16,background:copied===`e${i}`?"#f0fdf4":C.bg,border:`1px solid ${copied===`e${i}`?C.success:C.border}`,borderRadius:6,padding:"2px 5px",cursor:"pointer"}}>
               {copied===`e${i}`?<Check size={10} color={C.success} strokeWidth={3}/>:e}
@@ -145,7 +145,7 @@ export default function AIPanel({content,chId,onApply,onApplyHT}){
         {/* Tone selector (opt tab only) */}
         {tab==="opt"&&(
           <div>
-            <div style={{fontSize:10,fontWeight:700,color:C.textMute,marginBottom:5,letterSpacing:".04em"}}>TON</div>
+            <div style={{...TYPO.nano,marginBottom:5}}>Ton</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
               {TONES.map(t=>(
                 <button key={t.id} onClick={()=>setTone(t.id)} style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${tone===t.id?C.purple:C.border}`,background:tone===t.id?C.purpleGlow:"#fff",color:tone===t.id?C.purple:C.textMid,fontSize:10.5,fontWeight:600,cursor:"pointer",fontFamily:FONT,display:"flex",alignItems:"center",gap:3}}>
@@ -191,11 +191,11 @@ export default function AIPanel({content,chId,onApply,onApplyHT}){
         {tab==="rewrite"&&rewriteData&&(
           <div style={{animation:"fadeUp .25s ease",display:"flex",flexDirection:"column",gap:8}}>
             <div style={{background:"#fff",borderRadius:10,padding:"12px 14px",border:`1px solid ${C.border}`}}>
-              <div style={{fontSize:9.5,fontWeight:700,color:C.textMute,marginBottom:7,letterSpacing:".05em"}}>REWRITE FÜR {ch.label.toUpperCase()}</div>
+              <div style={{...TYPO.nano,marginBottom:7}}>Rewrite für {ch.label}</div>
               <div style={{fontSize:12.5,lineHeight:1.7,color:C.textMid}}>{rewriteData.rewritten}</div>
               {rewriteData.changes?.length>0&&(
                 <div style={{marginTop:10,paddingTop:8,borderTop:`1px solid ${C.borderLight}`}}>
-                  <div style={{fontSize:9.5,fontWeight:700,color:C.textMute,marginBottom:5,letterSpacing:".05em"}}>ÄNDERUNGEN</div>
+                  <div style={{...TYPO.nano,marginBottom:5}}>Änderungen</div>
                   {rewriteData.changes.map((c,i)=>(
                     <div key={i} style={{fontSize:11,color:C.textSoft,display:"flex",gap:5,marginBottom:3}}>
                       <span style={{color:C.success,flexShrink:0}}>✓</span>{c}
@@ -214,7 +214,7 @@ export default function AIPanel({content,chId,onApply,onApplyHT}){
         {/* ── HOOKS result ── */}
         {tab==="hook"&&hooks.length>0&&(
           <div style={{animation:"fadeUp .25s ease",display:"flex",flexDirection:"column",gap:6}}>
-            <div style={{fontSize:9.5,fontWeight:700,color:C.textMute,letterSpacing:".05em"}}>HOOK-VORSCHLÄGE</div>
+            <div style={{...TYPO.nano}}>Hook-Vorschläge</div>
             {hooks.map((h,i)=>(
               <div key={i} style={{background:"#fff",borderRadius:9,padding:"9px 12px",border:`1px solid ${C.border}`}}>
                 <div style={{fontSize:10,fontWeight:700,color:C.purple,marginBottom:4,letterSpacing:".04em"}}>{h.type?.toUpperCase()}</div>
@@ -230,7 +230,7 @@ export default function AIPanel({content,chId,onApply,onApplyHT}){
         {/* ── OPT / HT text result ── */}
         {res&&(
           <div style={{background:"#fff",borderRadius:9,padding:"11px 13px",border:`1px solid ${C.border}`,fontSize:12.5,lineHeight:1.65,color:C.textMid,animation:"fadeUp .25s ease"}}>
-            <div style={{fontSize:9.5,fontWeight:700,color:C.textMute,marginBottom:6,letterSpacing:".05em"}}>ERGEBNIS</div>
+            <div style={{...TYPO.nano,marginBottom:6}}>Ergebnis</div>
             <div>{res}</div>
             <div style={{marginTop:9,display:"flex",gap:6,flexWrap:"wrap"}}>
               <Btn size="sm" variant="success" onClick={()=>{(tab==="ht"?onApplyHT:onApply)(res);setRes("");}}><Check size={11} strokeWidth={2.5}/>Übernehmen</Btn>
@@ -265,7 +265,7 @@ export default function AIPanel({content,chId,onApply,onApplyHT}){
         {/* ── IDEAS ── */}
         {ideas.length>0&&(
           <div style={{display:"flex",flexDirection:"column",gap:7,animation:"fadeUp .25s ease"}}>
-            <div style={{fontSize:9.5,fontWeight:700,color:C.textMute,letterSpacing:".05em"}}>CONTENT-IDEEN</div>
+            <div style={{...TYPO.nano}}>Content-Ideen</div>
             {ideas.map((idea,i)=>(
               <div key={i} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,cursor:"pointer",transition:"border-color .15s"}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.purple+"50"}

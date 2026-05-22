@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, List, Grid, Filter, MoreHorizontal, Check, X, BarChart2 } from "lucide-react";
-import { C, T, FONT, IW, CSS } from "../constants/colors.js";
+import { C, T, FONT, IW, CSS, TYPO } from "../constants/colors.js";
 import { CHANNELS, DEMO_POSTS } from "../constants/demo.js";
 import { fmtDate } from "../utils/store.js";
 import { Sp, Badge, Btn, FL } from "../components/ui/index.jsx";
@@ -28,23 +28,7 @@ const K = {
   indigoSoft:T.brand50,
   indigoMid: T.brand500,
   rowHover:  T.brand25,
-  tagColors:[
-    {bg:"#FFF3E0",color:"#E65100",border:"#FFCC80"},
-    {bg:"#E8F5E9",color:"#2E7D32",border:"#A5D6A7"},
-    {bg:"#E3F2FD",color:"#1565C0",border:"#90CAF9"},
-    {bg:"#F3E5F5",color:"#6A1B9A",border:"#CE93D8"},
-    {bg:"#FCE4EC",color:"#C62828",border:"#F48FB1"},
-    {bg:"#E0F7FA",color:"#006064",border:"#80DEEA"},
-  ],
 };
-
-// Assign stable color per channel
-const CH_COLOR_MAP={instagram:0,twitter:1,linkedin:2,facebook:3,whatsapp:4};
-
-function KTag({label,colorIdx=0}){
-  const t=K.tagColors[colorIdx%K.tagColors.length];
-  return <span style={{display:"inline-flex",alignItems:"center",padding:"2px 8px",borderRadius:5,background:t.bg,color:t.color,border:`1px solid ${t.border}`,fontSize:10.5,fontWeight:700,whiteSpace:"nowrap",letterSpacing:".01em"}}>{label}</span>;
-}
 
 function CalendarPage(){
   const { posts: allPosts, setEdPost: onEdit, currentWorkspaceId } = useApp();
@@ -89,7 +73,8 @@ function CalendarPage(){
     return acc;
   },{});
 
-  const STATUS_COLOR={scheduled:K.tagColors[1],draft:K.tagColors[0],pending:K.tagColors[2],published:K.tagColors[3]};
+  const STATUS_DOT={scheduled:T.success500,draft:T.gray400,pending:T.warning500,published:T.brand600};
+  const STATUS_TEXT={scheduled:T.successText,draft:T.gray600,pending:T.warningText,published:T.brand600};
   const STATUS_LABEL={scheduled:"Geplant",draft:"Entwurf",pending:"Freigabe",published:"Live"};
   const STATUS_BAR={scheduled:T.success500,draft:T.warning500,pending:T.brand600,published:T.brand500};
 
@@ -118,7 +103,7 @@ function CalendarPage(){
           padding:"8px 16px 8px 0", position:"sticky", top:0, zIndex:2,
         }}>
           {["","Datum","Uhrzeit","Beschreibung","Kanäle","Status"].map((h,i)=>(
-            <div key={i} style={{fontSize:10.5,fontWeight:700,color:K.navyMute,letterSpacing:".06em",paddingLeft:i===0?0:8}}>{h}</div>
+            <div key={i} style={{...TYPO.nano,paddingLeft:i===0?0:8}}>{h}</div>
           ))}
         </div>
 
@@ -182,20 +167,18 @@ function CalendarPage(){
                       {p.content&&<div style={{fontSize:11.5,color:K.navySoft,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",opacity:.8}}>{p.content.slice(0,60)}{p.content.length>60?"…":""}</div>}
                     </div>
                     {/* Channels */}
-                    <div style={{paddingLeft:8,display:"flex",flexWrap:"wrap",gap:3}}>
-                      {p.channels?.slice(0,3).map(c=>(
-                        <KTag key={c} label={CHANNELS.find(ch=>ch.id===c)?.label||c} colorIdx={CH_COLOR_MAP[c]||0}/>
+                    <div style={{paddingLeft:8,display:"flex",gap:3,alignItems:"center"}}>
+                      {p.channels?.slice(0,4).map(c=>(
+                        <ChIco key={c} id={c} size={12}/>
                       ))}
-                      {(p.channels?.length||0)>3&&<KTag label={`+${p.channels.length-3}`} colorIdx={5}/>}
+                      {(p.channels?.length||0)>4&&<span style={{...TYPO.caption,color:C.textMute}}>+{p.channels.length-4}</span>}
                     </div>
                     {/* Status */}
                     <div style={{paddingLeft:8}}>
-                      {(()=>{const sc=STATUS_COLOR[p.status]||K.tagColors[0];return(
-                        <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"3px 9px",borderRadius:5,background:sc.bg,color:sc.color,border:`1px solid ${sc.border}`,fontSize:10.5,fontWeight:700}}>
-                          <div style={{width:6,height:6,borderRadius:"50%",background:sc.color,flexShrink:0}}/>
-                          {STATUS_LABEL[p.status]||p.status}
-                        </span>
-                      );})()}
+                      <span style={{display:"inline-flex",alignItems:"center",gap:5,...TYPO.caption,color:STATUS_TEXT[p.status]||T.gray500}}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:STATUS_DOT[p.status]||T.gray400,flexShrink:0,display:"inline-block"}}/>
+                        {STATUS_LABEL[p.status]||p.status}
+                      </span>
                     </div>
                   </div>
                 );
@@ -219,8 +202,8 @@ function CalendarPage(){
           {WEEKDAYS_SHORT.map((d,i)=>(
             <div key={d} style={{
               padding:"8px 0",textAlign:"center",
-              fontSize:11,fontWeight:700,color:i>=5?K.indigo:K.navyMute,
-              letterSpacing:".06em",background:K.bg,
+              ...TYPO.nano,color:i>=5?K.indigo:K.navyMute,
+              background:K.bg,
               borderRight:i<6?`1px solid ${K.border}`:"none",
             }}>{d}</div>
           ))}
@@ -290,12 +273,12 @@ function CalendarPage(){
       </div>
       <button onClick={goToday} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${K.border}`,background:K.surface,color:K.navySoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}} onMouseEnter={e=>{e.currentTarget.style.background=K.indigoSoft;e.currentTarget.style.color=K.indigo;e.currentTarget.style.borderColor=K.indigo;}} onMouseLeave={e=>{e.currentTarget.style.background=K.surface;e.currentTarget.style.color=K.navySoft;e.currentTarget.style.borderColor=K.border;}}>Heute</button>
       <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
-        <div style={{fontSize:12,color:K.navySoft,display:"flex",alignItems:"center",gap:4}}>
+        <div style={{...TYPO.caption,color:K.navySoft,display:"flex",alignItems:"center",gap:4}}>
           <span style={{fontWeight:700,color:K.indigo}}>{monthPosts.length}</span> Posts im {MONTH_NAMES[cur.m]}
         </div>
         <div style={{display:"flex",gap:1,background:K.bg,borderRadius:7,padding:3,border:`1px solid ${K.border}`}}>
           {[["month","Monat",Calendar],["agenda","Agenda",BarChart2]].map(([v,l,Ic])=>(
-            <button key={v} onClick={()=>setViewMode(v)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:5,border:"none",background:viewMode===v?K.surface:"transparent",color:viewMode===v?K.navy:K.navySoft,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,boxShadow:viewMode===v?"0 1px 3px rgba(26,35,64,.08)":"none",transition:"all .15s"}}>
+            <button key={v} onClick={()=>setViewMode(v)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:5,border:"none",background:viewMode===v?K.surface:"transparent",color:viewMode===v?K.navy:K.navySoft,fontWeight:600,...TYPO.caption,cursor:"pointer",fontFamily:FONT,boxShadow:viewMode===v?"0 1px 3px rgba(26,35,64,.08)":"none",transition:"all .15s"}}>
               <Ic size={13} strokeWidth={2}/>{l}
             </button>
           ))}
@@ -306,11 +289,11 @@ function CalendarPage(){
 
   const legendStrip=(
     <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10,flexWrap:"wrap"}}>
-      <span style={{fontSize:10.5,fontWeight:700,color:K.navyMute,letterSpacing:".05em"}}>STATUS:</span>
-      {Object.entries(STATUS_COLOR).map(([s,t])=>(
+      <span style={{...TYPO.nano}}>Status:</span>
+      {Object.entries(STATUS_DOT).map(([s,dot])=>(
         <div key={s} style={{display:"flex",alignItems:"center",gap:4}}>
-          <div style={{width:8,height:8,borderRadius:2,background:t.color,opacity:.8}}/>
-          <span style={{fontSize:10.5,color:K.navySoft,fontWeight:600}}>{STATUS_LABEL[s]}</span>
+          <span style={{width:7,height:7,borderRadius:"50%",background:dot,display:"inline-block"}}/>
+          <span style={{...TYPO.caption,color:STATUS_TEXT[s]||C.textSoft}}>{STATUS_LABEL[s]}</span>
         </div>
       ))}
     </div>
