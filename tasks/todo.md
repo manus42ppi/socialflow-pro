@@ -41,6 +41,25 @@
 
 ---
 
+## Infrastruktur / Skalierung (wenn nötig)
+
+- 📋 **Medien-Upload auf Cloudflare R2 migrieren**  
+  Aktuell: Bilder als Base64 direkt im KV-Value → 25 MB KV-Limit, kein CDN.  
+  Ziel: Upload → R2 Object Storage, KV speichert nur URL.  
+  Kosten: 10 GB/Monat kostenlos, Egress immer kostenlos (kein S3-Egress-Problem).  
+  Aufwand: `functions/store.js` + `uploadItem` in AppContext anpassen.
+
+- 📋 **Datenhaltung auf Cloudflare D1 migrieren (bei echtem Multi-Tenant)**  
+  Aktuell: Cloudflare KV (Key-Value, user-isoliert, kein Sharing zwischen Usern).  
+  Problem bei Wachstum: Workspace-Trennung ist nur Frontend-logisch, kein DB-seitiger Zugriff,  
+  kein Filtern/Suchen serverseitig — immer kompletter Array-Load.  
+  Ziel: D1 (SQLite-kompatibel) mit echten Workspace-Tabellen + Row-Level-Security.  
+  Kosten D1 Free: 5 GB Storage, 25 Mio. Reads/Tag, 100.000 Writes/Tag — dauerhaft kostenlos  
+  für Agentur-Größe. Workers Paid Plan (5 $/Monat) erst bei ernsthafter Skalierung nötig.  
+  Voraussetzung: Erst angehen wenn echter User-Sharing oder >1 Agentur-Mandant live geht.
+
+---
+
 ## Technische Schulden
 
 - 📋 **Build-Chunk-Größe reduzieren**  
