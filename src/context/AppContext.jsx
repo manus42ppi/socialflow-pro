@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_PROJECTS, DEMO_PRODUCTS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { uid, storeGet, storeSet, storeDelete } from "../utils/store.js";
@@ -42,7 +43,10 @@ export function AppProvider({ children }) {
   };
 
   // ── Routing ───────────────────────────────────────────────────────────────
-  const [nav, setNav] = useState("dashboard");
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Derive nav from URL (backwards-compatible: /publisher → "publisher", / → "dashboard")
+  const nav = location.pathname.slice(1) || "dashboard";
 
   // ── Data state ────────────────────────────────────────────────────────────
   const [posts, setPosts] = useState(DEMO_POSTS);
@@ -364,9 +368,9 @@ export function AppProvider({ children }) {
   , [items, currentWorkspaceId]);
 
   // ── Navigation actions ────────────────────────────────────────────────────
-  const goNav = n => { setNav(n); setFilt("all"); setChFilt("all"); };
-  const goFilter = (pg, f) => { setNav(pg); setFilt(f); setChFilt("all"); };
-  const goChNav = chId => { setNav("publisher"); setFilt("all"); setChFilt(chId); };
+  const goNav = n => { setFilt("all"); setChFilt("all"); navigate("/" + n); };
+  const goFilter = (pg, f) => { setFilt(f); setChFilt("all"); navigate("/" + pg); };
+  const goChNav = chId => { setFilt("all"); setChFilt(chId); navigate("/publisher"); };
 
   // ── Post actions ──────────────────────────────────────────────────────────
   const save = p => {

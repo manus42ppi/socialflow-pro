@@ -1,3 +1,4 @@
+import { Routes, Route } from "react-router-dom";
 import { C, FONT, CSS } from "./constants/colors.js";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import Login from "./components/Login.jsx";
@@ -66,26 +67,29 @@ function AppShell() {
           <TopBar title={TITLE[nav] || "SocialFlow"} />
           <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              {nav === "dashboard"      && <Dashboard />}
-              {nav === "publisher"      && <PublisherPage />}
-              {nav === "trash"          && <TrashPage />}
-              {nav === "campaigns"      && <CampaignsPage />}
-              {nav === "media"          && <MediaPage />}
-              {nav === "calendar"       && <CalendarPage />}
-              {nav === "planner"        && <PlannerPage />}
-              {nav === "performance"    && <PerformancePage />}
-              {nav === "monitoring"     && <MonitoringPage />}
-              {nav === "trends"         && <TrendsPage />}
-              {nav === "domain-analyse" && <DomainAnalysePage />}
-              {nav === "wettbewerber"   && <WettbewerberPage />}
-              {nav === "content-audit"  && <ContentAuditPage />}
-              {nav === "structure-audit"&& <StructureAuditPage />}
-              {nav === "social-intel"   && <SocialIntelligencePage />}
-              {nav === "stories"        && <StoriesPage />}
-              {nav === "produkte"       && <ProductsPage />}
-              {nav === "admin"          && <AdminPage />}
-              {nav === "ugc"            && <UGCPortalPage />}
-              {nav === "voodoo"         && <VoodooPage />}
+              <Routes>
+                <Route path="/"                element={<Dashboard />} />
+                <Route path="/publisher"       element={<PublisherPage />} />
+                <Route path="/trash"           element={<TrashPage />} />
+                <Route path="/campaigns"       element={<CampaignsPage />} />
+                <Route path="/media"           element={<MediaPage />} />
+                <Route path="/calendar"        element={<CalendarPage />} />
+                <Route path="/planner"         element={<PlannerPage />} />
+                <Route path="/performance"     element={<PerformancePage />} />
+                <Route path="/monitoring"      element={<MonitoringPage />} />
+                <Route path="/trends"          element={<TrendsPage />} />
+                <Route path="/domain-analyse"  element={<DomainAnalysePage />} />
+                <Route path="/wettbewerber"    element={<WettbewerberPage />} />
+                <Route path="/content-audit"   element={<ContentAuditPage />} />
+                <Route path="/structure-audit" element={<StructureAuditPage />} />
+                <Route path="/social-intel"    element={<SocialIntelligencePage />} />
+                <Route path="/stories"         element={<StoriesPage />} />
+                <Route path="/produkte"        element={<ProductsPage />} />
+                <Route path="/admin"           element={<AdminPage />} />
+                <Route path="/ugc"             element={<UGCPortalPage />} />
+                <Route path="/voodoo"          element={<VoodooPage />} />
+                <Route path="*"               element={<Dashboard />} />
+              </Routes>
             </div>
             <GlobalRightSidebar />
           </div>
