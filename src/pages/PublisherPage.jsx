@@ -233,6 +233,7 @@ export default function PublisherPage() {
         )}
 
         {/* Status filter — segment style */}
+        <span style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".06em",flexShrink:0}}>STATUS:</span>
         <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
           {[
             ["all",       "Alle",           null,      livePosts.length],
@@ -265,6 +266,7 @@ export default function PublisherPage() {
           <div style={{ width: 1, height: 24, background: C.border, margin: "0 14px", flexShrink: 0 }} />
 
           {/* Channel filter — compact pills with icon + label */}
+          <span style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".06em",flexShrink:0}}>KANAL:</span>
           <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
             {["all", ...usedChs].map(cid => {
               const ch = CHANNELS.find(x => x.id === cid);

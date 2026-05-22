@@ -34,25 +34,26 @@
   nur wenn fmode aktiv. Fängt Klicks zuverlässig ab — auch wenn Farbpalette-Strip oder andere  
   absolute Kinder Events blockieren würden.
 
-- 📋 **K-3: Voodoo Spark Dev-Mode Hinweis**  
-  "HTTP 404" statt erklärendem Text wenn Wrangler nicht läuft.  
-  Fix: `if (import.meta.env.DEV)` → Info-Banner "Starte Wrangler für lokale AI-Tests".
+- ✅ **K-3: Voodoo Spark Dev-Mode Hinweis** (Mai 2026)  
+  `aiCall` + `aiCallStream` prüfen jetzt `import.meta.env.DEV && status===404` und werfen  
+  eine erklärende Fehlermeldung statt "HTTP 404".
 
 - 📋 **H-1: Clerk Login-Branding**  
   "Sign in to My Application" → Clerk Dashboard: App-Name auf "SocialFlow Pro" setzen.
 
-- 📋 **H-2: Publisher Filter-Labels**  
-  Zwei Filterzeilen beide mit "Alle" ohne Label. → "KANAL:" und "STATUS:" als Prefix hinzufügen.
+- ✅ **H-2: Publisher Filter-Labels** (Mai 2026)  
+  "STATUS:" und "KANAL:" Prefix-Labels vor den jeweiligen Filter-Gruppen hinzugefügt.
 
-- 📋 **H-4: Story-Editor Workspace-Name falsch**  
-  "WEBSITE · PPI N3XT" hardcoded. Fix: dynamisch aus `story.workspaceId` → `workspace.name`.
+- ✅ **H-4: Story-Editor Workspace-Name falsch** (Mai 2026)  
+  `WebsitePanel` erhält neuen Prop `workspaceName` aus `currentWorkspace?.name`.  
+  Label zeigt jetzt dynamisch den echten Workspace-Namen.
 
-- 📋 **H-6: Kampagnen Tab-Overflow**  
-  "Abgeschlossen" rutscht auf zweite Zeile. Fix: `overflow-x:auto; white-space:nowrap` auf Tab-Container.
+- ✅ **H-6: Kampagnen Tab-Overflow** (Mai 2026)  
+  `flexWrap:"nowrap"` + `overflowX:"auto"` auf Status-Filter-Container. Tabs scrollen horizontal.
 
-- 📋 **M-10: Voodoo Live-Seite Race Condition**  
-  Beim Klick auf ein Live-Projekt zeigt Live-Seite kurz "Nicht generiert".  
-  Fix: `useEffect([]){if(project.generatedHtml && status==='live') setTab('site')}` on mount.
+- ✅ **M-10: Voodoo Live-Seite Race Condition** (Mai 2026)  
+  `useState` lazy initializer: startet direkt auf "site"-Tab wenn `project.generatedHtml && status==="live"`.  
+  Kein Flash mehr beim Öffnen eines Live-Projekts.
 
 ---
 

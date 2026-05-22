@@ -213,7 +213,7 @@ const SLASH_ORDER = [
 
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function StoryEditorModal() {
-  const { edStory: story, items, posts, updateStory, lockStory, unlockStory, setEdStory, setPosts, user, projects, uploadItem, updateItem, currentWorkspaceId } = useApp();
+  const { edStory: story, items, posts, updateStory, lockStory, unlockStory, setEdStory, setPosts, user, projects, uploadItem, updateItem, currentWorkspaceId, currentWorkspace } = useApp();
   const onClose = () => {
     if (story.id) unlockStory(story.id);
     setEdStory(null);
@@ -1033,6 +1033,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   onPublishSuccess={handleWebPublishSuccess}
                   isOpen={sOpen("website")}
                   onToggle={() => toggleSection("website")}
+                  workspaceName={currentWorkspace?.name}
                 />
               )}
 

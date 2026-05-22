@@ -852,7 +852,7 @@ export default function CampaignsPage() {
           borderRight:`1px solid ${C.borderLight}`, overflow:"hidden" }}>
 
           {/* Status filter pills */}
-          <div style={{ padding:"10px 14px", borderBottom:`1px solid ${C.borderLight}`, display:"flex", gap:4, flexWrap:"wrap" }}>
+          <div style={{ padding:"10px 14px", borderBottom:`1px solid ${C.borderLight}`, display:"flex", gap:4, flexWrap:"nowrap", overflowX:"auto" }}>
             {[["all","Alle"],["active","Aktiv"],["planned","Geplant"],["draft","Entwurf"],["completed","Abgeschlossen"]].map(([v,l]) => (
               <button key={v} onClick={() => setFilter(v)}
                 style={{ padding:"4px 10px", borderRadius:16, cursor:"pointer", fontFamily:FONT,

@@ -15,7 +15,11 @@ export async function aiCall(messages, max_tokens=800, tools=null) {
     body:JSON.stringify(body),
   });
   const data = await r.json();
-  if(!r.ok) throw new Error(data?.error?.message||`HTTP ${r.status}`);
+  if(!r.ok){
+    if(import.meta.env.DEV && r.status===404)
+      throw new Error("Wrangler nicht gestartet – starte `npx wrangler pages dev dist` für lokale AI-Tests.");
+    throw new Error(data?.error?.message||`HTTP ${r.status}`);
+  }
   return data.content?.[0]?.text||"";
 }
 export const parseJSON = raw => { try{return JSON.parse(raw.replace(/```json|```/g,"").trim());}catch{return null;} };
@@ -35,6 +39,8 @@ async function _aiStreamOnce(messages, max_tokens, onChunk, tools) {
   });
   if (!r.ok) {
     const data = await r.json().catch(() => ({}));
+    if(import.meta.env.DEV && r.status===404)
+      throw new Error("Wrangler nicht gestartet – starte `npx wrangler pages dev dist` für lokale AI-Tests.");
     throw new Error(data?.error?.message || `HTTP ${r.status}`);
   }
   const reader = r.body.getReader();

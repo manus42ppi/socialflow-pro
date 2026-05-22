@@ -300,7 +300,8 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
   const { uploadItem, updateItem, currentWorkspaceId, setSparkJob } = useApp();
 
   const [form, setForm] = useState({ ...project });
-  const [tab, setTab] = useState("content"); // "content" | "site"
+  // Start on "site" tab if project is already live — avoids flash of "Nicht generiert"
+  const [tab, setTab] = useState(() => project.generatedHtml && project.status === "live" ? "site" : "content");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [urlInput, setUrlInput] = useState("");
   const [urlLabel, setUrlLabel] = useState("");

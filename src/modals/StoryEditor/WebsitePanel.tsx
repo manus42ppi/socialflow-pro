@@ -33,9 +33,10 @@ interface WebsitePanelProps {
   onPublishSuccess: (slug: string, webPublishedAt: string, webUpdatedAt: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  workspaceName?: string;
 }
 
-export default function WebsitePanel({ form, pushToWebsite, onPublishSuccess, isOpen, onToggle }: WebsitePanelProps) {
+export default function WebsitePanel({ form, pushToWebsite, onPublishSuccess, isOpen, onToggle, workspaceName }: WebsitePanelProps) {
   const [webPublishing, setWebPublishing] = useState(false);
   const [webPublished, setWebPublished] = useState<{ slug?: string; url?: string; error?: string } | null>(
     form.webSlug
@@ -83,7 +84,7 @@ export default function WebsitePanel({ form, pushToWebsite, onPublishSuccess, is
 
   return (
     <AccSection
-      label="Website · ppi n3xt"
+      label={`Website · ${workspaceName || "–"}`}
       badge={webPublished && !webPublished.error ? "Live" : null}
       isOpen={isOpen}
       onToggle={onToggle}
