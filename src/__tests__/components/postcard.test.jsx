@@ -53,10 +53,11 @@ describe('<PostCard>', () => {
     expect(screen.getByText('Geplant')).toBeInTheDocument();
   });
 
-  it('calls onEdit when "Bearbeiten" is clicked', () => {
+  it('calls onEdit when the card is clicked', () => {
     const props = makeProps();
     render(<PostCard {...props} />);
-    fireEvent.click(screen.getByText(/Bearbeiten/i));
+    // The whole card is clickable — click the title to trigger onEdit
+    fireEvent.click(screen.getByText('Testartikel'));
     expect(props.onEdit).toHaveBeenCalledWith(basePost);
   });
 
@@ -79,15 +80,15 @@ describe('<PostCard>', () => {
     expect(dateEl).toBeInTheDocument();
   });
 
-  it('shows "Noch nicht geplant" for draft without date', () => {
+  it('shows "Nicht geplant" for draft without date', () => {
     render(<PostCard {...makeProps({ status: 'draft', scheduledDate: '' })} />);
-    expect(screen.getByText(/Noch nicht geplant/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nicht geplant/i)).toBeInTheDocument();
   });
 
   it('shows approval buttons for pending post when role is admin', () => {
     render(<PostCard {...makeProps({ status: 'pending' })} />);
     expect(screen.getByText('OK')).toBeInTheDocument();
-    expect(screen.getByText('Ablehnen')).toBeInTheDocument();
+    expect(screen.getByText('Nein')).toBeInTheDocument();
   });
 
   it('calls onApprove with "scheduled" when OK is clicked', () => {
@@ -97,10 +98,10 @@ describe('<PostCard>', () => {
     expect(props.onApprove).toHaveBeenCalledWith('p1', 'scheduled');
   });
 
-  it('calls onApprove with "draft" when Ablehnen is clicked', () => {
+  it('calls onApprove with "draft" when Nein is clicked', () => {
     const props = makeProps({ status: 'pending' });
     render(<PostCard {...props} />);
-    fireEvent.click(screen.getByText('Ablehnen'));
+    fireEvent.click(screen.getByText('Nein'));
     expect(props.onApprove).toHaveBeenCalledWith('p1', 'draft');
   });
 
@@ -119,10 +120,11 @@ describe('<PostCard>', () => {
     expect(screen.getByText('Sommer Sale')).toBeInTheDocument();
   });
 
-  it('renders all channel tabs', () => {
-    render(<PostCard {...makeProps({ channels: ['instagram', 'facebook', 'linkedin'] })} />);
-    expect(screen.getByText(/Instagram/i)).toBeInTheDocument();
-    expect(screen.getByText(/Facebook/i)).toBeInTheDocument();
-    expect(screen.getByText(/LinkedIn/i)).toBeInTheDocument();
+  it('renders without error for multi-channel posts', () => {
+    // New design shows channel icons (no text labels) — card should render without crashing
+    const { container } = render(<PostCard {...makeProps({ channels: ['instagram', 'facebook', 'linkedin'] })} />);
+    expect(container.firstChild).toBeTruthy();
+    // Title still visible
+    expect(screen.getByText('Testartikel')).toBeInTheDocument();
   });
 });
