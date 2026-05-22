@@ -59,26 +59,29 @@
 
 ## Sprint 2 — Polished Demo
 
-- 📋 **H-3: Post-Editor Label + Textarea**  
-  "Haupttext" → "Post-Text / Caption". Textarea min-height:160px. Zeichenzähler mit Plattform-Icons.
+- ✅ **H-3: Post-Editor Label + Textarea** (Mai 2026)  
+  Label "Text" → "Post-Text / Caption". `minHeight:160px`. Plattform-Icons neben Zeichenzähler.
 
-- 📋 **H-5: Medienbibliothek Bildnamen**  
-  Namen nur per Hover sichtbar. Fix: 1-Zeilen-Caption unter jedem Bild im Grid.
+- ✅ **H-5: Medienbibliothek Bildnamen** (Mai 2026)  
+  Jedes Bild-Tile hat jetzt eine 1-Zeilen-Caption mit `item.name` darunter (immer sichtbar, nicht nur on hover).
 
-- 📋 **H-7: Dashboard Widget-Button**  
-  "Hinzu sortieren" öffnet nichts. Entweder deaktivieren oder Tooltip "Kommt bald".
+- ✅ **H-7: Dashboard Widget-Button** (Mai 2026)  
+  Disabled `+` Button mit `title="Widget-Anpassung kommt bald"` in der WIDGETS-Sidebar-Kopfzeile.  
+  `cursor:not-allowed`, dashed border, opacity .5 — klar als "noch nicht fertig" erkennbar.
 
-- 📋 **M-2: Voodoo Validierungsfehler für `<style>`-Tags**  
-  `validatePage()` warnt fälschlicherweise bei `<style>` im generierten HTML. Fix: nur `<script>` im `<body>` validieren.
+- ✅ **M-2: Voodoo Validierungsfehler für `<style>`-Tags** (Mai 2026)  
+  `validatePage()` strippt nun zusätzlich `<style>…</style>` Blöcke vor dem Regex-Check.  
+  Verhindert False-Positives durch CSS-Inhalt.
 
-- 📋 **M-1: Voodoo Template-Vorschau-Thumbnails**  
-  Template-Karten zeigen nur Namen. Kleines Screenshot-Thumbnail + 1-Zeilen-Beschreibung pro Template.
+- ✅ **M-1: Voodoo Template-Vorschau-Thumbnails** (Mai 2026)  
+  Template-Karten zeigen jetzt Name + 1-Zeilen-Beschreibung (z.B. "News-Specials · Hintergrundberichte").  
+  Cards sind flexDirection:column für bessere Lesbarkeit.
 
-- 📋 **M-3: Kampagnenkarte Zeitanzeige**  
-  "39T übrig" ggf. als "397" lesbar. Fix: "39 Tage" mit ausgeschriebener Einheit.
+- ✅ **M-3: Kampagnenkarte Zeitanzeige** (Mai 2026)  
+  `${daysLeft}T übrig` → `${daysLeft} Tage` — ausgeschriebene Einheit, nicht mehr "397" lesbar.
 
-- 📋 **M-7: Performance Demo-Daten Hinweis**  
-  Mock-Zahlen ohne Hinweis. Fix: kleiner Info-Banner "Demo-Daten für Präsentationszwecke".
+- ✅ **M-7: Performance Demo-Daten Hinweis** (Mai 2026)  
+  Gelbes Info-Banner "ℹ️ Demo-Daten für Präsentationszwecke — keine echten Messwerte" unter dem Seitentitel.
 
 ---
 

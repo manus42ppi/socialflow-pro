@@ -179,6 +179,10 @@ export default function GlobalRightSidebar(){
         <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 12px 0 14px",height:44,borderBottom:`1px solid ${C.borderLight}`,background:C.surface}}>
           <span style={{fontSize:10,fontWeight:800,color:C.textMute,textTransform:"uppercase",letterSpacing:".1em",fontFamily:FONT}}>Widgets</span>
           <span style={{fontSize:9,color:C.textMute,fontFamily:FONT,opacity:.6}}>ziehen zum sortieren</span>
+          <button disabled title="Widget-Anpassung kommt bald"
+            style={{width:22,height:22,borderRadius:6,border:`1px dashed ${C.border}`,background:"transparent",cursor:"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMute,opacity:.5,fontFamily:FONT,fontSize:14,lineHeight:1}}>
+            +
+          </button>
           <button onClick={toggleRight} title="Sidebar einklappen"
             style={{width:26,height:26,borderRadius:7,border:"none",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMute,transition:"all .15s"}}
             onMouseEnter={e=>{e.currentTarget.style.background=C.borderLight;e.currentTarget.style.color=C.textMid;}}

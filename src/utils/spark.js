@@ -298,8 +298,11 @@ export function validatePage(html) {
   if (!html) return [];
   const issues = [];
 
-  // 1. Script content visible as text (JS code outside <script> tags)
-  const withoutScripts = html.replace(/<script[\s\S]*?<\/script>/gi, "<!-- script -->");
+  // 1. Script/style content visible as text (JS code outside <script> tags)
+  //    Strip both <script> and <style> blocks so CSS selectors don't trigger false positives
+  const withoutScripts = html
+    .replace(/<script[\s\S]*?<\/script>/gi, "<!-- script -->")
+    .replace(/<style[\s\S]*?<\/style>/gi, "<!-- style -->");
   if (/document\.addEventListener|Spark link guard|e\.preventDefault\(\)|window\.open\(/.test(withoutScripts)) {
     issues.push({ type: "error", msg: "Script-Code als sichtbarer Text — Seite einmal neu verfeinern um den Fehler zu beheben" });
   }

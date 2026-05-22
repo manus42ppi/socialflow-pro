@@ -157,10 +157,9 @@ export default function MediaPage(){
       else{setDet(item);}
     };
     return(
-      <div style={{borderRadius:8,overflow:"hidden",cursor:"pointer",position:"relative",breakInside:"avoid",marginBottom:8,background:C.borderLight,outline:isSel?`2.5px solid ${C.accent}`:"none"}}
-        onClick={handleClick}
-        onMouseEnter={()=>setHov(true)}
-        onMouseLeave={()=>setHov(false)}>
+      <div style={{breakInside:"avoid",marginBottom:8}} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}>
+      <div style={{borderRadius:8,overflow:"hidden",cursor:"pointer",position:"relative",background:C.borderLight,outline:isSel?`2.5px solid ${C.accent}`:"none"}}
+        onClick={handleClick}>
         {item.type==="video"
           ?<video src={item.url} style={{width:"100%",height:"auto",display:"block"}} muted/>
           :item.type==="document"
@@ -223,6 +222,11 @@ export default function MediaPage(){
             </div>}
           </div>
         )}
+      </div>
+      {/* Always-visible 1-line name caption */}
+      <div style={{fontSize:10.5,fontWeight:500,color:C.textSoft,padding:"3px 2px 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",lineHeight:1.3,fontFamily:FONT}}>
+        {item.name}
+      </div>
       </div>
     );
   };

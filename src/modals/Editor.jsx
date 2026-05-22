@@ -148,13 +148,14 @@ export default function Editor(){
             {/* Text */}
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",letterSpacing:".02em"}}>Text</div>
+                <div style={{fontSize:11,fontWeight:500,color:"#9CA3AF",letterSpacing:".02em"}}>Post-Text / Caption</div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  {(form.channels||[]).map(id=><ChIco key={id} id={id} size={11} style={{opacity:.5}}/>)}
                   <span style={{fontSize:11,fontWeight:600,color:charColor}}>{charLen}{maxC<9999?`/${maxC}`:""}</span>
                   {maxC<9999&&<div style={{width:36,height:4,borderRadius:2,background:C.borderLight,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(100,charPct)}%`,background:charColor,borderRadius:2,transition:"width .2s"}}/></div>}
                 </div>
               </div>
-              <textarea value={form.content||""} onChange={e=>setForm({...form,content:e.target.value})} placeholder="Was möchtest du teilen?" style={{width:"100%",minHeight:140,padding:"9px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,fontSize:13,outline:"none",fontFamily:FONT,resize:"vertical",boxSizing:"border-box",color:C.text,lineHeight:1.6}}/>
+              <textarea value={form.content||""} onChange={e=>setForm({...form,content:e.target.value})} placeholder="Was möchtest du teilen?" style={{width:"100%",minHeight:160,padding:"9px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,fontSize:13,outline:"none",fontFamily:FONT,resize:"vertical",boxSizing:"border-box",color:C.text,lineHeight:1.6}}/>
               {charLen>5&&charLen<40&&rightPane!=="ai"&&(
                 <div onClick={()=>setRightPane("ai")} style={{marginTop:4,fontSize:11,color:C.purple,cursor:"pointer",display:"flex",alignItems:"center",gap:4,opacity:.75}}>
                   <Sparkles size={11} strokeWidth={2}/>KI-Assistent: Text optimieren, Hooks oder Varianten generieren →

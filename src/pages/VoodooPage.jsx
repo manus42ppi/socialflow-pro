@@ -910,21 +910,25 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
                       const TIcon = TMPL_ICONS[tmpl.id] || FileText;
                       return (
                         <div key={tmpl.id} onClick={() => upd({ templateId: tmpl.id })}
-                          title={tmpl.description}
-                          style={{ display:"flex", alignItems:"center", gap:7, padding:"7px 10px",
+                          style={{ display:"flex", flexDirection:"column", gap:3, padding:"8px 10px",
                             borderRadius:7, cursor:"pointer", transition:"all .12s",
                             border:`1.5px solid ${active ? C.accent : T.gray200}`,
                             background: active ? C.accent+"0F" : "#fff",
                           }}>
-                          <TIcon size={13} strokeWidth={IW} color={active ? C.accent : T.gray400} style={{ flexShrink:0 }}/>
-                          <span style={{ fontSize:12, fontWeight: active ? 700 : 500, color: active ? C.accent : C.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                            {tmpl.name}
-                          </span>
-                          <span style={{ marginLeft:"auto", fontSize:9, fontWeight:800, flexShrink:0,
-                            background: active ? C.accent : T.gray100,
-                            color: active ? "#fff" : T.gray400,
-                            borderRadius:3, padding:"1px 4px", letterSpacing:".04em",
-                          }}>SCHNELL</span>
+                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                            <TIcon size={13} strokeWidth={IW} color={active ? C.accent : T.gray400} style={{ flexShrink:0 }}/>
+                            <span style={{ fontSize:12, fontWeight: active ? 700 : 500, color: active ? C.accent : C.text, flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                              {tmpl.name}
+                            </span>
+                            <span style={{ fontSize:9, fontWeight:800, flexShrink:0,
+                              background: active ? C.accent : T.gray100,
+                              color: active ? "#fff" : T.gray400,
+                              borderRadius:3, padding:"1px 4px", letterSpacing:".04em",
+                            }}>SCHNELL</span>
+                          </div>
+                          <div style={{ fontSize:10, color: active ? C.accent+"99" : T.gray400, paddingLeft:19, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                            {tmpl.description}
+                          </div>
                         </div>
                       );
                     })}

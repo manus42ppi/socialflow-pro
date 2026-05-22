@@ -174,7 +174,7 @@ function CampCard({ camp, selected, postCount, onClick }) {
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
             <span style={{ fontSize:10, color:C.textMute }}>{fmtDate(camp.startDate)} – {fmtDate(camp.endDate)}</span>
             <span style={{ fontSize:10, fontWeight:600, color: prog.daysLeft < 14 ? "#EF4444" : C.textMute }}>
-              {prog.daysLeft > 0 ? `${prog.daysLeft}T übrig` : prog.daysLeft < 0 ? "Abgelaufen" : "Heute"}
+              {prog.daysLeft > 0 ? `${prog.daysLeft} Tage` : prog.daysLeft < 0 ? "Abgelaufen" : "Heute"}
             </span>
           </div>
           <ProgressBar pct={prog.pct} color={camp.color}/>

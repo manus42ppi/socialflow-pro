@@ -111,6 +111,11 @@ function PerformancePage(){
         <div style={{fontFamily:FONT,fontSize:22,fontWeight:600,color:C.text,letterSpacing:"-.3px"}}>Performance</div>
         <div style={{fontSize:12,color:C.textMute,marginTop:2}}>Social Media Resultate</div>
       </div>
+      {/* Demo-Daten Hinweis */}
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",borderRadius:8,background:"#FFFBEB",border:"1px solid #FDE68A",marginBottom:14,fontSize:11.5,color:"#92400E",fontFamily:FONT}}>
+        <span style={{fontSize:14}}>ℹ️</span>
+        <span>Demo-Daten für Präsentationszwecke — keine echten Messwerte</span>
+      </div>
       {order.map(id=>{
         const w=widgetMap[id];if(!w)return null;
         return <SecCard key={id} id={id} title={w.title} right={w.right} dragId={dragId} overId={overId} setDragId={setDragId} setOverId={setOverId} drop={drop}>{w.content}</SecCard>;
