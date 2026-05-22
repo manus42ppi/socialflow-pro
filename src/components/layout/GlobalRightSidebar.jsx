@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Activity } from "lucide-react";
-import { C, T, FONT } from "../../constants/colors.js";
+import { C, T, FONT, TYPO } from "../../constants/colors.js";
 import { CHANNELS } from "../../constants/demo.js";
 import ChIco from "../ui/ChIco.jsx";
 import { useApp } from "../../context/AppContext.jsx";
@@ -49,19 +49,19 @@ export default function GlobalRightSidebar(){
 
   const recent=useMemo(()=>[...posts].slice(-10).reverse(),[posts]);
   const actMap=useMemo(()=>({
-    scheduled:{verb:"geplant",color:C.accent,icon:"📅"},
-    pending:{verb:"zur Freigabe",color:C.warning,icon:"⏳"},
-    published:{verb:"veröffentlicht",color:C.success,icon:"✅"},
-    draft:{verb:"Entwurf",color:C.textSoft,icon:"📝"},
+    scheduled: {verb:"geplant",        dot:T.success500, text:T.successText},
+    pending:   {verb:"zur Freigabe",   dot:T.warning500, text:T.warningText},
+    published: {verb:"veröffentlicht", dot:T.brand600,   text:T.brand600   },
+    draft:     {verb:"Entwurf",        dot:T.gray400,    text:T.gray500    },
   }),[]);
 
-  // Widget header shared style
+  // Widget header — einheitliches TYPO.nano Label
   const WHeader=({title,right,dragHandleProps})=>(
-    <div style={{display:"flex",alignItems:"center",height:38,padding:"0 14px",borderBottom:`1px solid ${T.gray200}`,background:T.white,cursor:"grab",...dragHandleProps}}>
-      <div style={{display:"flex",flexDirection:"column",gap:2.5,marginRight:9,opacity:.25,flexShrink:0}}>
-        {[0,1].map(i=><div key={i} style={{display:"flex",gap:2.5}}>{[0,1,2].map(j=><div key={j} style={{width:2,height:2,borderRadius:"50%",background:T.gray500}}/>)}</div>)}
+    <div style={{display:"flex",alignItems:"center",height:36,padding:"0 14px",borderBottom:`1px solid ${C.borderLight}`,background:C.surface,cursor:"grab",...dragHandleProps}}>
+      <div style={{display:"flex",flexDirection:"column",gap:3,marginRight:9,opacity:.25,flexShrink:0}}>
+        {[0,1].map(i=><div key={i} style={{display:"flex",gap:3}}>{[0,1,2].map(j=><div key={j} style={{width:2.5,height:2.5,borderRadius:"50%",background:T.gray500}}/>)}</div>)}
       </div>
-      <span style={{fontSize:10.5,fontWeight:600,color:T.gray500,textTransform:"uppercase",letterSpacing:".07em",fontFamily:FONT,flex:1}}>{title}</span>
+      <span style={{...TYPO.nano,flex:1}}>{title}</span>
       {right}
     </div>
   );
@@ -112,16 +112,18 @@ export default function GlobalRightSidebar(){
           :recent.slice(0,6).map((p,i)=>{
             const a=actMap[p.status]||actMap.draft;
             return(
-              <div key={p.id} style={{padding:"8px 14px",borderBottom:i<Math.min(recent.length,6)-1?`1px solid ${C.borderLight}`:"none",display:"flex",gap:9,alignItems:"flex-start",cursor:"pointer",transition:"background .1s",background:C.surface}}
+              <div key={p.id} style={{padding:"10px 14px",borderBottom:i<Math.min(recent.length,6)-1?`1px solid ${C.borderLight}`:"none",display:"flex",gap:10,alignItems:"center",cursor:"pointer",transition:"background .1s",background:C.surface}}
                 onClick={()=>onNav("publisher")}
                 onMouseEnter={e=>e.currentTarget.style.background=C.bg}
                 onMouseLeave={e=>e.currentTarget.style.background=C.surface}>
-                <div style={{width:24,height:24,borderRadius:6,background:a.color+"16",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11}}>{a.icon}</div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:400,fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
-                  <div style={{fontSize:10,color:a.color,fontWeight:400,marginTop:1}}>{a.verb}</div>
+                  <div style={{...TYPO.body,fontSize:12,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title||"Kein Titel"}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3}}>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:a.dot,flexShrink:0,display:"inline-block"}}/>
+                    <span style={{...TYPO.caption,fontSize:10.5,color:a.text}}>{a.verb}</span>
+                  </div>
                 </div>
-                {p.scheduledDate&&<span style={{fontSize:9,color:C.textMute,flexShrink:0,paddingTop:2}}>{p.scheduledDate.slice(5)}</span>}
+                {p.scheduledDate&&<span style={{...TYPO.caption,fontSize:10,color:C.textMute,flexShrink:0}}>{p.scheduledDate.slice(5)}</span>}
               </div>
             );
           })
@@ -134,13 +136,13 @@ export default function GlobalRightSidebar(){
         {CHANNELS.map((ch,i)=>{
           const n=posts.filter(p=>p.channels?.includes(ch.id)).length;
           const total=Math.max(1,posts.length);
-          return <div key={ch.id} style={{padding:"7px 14px",borderBottom:i<CHANNELS.length-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,background:C.surface}}>
-            <ChIco id={ch.id} size={12} color={C.textMid}/>
-            <span style={{fontSize:11,color:C.textMid,flex:1}}>{ch.label}</span>
-            <div style={{width:52,height:3,background:C.borderLight,borderRadius:99,overflow:"hidden"}}>
+          return <div key={ch.id} style={{padding:"9px 14px",borderBottom:i<CHANNELS.length-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,background:C.surface}}>
+            <ChIco id={ch.id} size={12} color={C.textMute}/>
+            <span style={{...TYPO.caption,flex:1}}>{ch.label}</span>
+            <div style={{width:48,height:2,background:C.borderLight,borderRadius:99,overflow:"hidden"}}>
               <div style={{height:"100%",width:`${(n/total)*100}%`,background:C.accent,borderRadius:99}}/>
             </div>
-            <span style={{fontSize:11,fontWeight:400,color:C.textSoft,width:14,textAlign:"right"}}>{n}</span>
+            <span style={{...TYPO.caption,fontSize:11,width:14,textAlign:"right"}}>{n}</span>
           </div>;
         })}
       </div>
@@ -148,22 +150,21 @@ export default function GlobalRightSidebar(){
     campaigns:(
       <div key="campaigns">
         <WHeader title="Kampagnen" right={
-          <button onClick={()=>onNav("campaigns")} style={{fontSize:10,color:C.accent,fontWeight:400,background:"none",border:"none",cursor:"pointer",fontFamily:FONT,padding:0}}>Alle →</button>
+          <button onClick={()=>onNav("campaigns")} style={{...TYPO.caption,fontSize:10,color:C.accent,background:"none",border:"none",cursor:"pointer",padding:0}}>Alle →</button>
         }/>
         {campaigns.length===0
-          ?<div style={{padding:"16px 14px",textAlign:"center",color:C.textMute,fontSize:11,background:C.surface}}>Keine Kampagnen</div>
+          ?<div style={{padding:"16px 14px",textAlign:"center",...TYPO.caption,background:C.surface}}>Keine Kampagnen</div>
           :campaigns.slice(0,5).map((c,i)=>{
             const n=posts.filter(p=>p.campaignId===c.id).length;
-            return <div key={c.id} style={{padding:"7px 14px",borderBottom:i<Math.min(campaigns.length,5)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",transition:"background .1s",background:C.surface}}
+            return <div key={c.id} style={{padding:"9px 14px",borderBottom:i<Math.min(campaigns.length,5)-1?`1px solid ${C.borderLight}`:"none",display:"flex",alignItems:"center",gap:8,cursor:"pointer",transition:"background .1s",background:C.surface}}
               onClick={()=>onNav("campaigns")}
               onMouseEnter={e=>e.currentTarget.style.background=C.bg}
               onMouseLeave={e=>e.currentTarget.style.background=C.surface}>
-              <span style={{fontSize:14,flexShrink:0}}>{c.emoji}</span>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:400,color:C.textMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
-                <div style={{fontSize:9.5,color:C.textMute,marginTop:1}}>{n} Post{n!==1?"s":""}</div>
-              </div>
               <div style={{width:6,height:6,borderRadius:"50%",background:c.color,flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{...TYPO.body,fontSize:12,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                <div style={{...TYPO.caption,fontSize:10,marginTop:2}}>{n} Post{n!==1?"s":""}</div>
+              </div>
             </div>;
           })
         }
@@ -177,8 +178,8 @@ export default function GlobalRightSidebar(){
       {/* ── Toggle handle ── */}
       {sbRight?(
         <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 12px 0 14px",height:44,borderBottom:`1px solid ${C.borderLight}`,background:C.surface}}>
-          <span style={{fontSize:10,fontWeight:800,color:C.textMute,textTransform:"uppercase",letterSpacing:".1em",fontFamily:FONT}}>Widgets</span>
-          <span style={{fontSize:9,color:C.textMute,fontFamily:FONT,opacity:.6}}>ziehen zum sortieren</span>
+          <span style={{...TYPO.nano}}>Widgets</span>
+          <span style={{...TYPO.caption,fontSize:9,opacity:.5}}>ziehen zum sortieren</span>
           <button disabled title="Widget-Anpassung kommt bald"
             style={{width:22,height:22,borderRadius:6,border:`1px dashed ${C.border}`,background:"transparent",cursor:"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMute,opacity:.5,fontFamily:FONT,fontSize:14,lineHeight:1}}>
             +

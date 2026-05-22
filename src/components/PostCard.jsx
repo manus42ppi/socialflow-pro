@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Edit2, Calendar, Check, X, Clock, BookOpen } from "lucide-react";
-import { C, T, FONT, IW } from "../constants/colors.js";
+import { C, T, FONT, IW, TYPO } from "../constants/colors.js";
 import { CHANNELS, ROLES } from "../constants/demo.js";
 import { fmtDate } from "../utils/store.js";
 import { Btn, Card, SBadge } from "./ui/index.jsx";
@@ -28,11 +28,11 @@ export default function PostCard({post,items,campaigns,stories,onEdit,onSched,on
           <div style={{fontWeight:700,fontSize:13,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{post.title||"Kein Titel"}</div>
           <div style={{display:"flex",alignItems:"center",gap:5,marginTop:2,height:14}}>
             {parentStory
-              ? <span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:10,fontWeight:700,color:C.accent,background:C.accent+"12",padding:"0 6px",borderRadius:4}}>
-                  <BookOpen size={9} strokeWidth={2.2}/>{parentStory.title?.slice(0,22)||(parentStory.title?"…":"")||"Story"}
+              ? <span style={{...TYPO.caption,display:"inline-flex",alignItems:"center",gap:3,color:C.textMute}}>
+                  <BookOpen size={9} strokeWidth={2}/>{parentStory.title?.slice(0,24)||(parentStory.title?"…":"")||"Story"}
                 </span>
               : camp
-                ? <span style={{fontSize:10.5,color:C.textSoft,display:"flex",alignItems:"center",gap:3}}><span>{camp.emoji}</span>{camp.name}</span>
+                ? <span style={{...TYPO.caption,display:"flex",alignItems:"center",gap:3,color:C.textMute}}><span>{camp.emoji}</span>{camp.name}</span>
                 : null
             }
           </div>
@@ -52,11 +52,11 @@ export default function PostCard({post,items,campaigns,stories,onEdit,onSched,on
             <button key={cid} onClick={()=>setTab(cid)} style={{
               flexShrink:0,height:"100%",display:"flex",alignItems:"center",gap:4,
               padding:"0 10px",border:"none",
-              borderBottom:`2px solid ${on?C.text:"transparent"}`,
-              background:"transparent",color:on?C.text:C.textMute,
-              fontWeight:on?700:500,fontSize:11,cursor:"pointer",fontFamily:FONT,transition:"all .12s",
+              borderBottom:`2px solid ${on?C.accent:"transparent"}`,
+              background:"transparent",color:on?C.accent:C.textMute,
+              fontWeight:on?600:400,fontSize:11,cursor:"pointer",fontFamily:FONT,transition:"all .12s",
             }}>
-              <ChIco id={cid} size={11} color={on?C.text:C.textMute}/>{ch?.label}
+              <ChIco id={cid} size={11} color={on?C.accent:C.textMute}/>{ch?.label}
             </button>
           );
         })}
@@ -64,7 +64,7 @@ export default function PostCard({post,items,campaigns,stories,onEdit,onSched,on
 
       {/* ── Preview – fixed height, always same ── flex:1 = fills remaining */}
       <div style={{flex:1,background:C.bg,padding:"8px",overflow:"hidden",minHeight:0}}>
-        <div style={{width:"100%",height:"100%",overflow:"hidden",borderRadius:8,boxShadow:"0 1px 8px rgba(0,0,0,.09)"}}>
+        <div style={{width:"100%",height:"100%",overflow:"hidden",borderRadius:T.rMd,border:`1px solid ${C.borderLight}`}}>
           <div style={{width:`${100/0.82}%`,transform:"scale(0.82)",transformOrigin:"top left"}}>
             <PC post={post} media={media}/>
           </div>
@@ -75,32 +75,32 @@ export default function PostCard({post,items,campaigns,stories,onEdit,onSched,on
       <div style={{height:34,padding:"0 10px",background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
         {post.status==="pending"&&can("approve")?(
           <>
-            <span style={{flex:1,fontSize:11,color:C.textSoft,fontWeight:600}}>Wartet auf Freigabe</span>
+            <span style={{flex:1,...TYPO.caption,color:C.textSoft}}>Wartet auf Freigabe</span>
             <Btn size="sm" variant="success" onClick={()=>onApprove(post.id,"scheduled")}><Check size={11} strokeWidth={2.5}/>OK</Btn>
             <Btn size="sm" variant="danger"  onClick={()=>onApprove(post.id,"draft")}><X size={11} strokeWidth={2.5}/>Ablehnen</Btn>
           </>
         ):post.status==="pending"?(
-          <span style={{fontSize:11,color:C.warning,fontWeight:600,display:"flex",alignItems:"center",gap:5}}><Clock size={11} strokeWidth={2}/>Wartet auf Freigabe</span>
+          <span style={{...TYPO.caption,color:T.warning500,display:"flex",alignItems:"center",gap:5}}><Clock size={11} strokeWidth={2}/>Wartet auf Freigabe</span>
         ):post.scheduledDate?(
-          <span style={{fontSize:11.5,color:C.textMid,fontWeight:600,display:"flex",alignItems:"center",gap:5}}><Calendar size={12} strokeWidth={2} color={C.textMute}/>{fmtDate(post.scheduledDate)}{post.scheduledTime&&` · ${post.scheduledTime}`}</span>
+          <span style={{...TYPO.caption,color:C.textSoft,display:"flex",alignItems:"center",gap:5}}><Calendar size={12} strokeWidth={2} color={C.textMute}/>{fmtDate(post.scheduledDate)}{post.scheduledTime&&` · ${post.scheduledTime}`}</span>
         ):(
-          <span style={{fontSize:11,color:C.textMute,display:"flex",alignItems:"center",gap:5}}><Clock size={11} strokeWidth={2}/>Noch nicht geplant</span>
+          <span style={{...TYPO.caption,color:C.textMute,display:"flex",alignItems:"center",gap:5}}><Clock size={11} strokeWidth={2}/>Noch nicht geplant</span>
         )}
       </div>
 
-      {/* ── Action buttons — always 36px ── */}
+      {/* ── Action buttons — always 36px, muted default / semantic hover ── */}
       <div style={{display:"flex",borderTop:`1px solid ${C.borderLight}`,height:36,flexShrink:0}}>
         {can("write")&&(
-          <button onClick={()=>onEdit(post)} style={{flex:1,height:"100%",background:"none",border:"none",color:C.textSoft,fontWeight:600,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRight:`1px solid ${C.borderLight}`,fontFamily:FONT,transition:"all .12s"}}
+          <button onClick={()=>onEdit(post)} style={{flex:1,height:"100%",background:"none",border:"none",color:C.textMute,...TYPO.caption,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRight:`1px solid ${C.borderLight}`,transition:"all .12s"}}
             onMouseEnter={e=>{e.currentTarget.style.background=T.brand25;e.currentTarget.style.color=C.textMid;}}
-            onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=C.textSoft;}}>
-            <Edit2 size={12} strokeWidth={IW}/>Bearbeiten
+            onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=C.textMute;}}>
+            <Edit2 size={11} strokeWidth={IW}/>Bearbeiten
           </button>
         )}
-        <button onClick={()=>onSched(post)} style={{flex:1,height:"100%",background:"none",border:"none",color:post.status==="scheduled"?C.success:C.accent,fontWeight:700,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontFamily:FONT,transition:"all .12s"}}
-          onMouseEnter={e=>e.currentTarget.style.background=post.status==="scheduled"?C.successBg:T.brand25}
-          onMouseLeave={e=>e.currentTarget.style.background="none"}>
-          <Calendar size={12} strokeWidth={IW}/>{post.status==="scheduled"?"Ändern":"Planen"}
+        <button onClick={()=>onSched(post)} style={{flex:1,height:"100%",background:"none",border:"none",color:C.textMute,...TYPO.caption,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .12s"}}
+          onMouseEnter={e=>{e.currentTarget.style.background=post.status==="scheduled"?T.successBg:T.brand25;e.currentTarget.style.color=post.status==="scheduled"?T.success500:C.accent;}}
+          onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=C.textMute;}}>
+          <Calendar size={11} strokeWidth={IW}/>{post.status==="scheduled"?"Ändern":"Planen"}
         </button>
       </div>
     </Card>

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Send, Plus, Clock, RefreshCw, AlertCircle, CheckCircle, ChevronDown } from "lucide-react";
-import { C, T, FONT, IW } from "../constants/colors.js";
+import { C, T, FONT, IW, TYPO } from "../constants/colors.js";
 import { CHANNELS, ROLES } from "../constants/demo.js";
 import { Btn, SBadge } from "../components/ui/index.jsx";
 import ChIco from "../components/ui/ChIco.jsx";
@@ -233,7 +233,7 @@ export default function PublisherPage() {
         )}
 
         {/* Status filter — segment style */}
-        <span style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".06em",flexShrink:0}}>STATUS:</span>
+        <span style={{...TYPO.nano,flexShrink:0}}>STATUS:</span>
         <div style={{ display: "flex", gap: 2, background: C.borderLight, borderRadius: 8, padding: 3 }}>
           {[
             ["all",       "Alle",           null,      livePosts.length],
@@ -266,7 +266,7 @@ export default function PublisherPage() {
           <div style={{ width: 1, height: 24, background: C.border, margin: "0 14px", flexShrink: 0 }} />
 
           {/* Channel filter — compact pills with icon + label */}
-          <span style={{fontSize:10,fontWeight:700,color:C.textMute,letterSpacing:".06em",flexShrink:0}}>KANAL:</span>
+          <span style={{...TYPO.nano,flexShrink:0}}>KANAL:</span>
           <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
             {["all", ...usedChs].map(cid => {
               const ch = CHANNELS.find(x => x.id === cid);
@@ -275,12 +275,14 @@ export default function PublisherPage() {
                 <button key={cid} onClick={() => setChFilt(cid)} style={{
                   display: "flex", alignItems: "center", gap: 4,
                   padding: "4px 10px", borderRadius: 6, border: "none",
-                  background: active ? C.text : "transparent",
-                  color: active ? "#fff" : C.textSoft,
-                  fontWeight: active ? 700 : 500, fontSize: 12,
-                  cursor: "pointer", fontFamily: FONT, transition: "all .12s",
-                }}>
-                  {cid !== "all" && <ChIco id={cid} size={11} color={active ? "#fff" : C.textMute} />}
+                  background: active ? T.brand100 : "transparent",
+                  color: active ? C.accent : C.textSoft,
+                  fontWeight: active ? 600 : 400, ...TYPO.caption,
+                  cursor: "pointer", transition: "all .12s",
+                }}
+                  onMouseEnter={e=>{ if(!active){e.currentTarget.style.background=T.brand25;e.currentTarget.style.color=C.textMid;}}}
+                  onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textSoft;}}}>
+                  {cid !== "all" && <ChIco id={cid} size={11} color={active ? C.accent : C.textMute} />}
                   {cid === "all" ? "Alle" : ch?.label}
                 </button>
               );

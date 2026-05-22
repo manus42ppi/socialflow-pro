@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FONT } from "../constants/colors.js";
+import { C, T, FONT, TYPO } from "../constants/colors.js";
 
 // ── SHARED DRAGGABLE SECTION SYSTEM ──────────────────────────────────────
 export function useSections(pageId,userId,defaults){
@@ -32,10 +32,10 @@ export function SecCard({id,title,right,dragId,overId,setDragId,setOverId,drop,c
       onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOverId(null);}}
       onDrop={e=>{e.preventDefault();drop(id);}}
       style={{
-        background:"#fff",borderRadius:14,
-        border:`1px solid ${overId===id&&dragId!==id?"#5B5BD650":"#E5E7EB"}`,
-        boxShadow:'0 1px 4px rgba(0,0,0,.04)',
-        marginBottom:8,overflow:'hidden',
+        background:C.surface, borderRadius:T.rLg,
+        border:`1px solid ${overId===id&&dragId!==id?C.accent+"50":C.border}`,
+        boxShadow:T.shadowXs,
+        marginBottom:8, overflow:'hidden',
         opacity:dragId===id?.4:1,
         transition:'opacity .15s,border-color .15s',
       }}
@@ -44,12 +44,12 @@ export function SecCard({id,title,right,dragId,overId,setDragId,setOverId,drop,c
         draggable
         onDragStart={e=>{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);setTimeout(()=>setDragId(id),0);}}
         onDragEnd={()=>{setDragId(null);setOverId(null);}}
-        style={{display:'flex',alignItems:'center',gap:8,padding:'11px 16px 8px',cursor:'grab',userSelect:'none',WebkitUserSelect:'none',borderBottom:'1px solid #F3F4F6'}}
+        style={{display:'flex',alignItems:'center',gap:8,padding:'10px 16px',cursor:'grab',userSelect:'none',WebkitUserSelect:'none',borderBottom:`1px solid ${C.borderLight}`}}
       >
-        <div style={{display:'flex',flexDirection:'column',gap:3.5,opacity:.35,flexShrink:0}}>
-          {[0,1,2].map(r=><div key={r} style={{display:'flex',gap:3.5}}>{[0,1].map(c=><div key={c} style={{width:3,height:3,borderRadius:'50%',background:'#6B7280'}}/>)}</div>)}
+        <div style={{display:'flex',flexDirection:'column',gap:3,opacity:.3,flexShrink:0}}>
+          {[0,1,2].map(r=><div key={r} style={{display:'flex',gap:3}}>{[0,1].map(c=><div key={c} style={{width:3,height:3,borderRadius:'50%',background:T.gray500}}/>)}</div>)}
         </div>
-        <span style={{fontSize:10,fontWeight:400,textTransform:'uppercase',letterSpacing:'.1em',color:'#9CA3AF',fontFamily:FONT}}>{title}</span>
+        <span style={{...TYPO.nano}}>{title}</span>
         {right&&<div style={{marginLeft:'auto'}}>{right}</div>}
       </div>
       <div draggable={false} style={{padding:'14px 16px 16px'}}>{children}</div>

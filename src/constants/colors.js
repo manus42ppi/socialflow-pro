@@ -110,6 +110,19 @@ export const C = {
   grayHover:   T.gray50,
 };
 
+// ── Typography levels — 4 Ebenen, nie mehr ──────────────────────────────────
+// Alle Komponenten nutzen ...TYPO.xxx. Kein ad-hoc fontSize/fontWeight mehr.
+export const TYPO = {
+  // Sektions-Labels, Spaltenköpfe, Filter-Prefix: "STATUS", "KANAL", "TITEL"
+  nano:    { fontSize: 10,   fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: T.gray400, fontFamily: FONT },
+  // Metadaten: Datum, Zählungen, sekundäre Infos
+  caption: { fontSize: 11.5, fontWeight: 500, color: T.gray500, fontFamily: FONT },
+  // Standard-Fließtext, Listen
+  body:    { fontSize: 13,   fontWeight: 500, color: T.gray900, fontFamily: FONT },
+  // Karten-Titel, Section-Header
+  title:   { fontSize: 15,   fontWeight: 700, color: T.gray900, letterSpacing: '-.01em', fontFamily: FONT },
+};
+
 // ── Global CSS (Keyframes, Scrollbar, Font-Import) ───────────────────────────
 export const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
