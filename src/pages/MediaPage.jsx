@@ -317,7 +317,7 @@ export default function MediaPage(){
           {hasKeys&&<span style={{width:6,height:6,borderRadius:"50%",background:C.success,display:"inline-block"}}/>}
         </button>
         {!batchMode
-          ?<><Btn onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Hochladen</Btn>
+          ?<><Btn variant="outline" onClick={()=>ref.current?.click()}><Upload size={13} strokeWidth={2}/>Hochladen</Btn>
              {list.length>0&&<Btn variant="secondary" onClick={()=>{setBatchMode(true);setSel(new Set());}}><CheckSquare size={13} strokeWidth={2}/>Auswählen</Btn>}</>
           :<div style={{display:"flex",gap:6,alignItems:"center"}}>
             <span style={{fontSize:12,fontWeight:700,color:C.textMid}}>{sel.size} ausgewählt</span>

@@ -82,7 +82,7 @@ export default function Sidebar() {
           padding: open ? "0 10px 0 12px" : "0",
           justifyContent: open ? "flex-start" : "center",
           transition: "background .12s, color .12s",
-          background: on ? T.brand200 : "transparent",
+          background: on ? T.brand100 : "transparent",
           color: on ? T.gray800 : T.gray500,
           fontFamily: FONT,
           flexShrink: 0,
@@ -124,7 +124,7 @@ export default function Sidebar() {
         {badge > 0 && open && (
           <div style={{
             minWidth: 20, height: 20, borderRadius: 10,
-            background: on ? T.brand100 : T.gray100,
+            background: on ? T.brand200 : T.gray100,
             color: on ? C.accent : T.gray600,
             fontSize: 11, fontWeight: 600,
             display: "flex", alignItems: "center", justifyContent: "center",

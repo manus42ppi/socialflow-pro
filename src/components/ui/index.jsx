@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUp, ArrowDown, CheckCircle, FileText, Clock, Globe } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import { C, T, FONT, IW } from "../../constants/colors.js";
 
 // ── UI PRIMITIVES (CX Fusion Design System) ───────────────────────────────────
@@ -55,7 +55,7 @@ export function Badge({ color, bg, children }) {
 }
 
 // ── Button ────────────────────────────────────────────────────────────────────
-// Varianten: primary | secondary | ghost | danger | success | ai
+// Varianten: primary | secondary | outline | ghost | danger | success | ai
 // Größen: sm | md
 export function Btn({ children, variant = "primary", size = "md", onClick, disabled = false, style = {} }) {
   const V = {
@@ -66,6 +66,11 @@ export function Btn({ children, variant = "primary", size = "md", onClick, disab
     secondary: {
       background: T.white, color: T.gray700,
       border: `1px solid ${T.gray300}`, boxShadow: T.shadowXs,
+    },
+    // CX Fusion: outlined page-header CTA (e.g. "+ Neuer Artikel")
+    outline: {
+      background: T.brand25, color: C.accent,
+      border: `1px solid ${T.brand200}`,
     },
     ghost: {
       background: "transparent", color: T.gray600, border: "none",
@@ -78,10 +83,10 @@ export function Btn({ children, variant = "primary", size = "md", onClick, disab
       background: T.successBg, color: T.success500,
       border: `1px solid #A7F3D0`,
     },
+    // CX Fusion: AI-Actions — flat brand blue (no gradient)
     ai: {
-      background: `linear-gradient(135deg,${C.ai1},${C.ai2})`,
-      color: "#fff", border: "none",
-      boxShadow: `0 2px 12px ${C.purpleGlow}`,
+      background: C.accent, color: "#fff", border: "none",
+      boxShadow: T.shadowXs,
     },
   };
   const P = { sm: "0 12px", md: "0 14px" };
@@ -105,11 +110,15 @@ export function Btn({ children, variant = "primary", size = "md", onClick, disab
         if (disabled) return;
         if (variant === "primary") e.currentTarget.style.background = C.accentHov;
         if (variant === "secondary") e.currentTarget.style.background = T.gray100;
+        if (variant === "outline") { e.currentTarget.style.background = T.brand100; e.currentTarget.style.borderColor = T.brand300; }
+        if (variant === "ai") e.currentTarget.style.background = C.accentHov;
       }}
       onMouseLeave={e => {
         if (disabled) return;
         if (variant === "primary") e.currentTarget.style.background = C.accent;
         if (variant === "secondary") e.currentTarget.style.background = T.white;
+        if (variant === "outline") { e.currentTarget.style.background = T.brand25; e.currentTarget.style.borderColor = T.brand200; }
+        if (variant === "ai") e.currentTarget.style.background = C.accent;
       }}
     >
       {children}
@@ -118,13 +127,14 @@ export function Btn({ children, variant = "primary", size = "md", onClick, disab
 }
 
 // ── Card ──────────────────────────────────────────────────────────────────────
+// CX Fusion: flat cards with minimal shadow (shadowXs) and clean border
 export function Card({ children, style = {}, onClick }) {
   return (
     <div
       onClick={onClick}
       style={{
         background: C.surface, borderRadius: T.rLg,
-        border: `1px solid ${C.border}`, boxShadow: T.shadowSm,
+        border: `1px solid ${C.border}`, boxShadow: T.shadowXs,
         ...style,
       }}
     >
@@ -186,23 +196,26 @@ export function TIn({ label, icon: Icon, textarea = false, minH, ...props }) {
 }
 
 // ── Status Badge ──────────────────────────────────────────────────────────────
-// Semantische Status-Badges für Posts
+// CX Fusion: colored dot + text (no background chip)
 export function SBadge({ status }) {
   const M = {
-    scheduled: { color: T.success500,  bg: T.successBg,  label: "Geplant",  I: CheckCircle },
-    draft:     { color: T.gray600,     bg: T.gray100,    label: "Entwurf",  I: FileText },
-    pending:   { color: T.warning500,  bg: T.warningBg,  label: "Freigabe", I: Clock },
-    published: { color: T.brand600,    bg: T.brand100,   label: "Live",     I: Globe },
+    scheduled: { dot: T.success500,  text: T.successText, label: "Geplant"   },
+    draft:     { dot: T.gray400,     text: T.gray600,     label: "Entwurf"   },
+    pending:   { dot: T.warning500,  text: T.warningText, label: "Freigabe"  },
+    published: { dot: T.brand600,    text: T.brand600,    label: "Live"      },
   };
   const m = M[status] || M.draft;
   return (
     <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      background: m.bg, color: m.color,
-      fontSize: 11, fontWeight: 600, padding: "3px 9px",
-      borderRadius: 20, letterSpacing: ".01em",
+      display: "inline-flex", alignItems: "center", gap: 5,
+      fontSize: 11.5, fontWeight: 500, color: m.text,
+      fontFamily: FONT, whiteSpace: "nowrap",
     }}>
-      <m.I size={10} strokeWidth={2.5} />
+      <span style={{
+        width: 7, height: 7, borderRadius: "50%",
+        background: m.dot, flexShrink: 0,
+        display: "inline-block",
+      }} />
       {m.label}
     </span>
   );
@@ -228,7 +241,7 @@ export function SCrd({ icon: Icon, label, value, delta, color, onClick }) {
       }}
       onMouseLeave={e => {
         if (onClick) {
-          e.currentTarget.style.boxShadow = T.shadowSm;
+          e.currentTarget.style.boxShadow = T.shadowXs;
           e.currentTarget.style.transform = "";
         }
       }}

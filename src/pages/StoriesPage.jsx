@@ -234,7 +234,7 @@ export default function StoriesPage() {
       <div style={{ padding: "20px 28px 0", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontFamily: FONT, fontWeight: 700, fontSize: 20, color: C.text }}>Storys</h1>
         <div style={{ flex: 1 }} />
-        <Btn onClick={onNew}><Plus size={14} strokeWidth={IW} /> Neue Story</Btn>
+        <Btn variant="outline" onClick={onNew}><Plus size={14} strokeWidth={IW} /> Neue Story</Btn>
       </div>
 
       {/* ── Filter bar ── */}
@@ -287,7 +287,7 @@ export default function StoriesPage() {
             <p style={{ margin: "8px 0 20px", fontSize: 13, color: C.textMute, fontFamily: FONT }}>
               {q || filt !== "all" ? "Filter anpassen oder Suche ändern" : "Schreibe deine erste Story und leite Posts für alle Kanäle ab."}
             </p>
-            {!q && filt === "all" && <Btn onClick={onNew}><Plus size={14} strokeWidth={IW} /> Erste Story erstellen</Btn>}
+            {!q && filt === "all" && <Btn variant="outline" onClick={onNew}><Plus size={14} strokeWidth={IW} /> Erste Story erstellen</Btn>}
           </div>
         ) : (
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>

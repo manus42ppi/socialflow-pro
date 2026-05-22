@@ -77,9 +77,9 @@ function Dashboard(){
     </div>;
   };
 
-  // Slim status row
+  // Slim status row — CX Fusion dot style
   const StatusRow=({post,last})=>{
-    const s={scheduled:{color:"#16A34A",bg:"#F0FDF4",label:"Geplant"},draft:{color:"#D97706",bg:"#FFFBEB",label:"Entwurf"},pending:{color:"#2563EB",bg:"#EFF6FF",label:"Review"},published:{color:"#7C3AED",bg:"#F5F3FF",label:"Live"}}[post.status]||{color:C.textSoft,bg:C.bg,label:post.status};
+    const s={scheduled:{dot:T.success500,text:T.successText,label:"Geplant"},draft:{dot:T.gray400,text:T.gray600,label:"Entwurf"},pending:{dot:T.warning500,text:T.warningText,label:"Review"},published:{dot:T.brand600,text:T.brand600,label:"Live"}}[post.status]||{dot:C.textMute,text:C.textSoft,label:post.status};
     return <div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:last?"none":`1px solid ${C.borderLight}`}}>
       <div style={{width:32,height:32,borderRadius:9,background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
         <FileText size={13} color={C.textMute} strokeWidth={1.8}/>
@@ -91,9 +91,10 @@ function Dashboard(){
           {post.scheduledDate&&<span style={{fontSize:10,color:C.textMute}}>{post.scheduledDate}</span>}
         </div>
       </div>
-      <div style={{padding:"2px 8px",borderRadius:20,background:s.bg,flexShrink:0}}>
-        <span style={{fontSize:10.5,fontWeight:700,color:s.color}}>{s.label}</span>
-      </div>
+      <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:500,color:s.text,flexShrink:0,fontFamily:FONT}}>
+        <span style={{width:7,height:7,borderRadius:"50%",background:s.dot,flexShrink:0,display:"inline-block"}}/>
+        {s.label}
+      </span>
     </div>;
   };
 
@@ -146,9 +147,9 @@ function Dashboard(){
   // Image cover helper
   const getCover=p=>{if(p.mediaId){const m=items.find(x=>x.id===p.mediaId);return m?.url;}return null;};
 
-  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:T.rLg,boxShadow:T.shadowSm};
+  const card={background:C.surface,border:`1px solid ${C.border}`,borderRadius:T.rLg,boxShadow:T.shadowXs};
   const lift=e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=T.shadowLg;};
-  const drop=e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=T.shadowSm;};
+  const drop=e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=T.shadowXs;};
 
   // ── Unified post card — image on top, info below, fixed height ──
   const PostCard=({post})=>{
@@ -187,7 +188,10 @@ function Dashboard(){
             {/* Channels + status (only for text cards — image cards have status on the image) */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
               <div style={{display:"flex",gap:3}}>{post.channels?.slice(0,3).map(c=><ChIco key={c} id={c} size={11}/>)}</div>
-              {!cover&&<span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:5,background:sc.c+"15",color:sc.c}}>{sc.l}</span>}
+              {!cover&&<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,fontWeight:500,color:sc.c}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:sc.c,flexShrink:0,display:"inline-block"}}/>
+                {sc.l}
+              </span>}
             </div>
             {/* Title */}
             <div style={{fontWeight:700,fontSize:11.5,color:C.text,lineHeight:1.3,overflow:"hidden",

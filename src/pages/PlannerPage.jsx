@@ -133,8 +133,9 @@ function PostPopover({ post, campaigns, anchorRect, onEdit, onClose }) {
           <div style={{ display:"flex", gap:4 }}>
             {post.channels?.slice(0,5).map(ch => <ChIco key={ch} id={ch} size={14}/>)}
           </div>
-          <span style={{ fontSize:10, fontWeight:700, color:sc.c,
-            background:sc.bg, borderRadius:5, padding:"2px 8px" }}>
+          <span style={{ display:"inline-flex", alignItems:"center", gap:5,
+            fontSize:11, fontWeight:500, color:sc.c }}>
+            <span style={{ width:7, height:7, borderRadius:"50%", background:sc.c, flexShrink:0, display:"inline-block" }}/>
             {sc.l}
           </span>
         </div>
@@ -652,10 +653,11 @@ export default function PlannerPage() {
             </div>
 
             {/* Status */}
-            <div style={{ padding:"3px 8px", borderRadius:5, background:sc.bg,
-              display:"inline-flex", width:"fit-content" }}>
-              <span style={{ fontSize:10, fontWeight:700, color:sc.c }}>{sc.l}</span>
-            </div>
+            <span style={{ display:"inline-flex", alignItems:"center", gap:5,
+              fontSize:11, fontWeight:500, color:sc.c }}>
+              <span style={{ width:7, height:7, borderRadius:"50%", background:sc.c, flexShrink:0, display:"inline-block" }}/>
+              {sc.l}
+            </span>
           </div>
         );
       })}

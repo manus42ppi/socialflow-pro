@@ -102,11 +102,13 @@ function mockActuals(camp, pubCount) {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+// CX Fusion: dot + text, no background chip
 function StatusBadge({ status }) {
   const s = STATUSES[status] || STATUSES.draft;
   return (
-    <span style={{ fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:20,
-      color:s.color, background:s.bg, border:`1px solid ${s.color}30` }}>
+    <span style={{ display:"inline-flex", alignItems:"center", gap:5,
+      fontSize:11, fontWeight:500, color:s.color, whiteSpace:"nowrap" }}>
+      <span style={{ width:7, height:7, borderRadius:"50%", background:s.color, flexShrink:0, display:"inline-block" }}/>
       {s.label}
     </span>
   );
@@ -837,9 +839,11 @@ export default function CampaignsPage() {
           </div>
         </div>
         <button onClick={openCreate}
+          onMouseEnter={e=>{e.currentTarget.style.background=T.brand100;e.currentTarget.style.borderColor=T.brand300;}}
+          onMouseLeave={e=>{e.currentTarget.style.background=T.brand25;e.currentTarget.style.borderColor=T.brand200;}}
           style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 16px",
-            borderRadius:T.rMd, border:"none", background:C.accent, cursor:"pointer",
-            fontFamily:FONT, fontSize:13, fontWeight:700, color:"#fff" }}>
+            borderRadius:T.rMd, border:`1px solid ${T.brand200}`, background:T.brand25, cursor:"pointer",
+            fontFamily:FONT, fontSize:13, fontWeight:600, color:C.accent, transition:"all .15s" }}>
           <Plus size={14} strokeWidth={2.5}/>Neue Kampagne
         </button>
       </div>

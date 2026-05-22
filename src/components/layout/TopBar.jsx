@@ -60,18 +60,19 @@ export default function TopBar({ title }) {
         <Bell size={16} strokeWidth={IW} />
       </button>
 
-      {/* New post button */}
+      {/* New post button — CX Fusion: outlined page-header CTA */}
       {(() => {
         const noWs = !currentWorkspaceId && userWorkspaces?.length > 1;
         return (
           <div style={{ position: "relative" }} title={noWs ? "Bitte zuerst einen Mandanten wählen" : undefined}>
             <Btn
+              variant="outline"
               onClick={noWs ? undefined : onNew}
               size="md"
               style={{ gap: 6, opacity: noWs ? 0.45 : 1, cursor: noWs ? "not-allowed" : "pointer" }}
             >
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path d="M6.5 1v11M1 6.5h11" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
               Neuer Post
             </Btn>

@@ -18,9 +18,9 @@ export default function PostCard({post,items,campaigns,stories,onEdit,onSched,on
   const parentStory = stories?.find(s => s.derivatives?.some(d => d.postId === post.id));
 
   return(
-    <Card style={{overflow:"hidden",transition:"box-shadow .18s",display:"flex",flexDirection:"column",height:388,boxShadow:T.shadowSm,borderRadius:T.rLg,border:`1px solid ${C.border}`}}
-      onMouseEnter={e=>e.currentTarget.style.boxShadow="0 8px 28px rgba(10,13,18,.12)"}
-      onMouseLeave={e=>e.currentTarget.style.boxShadow=T.shadowSm}>
+    <Card style={{overflow:"hidden",transition:"box-shadow .18s",display:"flex",flexDirection:"column",height:388,borderRadius:T.rLg,border:`1px solid ${C.border}`}}
+      onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(10,13,18,.10)"}
+      onMouseLeave={e=>e.currentTarget.style.boxShadow=T.shadowXs}>
 
       {/* ── Header: title + badge + delete ── 44px */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"10px 12px 8px",flexShrink:0,minHeight:44}}>
