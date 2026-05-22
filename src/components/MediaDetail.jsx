@@ -6,7 +6,7 @@ import { AI } from "../utils/store.js";
 import { Sp, Btn, Card, FL, TIn } from "./ui/index.jsx";
 import ChIco from "./ui/ChIco.jsx";
 
-export default function MediaDetail({item,onSave,onClose}){
+export default function MediaDetail({item,onSave,onUpdate,onClose}){
   const [form,setForm]=useState({...item});
   const [fp,setFp]=useState(item.focusPoint||{x:50,y:50});
   const [fmode,setFmode]=useState(false);
@@ -29,17 +29,20 @@ export default function MediaDetail({item,onSave,onClose}){
     try{
       const r=await AI.analyzeImg(form.url);
       setAiData(r);
-      setForm(f=>({
-        ...f,
-        tags: r.tags?.join(", ")||f.tags,
-        description: r.description||f.description,
-        altText: r.suggestedAlt||f.altText,
-        mood: r.mood||f.mood,
+      const newFp=r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:fp;
+      const updated={
+        ...form,
+        tags: r.tags?.join(", ")||form.tags,
+        description: r.description||form.description,
+        altText: r.suggestedAlt||form.altText,
+        mood: r.mood||form.mood,
         aiAnalysis: r,
-      }));
-      if(r.focalPoint){
-        setFp({x:r.focalPoint.x, y:r.focalPoint.y});
-      }
+        focusPoint: newFp,
+      };
+      setForm(updated);
+      if(r.focalPoint) setFp(newFp);
+      // Auto-persist so analysis survives modal close / page reload
+      if(onUpdate) onUpdate(updated);
     }catch(e){console.error(e); setAiFailed(true);}
     setAiLd(false);
   };

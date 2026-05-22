@@ -444,7 +444,7 @@ export default function MediaPage(){
 
         </div>
       </div>
-      {det&&<MediaDetail item={det} onSave={u=>{onUpdate(u);setDet(null);}} onClose={()=>setDet(null)}/>}
+      {det&&<MediaDetail item={det} onSave={u=>{onUpdate(u);setDet(null);}} onUpdate={onUpdate} onClose={()=>setDet(null)}/>}
 
       {/* ── Delete confirm modal ── */}
       {delConfirm&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}} onClick={()=>setDelConfirm(null)}>
