@@ -31,6 +31,7 @@ import UGCPortalPage from "./pages/UGCPortalPage.jsx";
 import VoodooPage from "./pages/VoodooPage.jsx";
 import ProductsPage from "./pages/ProductsPage.jsx";
 import ProductEditorModal from "./modals/ProductEditorModal.jsx";
+import SparkOrb from "./components/spark/SparkOrb.jsx";
 
 // ── APP ROOT ───────────────────────────────────────────────────────────────
 export default function App() {
@@ -100,6 +101,9 @@ function AppShell() {
       {edPost     && <Editor />}
       {schPost    && <SchedModal />}
       {detailPost && <PostDetailDrawer />}
+
+      {/* Spark Voice Assistant – always mounted, floats bottom-right */}
+      <SparkOrb />
     </div>
   );
 }
