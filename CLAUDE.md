@@ -3,6 +3,12 @@
 > **Dieses Dokument ist die einzige Quelle der Wahrheit für Claude Code.**
 > Es wird bei jeder Session automatisch geladen. Vollständig aktuell halten.
 
+## Session-Start Checkliste
+
+1. `tasks/lessons.md` lesen — bekannte Fallstricke reviewen
+2. `tasks/todo.md` lesen — offene Tasks kennen
+3. Branch prüfen: `git branch --show-current` → muss `develop` sein
+
 ---
 
 ## 1. Infrastruktur & Branches
@@ -698,3 +704,36 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 - Workspace-Zugriffsrechte im Admin änderbar machen
 - Mobile Responsive
 - Echter Publish-Endpunkt für Social Channels
+
+**→ Vollständige Aufgabenliste: `tasks/todo.md`**
+
+---
+
+## 15. Task Management & Self-Improvement
+
+### Pflicht bei jeder Session
+
+**Session-Start:**
+- `tasks/lessons.md` lesen (bekannte Fallstricke, verhindert Wiederholungsfehler)
+- `tasks/todo.md` lesen (offene Tasks, aktueller Stand)
+
+**Nach einer Korrektur durch den User:**
+- `tasks/lessons.md` sofort mit dem Muster ergänzen (Format: `L-NNN: Titel`)
+- Regel so formulieren, dass Claude Code denselben Fehler nie wieder macht
+
+**Nach Abschluss eines Tasks:**
+- `tasks/todo.md` aktualisieren: Status setzen, "Zuletzt erledigt" eintragen
+- Neue erkannte Aufgaben direkt als `📋 Offen` eintragen
+
+### Verification Before Done
+
+Bevor ein Task als fertig gilt:
+- Tests grün: `node node_modules/.bin/vitest run` → alle Tests bestehen
+- Build erfolgreich: `node node_modules/.bin/vite build`
+- Selbstfrage: „Würde ein Staff Engineer das so abnicken?"
+
+### Autonomes Arbeiten
+
+- Bei Bugreport: direkt fixen, keine Rückfragen für Offensichtliches
+- Failing Tests → Root Cause finden und beheben, nicht patchen
+- Bei hacky wirkendem Fix: elegante Lösung implementieren
