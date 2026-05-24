@@ -26,7 +26,7 @@ export default function DerivativesPanel({
 }: DerivativesPanelProps) {
   return (
     <AccSection
-      label="Ableitungen"
+      label="Varianten"
       badge={derivatives.length > 0 ? derivatives.length : null}
       isOpen={isOpen}
       onToggle={onToggle}

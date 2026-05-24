@@ -120,7 +120,7 @@ function DerivativesToggle({ count, expanded, onToggle }) {
       {expanded
         ? <ChevronDown  size={10} strokeWidth={2.5} />
         : <ChevronRight size={10} strokeWidth={2.5} />}
-      {count} {count === 1 ? "Ableitung" : "Ableitungen"}
+      {count} {count === 1 ? "Variante" : "Varianten"}
     </button>
   );
 }
@@ -255,7 +255,7 @@ function TypePicker({ onSelect, onClose }) {
     {
       type:"article",
       label:"Neuer Artikel",
-      sub:"Langer Inhalt · BlockNote-Editor · SEO · Ableitungen",
+      sub:"Langer Inhalt · BlockNote-Editor · SEO · Varianten",
       ...CT.article,
     },
     {
@@ -733,8 +733,8 @@ export default function ContentLibraryPage() {
       }}>
         <Sparkles size={13} color="#D97706" strokeWidth={2} />
         <span>
-          <strong>Hub & Spoke:</strong> Klicke auf "Ableitungen" bei einem Artikel um abgeleitete Posts zu sehen.
-          Neue Ableitungen erstellst du im Story-Editor unter dem Tab "Info".
+          <strong>Hub & Spoke:</strong> Klicke auf "Varianten" bei einem Artikel um abgeleitete Posts zu sehen.
+          Neue Varianten erstellst du im Artikel-Editor unter dem Tab "Info".
         </span>
       </div>
     </div>

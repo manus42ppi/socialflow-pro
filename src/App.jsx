@@ -5,9 +5,9 @@ import Login from "./components/Login.jsx";
 import Sidebar from "./components/layout/Sidebar.jsx";
 import TopBar from "./components/layout/TopBar.jsx";
 import GlobalRightSidebar from "./components/layout/GlobalRightSidebar.jsx";
-import Editor from "./modals/Editor.jsx";
 import SchedModal from "./modals/SchedModal.jsx";
 import StoryEditorModal from "./modals/StoryEditorModal.jsx";
+import PostEditorModal from "./modals/PostEditorModal.jsx";
 import PostDetailDrawer from "./modals/PostDetailDrawer.jsx";
 import { TITLE } from "./constants/nav.js";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -63,8 +63,8 @@ function AppShell() {
       <style>{CSS}</style>
       <Sidebar />
 
-      {/* Full-screen modals: story editor or product editor fill the content area */}
-      {edStory ? <StoryEditorModal /> : edProduct ? <ProductEditorModal /> : (
+      {/* Full-screen editors fill the content area (no floating modal) */}
+      {edStory ? <StoryEditorModal /> : edPost ? <PostEditorModal /> : edProduct ? <ProductEditorModal /> : (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <TopBar title={TITLE[nav] || "SocialFlow"} />
           <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
@@ -99,8 +99,7 @@ function AppShell() {
         </div>
       )}
 
-      {/* Remaining overlays (post editor, schedule, detail drawer) */}
-      {edPost     && <Editor />}
+      {/* Remaining overlays (schedule, detail drawer) */}
       {schPost    && <SchedModal />}
       {detailPost && <PostDetailDrawer />}
 

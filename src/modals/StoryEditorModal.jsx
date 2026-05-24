@@ -40,7 +40,7 @@ const CAT_COLOR = {Marketing:"#E1306C",Tech:"#8B5CF6",Lifestyle:"#EC4899",Wirtsc
 const STATUSES = [
   { id:"idea",      label:"Idee",           color:"#6366F1", desc:"Ersten Gedanken sammeln" },
   { id:"draft",     label:"Entwurf",        color:"#F59E0B", desc:"Inhalt wird geschrieben" },
-  { id:"ready",     label:"Bereit",         color:"#10B981", desc:"Bereit für Ableitungen" },
+  { id:"ready",     label:"Bereit",         color:"#10B981", desc:"Bereit für Varianten" },
   { id:"published", label:"Veröffentlicht", color:"#0EA5E9", desc:"Story ist publiziert" },
 ];
 
@@ -552,7 +552,7 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
     const postId = uid();
     const post = {
       id: postId,
-      title: f.title || "Story-Ableitung",
+      title: f.title || "Post-Variante",
       content: editedContent,
       channels: chId === "website" || chId === "print" ? [] : [chId],
       status: "draft",

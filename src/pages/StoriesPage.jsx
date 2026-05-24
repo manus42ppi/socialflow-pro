@@ -80,7 +80,7 @@ function TableHeader() {
       {cell("Titel")}
       {cell("Status")}
       {cell("Kanäle")}
-      {cell("Ableitungen", "center")}
+      {cell("Varianten", "center")}
       {cell("Wörter", "center")}
       {cell("Datum", "center")}
       <div />
