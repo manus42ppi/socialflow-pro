@@ -62,12 +62,14 @@ export default function SparkOrb() {
   const [open, setOpen]       = useState(false);         // conversation panel visible
 
   const recRef      = useRef(null);                      // SpeechRecognition instance
-  const synthRef    = useRef(window.speechSynthesis);    // SpeechSynthesis
+  const synthRef    = useRef(window.speechSynthesis);    // SpeechSynthesis (fallback)
+  const audioRef    = useRef(null);                      // OpenAI TTS Audio element
   const histRef     = useRef([]);                        // [{role,content}] for API
   const busyRef     = useRef(false);                     // true while thinking/speaking
   const activeRef   = useRef(false);                     // mirror of active (no stale closure)
   const panelEndRef = useRef(null);                      // auto-scroll anchor
   const recRunning  = useRef(false);                     // true = SR is actively listening
+  const ttsAvail    = useRef(null);                      // null=unknown, true/false after first call
 
   // Keep refs in sync with state
   useEffect(() => { activeRef.current = active; }, [active]);
@@ -84,61 +86,89 @@ export default function SparkOrb() {
     if ("onvoiceschanged" in syn) syn.onvoiceschanged = () => syn.getVoices();
   }, []);
 
-  // ── Voice selection: Google neural first, local fallback ─────────────────
-  const pickVoice = useCallback(() => {
-    const voices = synthRef.current.getVoices();
-    // Chrome: "Google Deutsch" is a neural cloud voice — much better than local
-    return voices.find(v => v.lang === "de-DE" && v.name.toLowerCase().includes("google"))
-        || voices.find(v => v.lang === "de-DE" && !v.localService)   // any online de-DE
-        || voices.find(v => v.lang.startsWith("de") && !v.localService)
-        || voices.find(v => v.lang === "de-DE")                       // local de-DE
-        || voices.find(v => v.lang.startsWith("de"))
-        || null;
+  // ── Shared: called when any TTS finishes (or errors) ─────────────────────
+  const onSpeakEnd = useCallback(() => {
+    busyRef.current = false;
+    setVs(activeRef.current ? LISTENING : IDLE);
+    if (activeRef.current && recRef.current) {
+      setTimeout(() => {
+        if (activeRef.current && recRef.current) {
+          try { recRef.current.start(); } catch { /* already running */ }
+        }
+      }, 400);
+    }
   }, []);
 
-  // ── Speak — pauses SR so Spark can't hear itself ──────────────────────────
-  const speak = useCallback((text) => {
-    const syn = synthRef.current;
-    syn.cancel();
-
-    // ── Pause recognition before speaking to prevent feedback loop ──────────
+  // ── Pause SR so Spark can't hear itself ───────────────────────────────────
+  const pauseRec = useCallback(() => {
     if (recRef.current && recRunning.current) {
       try { recRef.current.stop(); } catch {}
-      // onend will NOT restart because busyRef is true at this point
     }
+  }, []);
 
+  // ── Browser TTS fallback ──────────────────────────────────────────────────
+  const speakBrowser = useCallback((text) => {
+    const syn = synthRef.current;
+    syn.cancel();
+    pauseRec();
     const utt   = new SpeechSynthesisUtterance(text);
     utt.lang    = "de-DE";
-    utt.rate    = 0.95;   // slightly slower = more natural
+    utt.rate    = 0.95;
     utt.pitch   = 1.0;
-    const voice = pickVoice();
+    // Prefer Google neural voice in Chrome
+    const voices = syn.getVoices();
+    const voice  = voices.find(v => v.lang === "de-DE" && v.name.toLowerCase().includes("google"))
+                || voices.find(v => v.lang === "de-DE" && !v.localService)
+                || voices.find(v => v.lang.startsWith("de") && !v.localService)
+                || voices.find(v => v.lang.startsWith("de"))
+                || null;
     if (voice) utt.voice = voice;
-
     utt.onstart = () => setVs(SPEAKING);
-    utt.onend = () => {
-      busyRef.current = false;
-      setVs(activeRef.current ? LISTENING : IDLE);
-      // Resume recognition after 400 ms — gives a short pause so user knows Spark is done
-      if (activeRef.current && recRef.current) {
-        setTimeout(() => {
-          if (activeRef.current && recRef.current) {
-            try { recRef.current.start(); } catch { /* already running */ }
-          }
-        }, 400);
-      }
-    };
-    utt.onerror = () => {
-      busyRef.current = false;
-      setVs(activeRef.current ? LISTENING : IDLE);
-      if (activeRef.current && recRef.current) {
-        setTimeout(() => {
-          try { recRef.current.start(); } catch {}
-        }, 400);
-      }
-    };
-
+    utt.onend   = onSpeakEnd;
+    utt.onerror = onSpeakEnd;
     syn.speak(utt);
-  }, [pickVoice]);
+  }, [pauseRec, onSpeakEnd]);
+
+  // ── OpenAI TTS (primary) — falls back to browser on error / no key ────────
+  const speak = useCallback(async (text) => {
+    pauseRec();
+
+    // If we already know /tts is unavailable, skip straight to browser
+    if (ttsAvail.current === false) { speakBrowser(text); return; }
+
+    try {
+      setVs(SPEAKING);
+      const r = await fetch("/tts", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ text, voice: "nova", model: "tts-1" }),
+      });
+
+      if (!r.ok) {
+        // 503 = no API key configured → use browser forever
+        if (r.status === 503) ttsAvail.current = false;
+        throw new Error(`TTS ${r.status}`);
+      }
+
+      ttsAvail.current = true;
+      const blob = await r.blob();
+      const url  = URL.createObjectURL(blob);
+
+      // Clean up previous audio element
+      if (audioRef.current) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      }
+
+      const audio       = new Audio(url);
+      audioRef.current  = audio;
+      audio.onended     = () => { URL.revokeObjectURL(url); onSpeakEnd(); };
+      audio.onerror     = () => { URL.revokeObjectURL(url); speakBrowser(text); };
+      await audio.play();
+    } catch {
+      speakBrowser(text);
+    }
+  }, [pauseRec, speakBrowser, onSpeakEnd]);
 
   // ── Execute Spark Actions ─────────────────────────────────────────────────
   const executeActions = useCallback((actions) => {
