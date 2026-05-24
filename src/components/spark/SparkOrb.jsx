@@ -67,6 +67,7 @@ export default function SparkOrb() {
   const busyRef     = useRef(false);                     // true while thinking/speaking
   const activeRef   = useRef(false);                     // mirror of active (no stale closure)
   const panelEndRef = useRef(null);                      // auto-scroll anchor
+  const recRunning  = useRef(false);                     // true = SR is actively listening
 
   // Keep refs in sync with state
   useEffect(() => { activeRef.current = active; }, [active]);
@@ -83,39 +84,61 @@ export default function SparkOrb() {
     if ("onvoiceschanged" in syn) syn.onvoiceschanged = () => syn.getVoices();
   }, []);
 
-  // ── Speak ─────────────────────────────────────────────────────────────────
+  // ── Voice selection: Google neural first, local fallback ─────────────────
+  const pickVoice = useCallback(() => {
+    const voices = synthRef.current.getVoices();
+    // Chrome: "Google Deutsch" is a neural cloud voice — much better than local
+    return voices.find(v => v.lang === "de-DE" && v.name.toLowerCase().includes("google"))
+        || voices.find(v => v.lang === "de-DE" && !v.localService)   // any online de-DE
+        || voices.find(v => v.lang.startsWith("de") && !v.localService)
+        || voices.find(v => v.lang === "de-DE")                       // local de-DE
+        || voices.find(v => v.lang.startsWith("de"))
+        || null;
+  }, []);
+
+  // ── Speak — pauses SR so Spark can't hear itself ──────────────────────────
   const speak = useCallback((text) => {
     const syn = synthRef.current;
     syn.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang  = "de-DE";
-    utt.rate  = 1.05;
-    utt.pitch = 1.0;
 
-    const voices  = syn.getVoices();
-    const deVoice = voices.find(v => v.lang.startsWith("de") && v.localService)
-                 || voices.find(v => v.lang.startsWith("de"));
-    if (deVoice) utt.voice = deVoice;
+    // ── Pause recognition before speaking to prevent feedback loop ──────────
+    if (recRef.current && recRunning.current) {
+      try { recRef.current.stop(); } catch {}
+      // onend will NOT restart because busyRef is true at this point
+    }
+
+    const utt   = new SpeechSynthesisUtterance(text);
+    utt.lang    = "de-DE";
+    utt.rate    = 0.95;   // slightly slower = more natural
+    utt.pitch   = 1.0;
+    const voice = pickVoice();
+    if (voice) utt.voice = voice;
 
     utt.onstart = () => setVs(SPEAKING);
     utt.onend = () => {
       busyRef.current = false;
       setVs(activeRef.current ? LISTENING : IDLE);
-      // Restart recognition if it stopped while we were busy
+      // Resume recognition after 400 ms — gives a short pause so user knows Spark is done
       if (activeRef.current && recRef.current) {
-        try { recRef.current.start(); } catch { /* already running */ }
+        setTimeout(() => {
+          if (activeRef.current && recRef.current) {
+            try { recRef.current.start(); } catch { /* already running */ }
+          }
+        }, 400);
       }
     };
     utt.onerror = () => {
       busyRef.current = false;
       setVs(activeRef.current ? LISTENING : IDLE);
       if (activeRef.current && recRef.current) {
-        try { recRef.current.start(); } catch {}
+        setTimeout(() => {
+          try { recRef.current.start(); } catch {}
+        }, 400);
       }
     };
 
     syn.speak(utt);
-  }, []);
+  }, [pickVoice]);
 
   // ── Execute Spark Actions ─────────────────────────────────────────────────
   const executeActions = useCallback((actions) => {
@@ -248,6 +271,7 @@ export default function SparkOrb() {
     let silTimer = null;
 
     rec.onstart = () => {
+      recRunning.current = true;
       if (!busyRef.current) setVs(LISTENING);
     };
 
@@ -285,8 +309,9 @@ export default function SparkOrb() {
     };
 
     rec.onend = () => {
+      recRunning.current = false;
       clearTimeout(silTimer);
-      // Auto-restart if still active and not busy (continuous mode can stop on timeout)
+      // Auto-restart only if still active AND not busy (busy = speak() will restart after)
       if (activeRef.current && !busyRef.current) {
         try { rec.start(); } catch {}
       }
