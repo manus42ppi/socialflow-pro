@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
-  Flag, Trash2, BookOpen, CalendarRange, Eye, Inbox,
+  Flag, Trash2, CalendarRange, Eye, Inbox,
   Flame, Globe, Target, FileText, Code2, Share2, Wand2, Package, Layers,
 } from "lucide-react";
 
@@ -14,13 +14,19 @@ export const CHCLR = {
 };
 
 // ── NAV GROUPS ──────────────────────────────────────────────────────────────
-// Structure inspired by best-in-class tools (Buffer, Planable, CoSchedule):
-// – WORKSPACE         = home/overview (like Hootsuite Home)
-// – CONTENT CREATION  = create, write, draft (verb-oriented like Buffer)
-// – CONTENT PLANNING  = campaigns, calendar, timeline (Planable/CoSchedule pattern)
-// – MEDIENBIBLIOTHEK  = assets & stock search (Later/Sprout Social pattern)
-// – ANALYSE           = performance reports
-// Utility items (Trash, Admin) live at the sidebar bottom – not in a group
+// Workflow-orientierte Struktur (analog zu Buffer, Planable, CoSchedule):
+//
+//  WORKSPACE   – Überblick / Home
+//  ERSTELLEN   – Inhalte schreiben & ableiten (Hub & Spoke)
+//               „Inhalte" ist der unified Content Hub (Artikel + Posts + Varianten).
+//               Storys sind direkt in „Inhalte" integriert → kein separater Menüpunkt.
+//  PUBLISHING  – Workflow, Planung & Veröffentlichung
+//               Publisher (Kanban), Kampagnen, Kalender, Planner
+//  ASSETS      – Medienbibliothek
+//  CREATION VOODOO – KI-Webseitengenerator (Eigenmarke)
+//  ANALYSE     – Performance, Monitoring, SEO, Wettbewerber
+//
+// Utility-Items (Papierkorb, Admin) stehen am Sidebar-Ende – nicht in einer Gruppe.
 export const NAV_GROUPS = [
   {
     label: "WORKSPACE",
@@ -29,25 +35,24 @@ export const NAV_GROUPS = [
     ],
   },
   {
-    label: "CONTENT CREATION",
+    label: "ERSTELLEN",
     items: [
       { id:"content",     label:"Inhalte",           I:Layers       },
-      { id:"stories",     label:"Storys",            I:BookOpen     },
       { id:"produkte",    label:"Produkte",          I:Package      },
       { id:"ugc",         label:"UGC Portal",        I:Inbox        },
-      { id:"publisher",   label:"Publisher",         I:Send         },
     ],
   },
   {
-    label: "CONTENT PLANNING",
+    label: "PUBLISHING",
     items: [
+      { id:"publisher",   label:"Publisher",         I:Send         },
       { id:"campaigns",   label:"Kampagnen",         I:Flag         },
       { id:"calendar",    label:"Kalender",          I:Calendar     },
       { id:"planner",     label:"Planner",           I:CalendarRange },
     ],
   },
   {
-    label: "MEDIENBIBLIOTHEK",
+    label: "ASSETS",
     items: [
       { id:"media",       label:"Medienbibliothek",  I:Image        },
     ],

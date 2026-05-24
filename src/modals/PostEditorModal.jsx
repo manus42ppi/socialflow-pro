@@ -17,7 +17,8 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/react/style.css";
 import "@blocknote/ariakit/style.css";
 import { BlockNoteView } from "@blocknote/ariakit";
-import { useCreateBlockNote } from "@blocknote/react";
+import { useCreateBlockNote, FilePanelController } from "@blocknote/react";
+import MediaLibraryFilePanel from "./StoryEditor/MediaLibraryFilePanel.js";
 import { C, T, FONT, IW, CSS, TYPO } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { uid, fpos } from "../utils/store.js";
@@ -564,8 +565,12 @@ export default function PostEditorModal() {
             <BlockNoteView
               editor={editor}
               theme="light"
+              filePanel={false}
               style={{ minHeight:300 }}
-            />
+            >
+              {/* Ersetzt BlockNotes Standard-Datei-Upload durch Medienbibliothek-Picker */}
+              <FilePanelController filePanel={MediaLibraryFilePanel} />
+            </BlockNoteView>
           </div>
         </div>
 

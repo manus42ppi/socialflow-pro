@@ -127,7 +127,7 @@ preview_eval({ serverId, expression: `(() => {
 ```js
 preview_eval({ serverId, expression: `(() => {
   const clickable = Array.from(document.querySelectorAll('[style*="cursor"]'));
-  const target = clickable.find(el => el.textContent.trim() === 'Storys');
+  const target = clickable.find(el => el.textContent.trim() === 'Inhalte');
   target?.click();
 })()` })
 ```
@@ -395,6 +395,19 @@ useEffect(() => {
 React Router v7 (`react-router-dom`). `BrowserRouter` in `main.jsx` → `Routes`/`Route` in `App.jsx`.  
 Navigation via `useNavigate` / `useLocation`. `goNav(target)` im AppContext navigiert zu `/${target}`.  
 Modals (edPost, edStory, schPost, detailPost) bleiben Context-basiert — keine URL-Parameter.
+
+### Sidebar-Navigation (NAV_GROUPS in `nav.js`)
+
+| Gruppe | Items |
+|---|---|
+| WORKSPACE | Dashboard |
+| ERSTELLEN | **Inhalte** (unified Hub & Spoke), Produkte, UGC Portal |
+| PUBLISHING | Publisher (Kanban), Kampagnen, Kalender, Planner |
+| ASSETS | Medienbibliothek |
+| CREATION VOODOO | Creation Voodoo |
+| ANALYSE | Performance, Monitoring, Trends, Domain-Analyse, Wettbewerber, Content-Audit, Structure-Audit, Social Intelligence |
+
+**„Storys" existiert NICHT mehr als Menüpunkt** — Artikel/Stories werden vollständig über „Inhalte" (`/content`) verwaltet. Die `/stories`-Route ist noch im Router vorhanden (Backwards-Compat), aber nicht in der Sidebar.
 
 ---
 
@@ -787,7 +800,8 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 - Dashboard, Publisher (Kanban), Kalender, Planner (Gantt), Kampagnen
 - Medienbibliothek (Upload, KI-Analyse, Fokuspunkt)
 - Performance (Mock-Analytics), Instagram Monitoring
-- Post-Editor (KI-Panel), Story-Workflow (BlockNote, SEO, Ableitungen)
+- **PostEditorModal** (BlockNote Full-Screen) — ersetzt Editor.jsx; Medienbibliothek-Picker in BlockNote integriert
+- Story-Workflow (BlockNote, SEO, Varianten)
 - **Content Library** (`/content`) — COPE / Hub & Spoke unified view (Articles + Posts)
 - Multi-Tenant / Mandanten-System (4 Demo-Mandanten)
 - UGC Portal (Einreichungen, Genehmigungs-Workflow)
