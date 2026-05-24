@@ -210,6 +210,7 @@ src/
 │
 ├── pages/
 │   ├── Dashboard.jsx
+│   ├── ContentLibraryPage.jsx  # ← Unified Content Hub (COPE / Hub & Spoke)
 │   ├── PublisherPage.jsx
 │   ├── CalendarPage.jsx
 │   ├── PlannerPage.jsx
@@ -249,6 +250,7 @@ src/
 
 functions/
 ├── ai.js              # POST /ai → Anthropic API Proxy (claude-sonnet-4-6), stream + non-stream
+├── tts.js             # POST /tts → OpenAI TTS Proxy (nova voice, audio/mpeg stream)
 ├── store.js           # POST /store → Cloudflare KV (Clerk-JWT required, User-isoliert)
 ├── instagram.js       # POST /instagram → Instagram Graph API Proxy
 ├── ig-monitor.js      # POST /ig-monitor → Business Discovery API (öffentliche Accounts)
@@ -390,7 +392,9 @@ useEffect(() => {
 ```
 
 ### Routing
-Rein State-basiert via `nav`-String. Kein React Router. Browser-Back funktioniert nicht.
+React Router v7 (`react-router-dom`). `BrowserRouter` in `main.jsx` → `Routes`/`Route` in `App.jsx`.  
+Navigation via `useNavigate` / `useLocation`. `goNav(target)` im AppContext navigiert zu `/${target}`.  
+Modals (edPost, edStory, schPost, detailPost) bleiben Context-basiert — keine URL-Parameter.
 
 ---
 
@@ -508,7 +512,112 @@ generate() / sparkRefine()
 
 ---
 
-## 9. Story-Workflow (BlockNote v0.47.3)
+## 9. Content Library – COPE / Hub & Spoke
+
+### Konzept
+
+**COPE = Create Once, Publish Everywhere.**  
+Ein Artikel (Hub) wird einmal geschrieben und daraus werden automatisch Posts (Spokes) für Social Media abgeleitet. Die `ContentLibraryPage` zeigt Articles und Posts in einer einzigen, einheitlichen Liste.
+
+### Route & Navigation
+
+| Route | Komponente | Nav-Label |
+|---|---|---|
+| `/content` | `ContentLibraryPage.jsx` | „Inhalte" (Layers-Icon) |
+
+### Hub & Spoke Beziehung
+
+```
+Story (Hub)  ────  story.derivatives[{id, channel, postId, createdAt}]
+                          ↓
+                    Post (Spoke)     ← verlinkt via postId
+```
+
+**Keine Datenmigration nötig** — die Beziehung wird zur Laufzeit aus `story.derivatives[].postId` aufgelöst:
+
+```js
+// ContentLibraryPage – childMap aufbauen
+const childMap = useMemo(() => {
+  const map = {};
+  stories.forEach(s => {
+    const ids = (s.derivatives || []).map(d => d.postId).filter(Boolean);
+    map[s.id] = allPosts.filter(p => ids.includes(p.id));
+  });
+  return map;
+}, [stories, allPosts]);
+
+// Posts die NICHT abgeleitet sind (eigenständige Posts)
+const derivedIds = new Set(Object.values(childMap).flat().map(p => p.id));
+const standalonePosts = allPosts.filter(p => !derivedIds.has(p.id));
+```
+
+### Content-Typen
+
+```js
+const CT = {
+  article: { label:"Artikel", Icon:BookOpen, color:"#3B82F6", bg:"#EFF6FF", border:"#BFDBFE" },
+  post:    { label:"Post",    Icon:Send,     color:"#059669", bg:"#ECFDF5", border:"#A7F3D0" },
+};
+```
+
+### UI-Struktur
+
+- **Stats-Strip:** 3 Karten (Artikel-Count, Post-Count, Published-Count)
+- **Filter-Bar:** Suche + Typ-Chips (Alle/Artikel/Posts) + Status-Select + Kanal-Icons
+- **Liste:** Artikel mit aufklappbaren Ableitungen (blaue Spoke-Rows mit Verbindungslinie), darunter eigenständige Posts
+- **„Neuer Inhalt"-Button:** TypePicker-Dropdown → `newStory()` oder `newPost()`
+
+### Ableitungen erstellen
+
+Neue Ableitungen werden im **StoryEditorModal → Tab „Info" → Ableitungen** erstellt.  
+Die ContentLibraryPage zeigt sie nur lesend (Klick auf Ableitung → öffnet Post-Editor).
+
+---
+
+## 9a. Spark Voice Assistant (`SparkOrb.jsx`)
+
+### Übersicht
+
+Schwebendes Mikrofon-Orb (bottom-right, immer sichtbar in App).
+
+**States:** `IDLE | LISTENING | THINKING | SPEAKING`  
+**Orb-Farben:** `{ idle:"#6366F1", listening:"#10B981", thinking:"#3B82F6", speaking:"#8B5CF6" }`
+
+### TTS-Chain
+
+```
+1. POST /tts → Cloudflare Function → OpenAI TTS (nova voice) → audio/mpeg
+2. Fallback: Browser SpeechSynthesis (bevorzugt Google Deutsch neural)
+```
+
+`ttsAvail` Ref wird beim ersten Aufruf gecacht — bei 503 (OPENAI_API_KEY fehlt) wird dauerhaft auf Browser-TTS umgeschaltet.
+
+### Erkennungszyklus
+
+```
+SpeechRecognition (continuous, interimResults, de-DE)
+  → 1,2s Silence-Timer
+  → processText(text)
+  → aiCall(messages) → JSON { speak, actions[] }
+  → speak(text)           ← pauseRec() VOR dem Sprechen (kein Feedback-Loop)
+  → onSpeakEnd()          → busyRef=false → restartRec nach 400ms
+```
+
+### AI-Antwortformat
+
+```json
+{ "speak": "Was du sagst", "actions": [{ "type": "navigate", "target": "publisher" }] }
+```
+
+**Actions:** `navigate(target)`, `createStory()`, `createPost()`
+
+### Secrets
+
+`OPENAI_API_KEY` im Cloudflare Pages Dashboard (Wert: sk-…, nie committen!)
+
+---
+
+## 10. Story-Workflow (BlockNote v0.47.3)
 
 ### Import-Pflicht
 
@@ -571,7 +680,7 @@ function AddBlockButton({ block }) {
 
 ---
 
-## 10. Tests
+## 11. Tests
 
 ```bash
 # Alle Tests ausführen (193 Tests, alle müssen grün sein)
@@ -593,7 +702,7 @@ node node_modules/.bin/playwright test
 
 ---
 
-## 11. Datenmodelle
+## 12. Datenmodelle
 
 ### Post
 ```js
@@ -635,7 +744,7 @@ node node_modules/.bin/playwright test
 
 ---
 
-## 12. Kritische Regeln
+## 13. Kritische Regeln
 
 | ❌ Verboten | ✅ Korrekt |
 |---|---|
@@ -658,10 +767,11 @@ node node_modules/.bin/playwright test
 
 ---
 
-## 13. Secrets & Umgebungsvariablen
+## 14. Secrets & Umgebungsvariablen
 
 Niemals committen. In Cloudflare Pages Dashboard setzen:
 - `ANTHROPIC_API_KEY` – für `/ai` Function
+- `OPENAI_API_KEY` – für `/tts` Function (OpenAI TTS nova voice); ohne Key → 503 → Browser-TTS-Fallback
 - Clerk Keys – in `main.jsx` (Dev-Key für lokale Arbeit, nie committen)
 
 API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
@@ -669,7 +779,7 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 
 ---
 
-## 14. Entwicklungsstand (Mai 2026)
+## 15. Entwicklungsstand (Mai 2026)
 
 ### ✅ Fertig & aktiv
 
@@ -678,9 +788,11 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 - Medienbibliothek (Upload, KI-Analyse, Fokuspunkt)
 - Performance (Mock-Analytics), Instagram Monitoring
 - Post-Editor (KI-Panel), Story-Workflow (BlockNote, SEO, Ableitungen)
+- **Content Library** (`/content`) — COPE / Hub & Spoke unified view (Articles + Posts)
 - Multi-Tenant / Mandanten-System (4 Demo-Mandanten)
 - UGC Portal (Einreichungen, Genehmigungs-Workflow)
 - Build-Metadaten: `v1.0.{BUILD_NUMBER}` in Sidebar + Login
+- **Spark Voice Assistant** (SparkOrb) — SpeechRecognition + OpenAI TTS nova + Browser-Fallback
 
 **Creation Voodoo (Spark)**
 - Landing-Page-Generierung aus Projekt-Inhalten via KI + Web-Search
@@ -709,7 +821,7 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 
 ---
 
-## 15. Task Management & Self-Improvement
+## 16. Task Management & Self-Improvement
 
 ### Pflicht bei jeder Session
 

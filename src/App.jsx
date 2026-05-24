@@ -31,6 +31,7 @@ import UGCPortalPage from "./pages/UGCPortalPage.jsx";
 import VoodooPage from "./pages/VoodooPage.jsx";
 import ProductsPage from "./pages/ProductsPage.jsx";
 import ProductEditorModal from "./modals/ProductEditorModal.jsx";
+import ContentLibraryPage from "./pages/ContentLibraryPage.jsx";
 import SparkOrb from "./components/spark/SparkOrb.jsx";
 
 // ── APP ROOT ───────────────────────────────────────────────────────────────
@@ -70,6 +71,7 @@ function AppShell() {
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <Routes>
                 <Route path="/"                element={<Dashboard />} />
+                <Route path="/content"         element={<ContentLibraryPage />} />
                 <Route path="/publisher"       element={<PublisherPage />} />
                 <Route path="/trash"           element={<TrashPage />} />
                 <Route path="/campaigns"       element={<CampaignsPage />} />

@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
   Flag, Trash2, BookOpen, CalendarRange, Eye, Inbox,
-  Flame, Globe, Target, FileText, Code2, Share2, Wand2, Package,
+  Flame, Globe, Target, FileText, Code2, Share2, Wand2, Package, Layers,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -31,6 +31,7 @@ export const NAV_GROUPS = [
   {
     label: "CONTENT CREATION",
     items: [
+      { id:"content",     label:"Inhalte",           I:Layers       },
       { id:"stories",     label:"Storys",            I:BookOpen     },
       { id:"produkte",    label:"Produkte",          I:Package      },
       { id:"ugc",         label:"UGC Portal",        I:Inbox        },
@@ -86,6 +87,7 @@ export const NAV = [
 
 export const TITLE = {
   dashboard:          "Dashboard",
+  content:            "Inhalte",
   publisher:          "Publisher",
   trash:              "Papierkorb",
   stories:            "Storys",
