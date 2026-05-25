@@ -1,13 +1,38 @@
-import { Bell, Search } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Bell, Search, BookOpen, Send } from "lucide-react";
 import { C, T, FONT, IW } from "../../constants/colors.js";
 import { Btn } from "../ui/index.jsx";
 import { useApp } from "../../context/AppContext.jsx";
 
 // ── TopBar (CX Fusion) ────────────────────────────────────────────────────────
 // Höhe: 60px | Hintergrund: weiß | Rand unten: gray-200
+//
+// Kontext-bewusster CTA:
+//   /content → "+ Neuer Inhalt" mit TypePicker (Artikel | Post)
+//   alle anderen Seiten → "+ Neuer Post" (direkt)
 
 export default function TopBar({ title }) {
-  const { newPost: onNew, currentWorkspaceId, userWorkspaces } = useApp();
+  const {
+    nav,
+    newPost: onNew,
+    newStory: onNewStory,
+    currentWorkspaceId, userWorkspaces,
+  } = useApp();
+
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef(null);
+
+  // Schließen bei Außenklick
+  useEffect(() => {
+    if (!showPicker) return;
+    const close = e => { if (!pickerRef.current?.contains(e.target)) setShowPicker(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [showPicker]);
+
+  const isContent = nav === "content";
+  const noWs = !currentWorkspaceId && userWorkspaces?.length > 1;
+
   return (
     <div style={{
       height: 60, background: C.surface,
@@ -60,25 +85,78 @@ export default function TopBar({ title }) {
         <Bell size={16} strokeWidth={IW} />
       </button>
 
-      {/* New post button — CX Fusion: outlined page-header CTA */}
-      {(() => {
-        const noWs = !currentWorkspaceId && userWorkspaces?.length > 1;
-        return (
-          <div style={{ position: "relative" }} title={noWs ? "Bitte zuerst einen Mandanten wählen" : undefined}>
-            <Btn
-              variant="outline"
-              onClick={noWs ? undefined : onNew}
-              size="md"
-              style={{ gap: 6, opacity: noWs ? 0.45 : 1, cursor: noWs ? "not-allowed" : "pointer" }}
-            >
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-              Neuer Post
-            </Btn>
+      {/* CTA — kontext-abhängig ─────────────────────────────────────────────── */}
+      <div
+        ref={pickerRef}
+        style={{ position: "relative" }}
+        title={noWs ? "Bitte zuerst einen Mandanten wählen" : undefined}
+      >
+        <Btn
+          variant="outline"
+          onClick={noWs ? undefined : (isContent ? () => setShowPicker(p => !p) : onNew)}
+          size="md"
+          style={{ gap: 6, opacity: noWs ? 0.45 : 1, cursor: noWs ? "not-allowed" : "pointer" }}
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          {isContent ? "Neuer Inhalt" : "Neuer Post"}
+        </Btn>
+
+        {/* TypePicker — nur auf /content ──────────────────────────────────── */}
+        {isContent && showPicker && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 300,
+            background: C.surface, border: `1px solid ${C.border}`,
+            borderRadius: 12, padding: 8, boxShadow: T.shadowLg, minWidth: 260,
+            display: "flex", flexDirection: "column", gap: 2,
+          }}>
+            {[
+              {
+                label: "Neuer Artikel",
+                sub: "Langer Inhalt · BlockNote · SEO · Varianten",
+                Icon: BookOpen, color: "#3B82F6", bg: "#EFF6FF", border: "#BFDBFE",
+                action: () => { onNewStory(); setShowPicker(false); },
+              },
+              {
+                label: "Neuer Post",
+                sub: "Social Media · Channel-Previews · KI-Assistent",
+                Icon: Send, color: "#059669", bg: "#ECFDF5", border: "#A7F3D0",
+                action: () => { onNew(); setShowPicker(false); },
+              },
+            ].map(opt => (
+              <button
+                key={opt.label}
+                onClick={opt.action}
+                style={{
+                  display: "flex", alignItems: "center", gap: 11,
+                  padding: "9px 11px", borderRadius: 8, border: "none",
+                  background: "transparent", cursor: "pointer", textAlign: "left",
+                  fontFamily: FONT, transition: "background .1s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = C.bg}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <div style={{
+                  width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                  background: opt.bg, border: `1.5px solid ${opt.border}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <opt.Icon size={15} color={opt.color} strokeWidth={2} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>
+                    {opt.label}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textMute, lineHeight: 1.4 }}>
+                    {opt.sub}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
-        );
-      })()}
+        )}
+      </div>
     </div>
   );
 }

@@ -12,7 +12,7 @@
  */
 import { useState, useMemo, useRef, useEffect } from "react";
 import {
-  BookOpen, Send, Plus, Search, ChevronDown, ChevronRight,
+  BookOpen, Send, Search, ChevronDown, ChevronRight,
   X, Sparkles, Globe, FileText, Link as LinkIcon, Layers,
 } from "lucide-react";
 import { C, T, FONT, IW, TYPO } from "../constants/colors.js";
@@ -241,73 +241,6 @@ function ContentRow({ item, type, isChild, onClick, derivCount, expanded, onTogg
   );
 }
 
-// ── New content type picker ───────────────────────────────────────────────────
-function TypePicker({ onSelect, onClose }) {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const handler = e => { if (!ref.current?.contains(e.target)) onClose(); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
-
-  const options = [
-    {
-      type:"article",
-      label:"Neuer Artikel",
-      sub:"Langer Inhalt · BlockNote-Editor · SEO · Varianten",
-      ...CT.article,
-    },
-    {
-      type:"post",
-      label:"Neuer Post",
-      sub:"Social Media · Channel-Previews · Kanal-Varianten",
-      ...CT.post,
-    },
-  ];
-
-  return (
-    <div ref={ref} style={{
-      position:"absolute", top:"calc(100% + 8px)", right:0, zIndex:200,
-      background:C.surface, border:`1px solid ${C.border}`,
-      borderRadius:12, padding:8, boxShadow:T.shadowLg, minWidth:260,
-      display:"flex", flexDirection:"column", gap:2,
-    }}>
-      {options.map(opt => {
-        const { Icon } = opt;
-        return (
-          <button
-            key={opt.type}
-            onClick={() => { onSelect(opt.type); onClose(); }}
-            style={{
-              display:"flex", alignItems:"center", gap:11,
-              padding:"9px 11px", borderRadius:8, border:"none",
-              background:"transparent", cursor:"pointer", textAlign:"left",
-              fontFamily:FONT, transition:"background .1s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = C.bg}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          >
-            <div style={{
-              width:34, height:34, borderRadius:9, flexShrink:0,
-              background:opt.bg, border:`1.5px solid ${opt.border}`,
-              display:"flex", alignItems:"center", justifyContent:"center",
-            }}>
-              <Icon size={15} color={opt.color} strokeWidth={2} />
-            </div>
-            <div>
-              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:2 }}>
-                {opt.label}
-              </div>
-              <div style={{ ...TYPO.caption, color:C.textMute }}>{opt.sub}</div>
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Filter chip ───────────────────────────────────────────────────────────────
 function FilterChip({ label, active, onClick }) {
   return (
@@ -377,7 +310,6 @@ export default function ContentLibraryPage() {
   const {
     stories, posts,
     setEdStory, setEdPost,
-    newStory, newPost,
   } = useApp();
 
   const [typeFilter,   setTypeFilter]   = useState("all");
@@ -385,7 +317,6 @@ export default function ContentLibraryPage() {
   const [chFilter,     setChFilter]     = useState("all");
   const [search,       setSearch]       = useState("");
   const [expanded,     setExpanded]     = useState({});
-  const [showPicker,   setShowPicker]   = useState(false);
 
   const allPosts = useMemo(() => posts.filter(p => !p.deleted), [posts]);
 
@@ -440,11 +371,6 @@ export default function ContentLibraryPage() {
 
   const toggleExpand = id => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
-  const handleCreate = type => {
-    if (type === "article") newStory();
-    else                    newPost();
-  };
-
   const openItem = (item, type) => {
     if (type === "article") setEdStory(item);
     else                    setEdPost(item);
@@ -459,37 +385,12 @@ export default function ContentLibraryPage() {
     <div style={{ flex:1, overflow:"auto", padding:"14px 18px", background:C.bg, fontFamily:FONT }}>
 
       {/* ── Header ── */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:16 }}>
-        <div>
-          <h1 style={{ fontSize:22, fontWeight:700, color:C.text, margin:0, letterSpacing:"-.3px" }}>
-            Inhalte
-          </h1>
-          <div style={{ ...TYPO.caption, color:C.textMute, marginTop:3 }}>
-            {totalArticles} Artikel · {totalPosts} Posts · {publishedCount} veröffentlicht
-          </div>
-        </div>
-
-        {/* Create button */}
-        <div style={{ position:"relative" }}>
-          <button
-            onClick={() => setShowPicker(p => !p)}
-            style={{
-              display:"flex", alignItems:"center", gap:6,
-              padding:"8px 14px", borderRadius:8,
-              background:C.accent, color:"#fff", border:"none",
-              cursor:"pointer", fontSize:13, fontWeight:700, fontFamily:FONT,
-              boxShadow:`0 2px 8px ${C.accent}40`,
-            }}
-          >
-            <Plus size={15} strokeWidth={2.5} />
-            Neuer Inhalt
-          </button>
-          {showPicker && (
-            <TypePicker
-              onSelect={handleCreate}
-              onClose={() => setShowPicker(false)}
-            />
-          )}
+      <div style={{ marginBottom:16 }}>
+        <h1 style={{ fontSize:22, fontWeight:700, color:C.text, margin:0, letterSpacing:"-.3px" }}>
+          Inhalte
+        </h1>
+        <div style={{ ...TYPO.caption, color:C.textMute, marginTop:3 }}>
+          {totalArticles} Artikel · {totalPosts} Posts · {publishedCount} veröffentlicht
         </div>
       </div>
 
