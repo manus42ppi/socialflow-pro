@@ -644,32 +644,32 @@ export const DEMO_STORIES = [
 
 export const DEMO_MEDIA = [
   // ppi Media (ws-ppi-media) — 4 items
-  { id:"img-m1", workspaceId:"ws-ppi-media", name:"redaktion-team.jpg",    url:"https://images.unsplash.com/photo-KdeqA3aTnBY?w=800&q=80&fit=crop", type:"image", size:245000, date:"08.04.2026", width:800, height:600, tags:"team, redaktion, buero", description:"Redaktionsteam bei der Arbeit", altText:"Redaktionsteam im Buero", category:"Team", focusPoint:{x:50,y:40}, mood:"professional", source:"upload" },
-  { id:"img-m2", workspaceId:"ws-ppi-media", name:"druckmaschine.jpg",     url:"https://images.unsplash.com/photo-HtfLrzej4TY?w=1200&q=80&fit=crop", type:"image", size:412000, date:"07.04.2026", width:1200, height:800, tags:"druck, produktion, maschine", description:"Druckmaschine in der Produktion", altText:"Druckmaschine", category:"Produktion", focusPoint:{x:50,y:50}, mood:"industrial", source:"upload" },
-  { id:"img-m3", workspaceId:"ws-ppi-media", name:"zeitung-titel.jpg",     url:"https://images.unsplash.com/photo-6khMCoTlLG4?w=900&q=80&fit=crop",  type:"image", size:198000, date:"06.04.2026", width:900, height:600, tags:"zeitung, print, titelseite", description:"Aktuelle Titelseite", altText:"Zeitung Titelseite", category:"Print", focusPoint:{x:50,y:30}, mood:"editorial", source:"upload" },
-  { id:"img-m4", workspaceId:"ws-ppi-media", name:"konferenz-saal.jpg",    url:"https://images.unsplash.com/photo-GWe0dlVD9e0?w=1000&q=80&fit=crop", type:"image", size:334000, date:"05.04.2026", width:1000, height:700, tags:"konferenz, meeting, buero", description:"Konferenzsaal fuer Redaktionskonferenz", altText:"Konferenzsaal", category:"Event", focusPoint:{x:50,y:50}, mood:"corporate", source:"upload" },
+  { id:"img-m1", workspaceId:"ws-ppi-media", name:"redaktion-team.jpg",    url:"https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&q=80&fit=crop", type:"image", size:245000, date:"08.04.2026", width:800, height:600, tags:"team, redaktion, buero", description:"Redaktionsteam bei der Arbeit", altText:"Redaktionsteam im Buero", category:"Team", focusPoint:{x:50,y:40}, mood:"professional", source:"upload" },
+  { id:"img-m2", workspaceId:"ws-ppi-media", name:"druckmaschine.jpg",     url:"https://images.unsplash.com/photo-1503694978374-8a2fa686963a?w=1200&q=80&fit=crop", type:"image", size:412000, date:"07.04.2026", width:1200, height:800, tags:"druck, produktion, maschine", description:"Druckmaschine in der Produktion", altText:"Druckmaschine", category:"Produktion", focusPoint:{x:50,y:50}, mood:"industrial", source:"upload" },
+  { id:"img-m3", workspaceId:"ws-ppi-media", name:"zeitung-titel.jpg",     url:"https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80&fit=crop",  type:"image", size:198000, date:"06.04.2026", width:900, height:600, tags:"zeitung, print, titelseite", description:"Aktuelle Titelseite", altText:"Zeitung Titelseite", category:"Print", focusPoint:{x:50,y:30}, mood:"editorial", source:"upload" },
+  { id:"img-m4", workspaceId:"ws-ppi-media", name:"konferenz-saal.jpg",    url:"https://images.unsplash.com/photo-1431540015161-0bf868a2d407?w=1000&q=80&fit=crop", type:"image", size:334000, date:"05.04.2026", width:1000, height:700, tags:"konferenz, meeting, buero", description:"Konferenzsaal fuer Redaktionskonferenz", altText:"Konferenzsaal", category:"Event", focusPoint:{x:50,y:50}, mood:"corporate", source:"upload" },
   // ppi n3xt (ws-ppi-n3xt) — 3 items
-  { id:"img-n1", workspaceId:"ws-ppi-n3xt",  name:"ki-dashboard.jpg",      url:"https://images.unsplash.com/photo-qwtCeJ5cLYs?w=1200&q=80&fit=crop", type:"image", size:287000, date:"08.04.2026", width:1200, height:800, tags:"ki, tech, dashboard, software", description:"KI-Dashboard Screenshot", altText:"KI-Dashboard Interface", category:"Tech", focusPoint:{x:50,y:50}, mood:"tech", source:"upload" },
-  { id:"img-n2", workspaceId:"ws-ppi-n3xt",  name:"developer-team.jpg",    url:"https://images.unsplash.com/photo-QckxruozjRg?w=800&q=80&fit=crop",  type:"image", size:203000, date:"07.04.2026", width:800, height:600, tags:"team, entwickler, tech, remote", description:"Entwicklerteam beim Standup", altText:"Entwicklerteam", category:"Team", focusPoint:{x:50,y:45}, mood:"dynamic", source:"upload" },
-  { id:"img-n3", workspaceId:"ws-ppi-n3xt",  name:"product-launch.jpg",    url:"https://images.unsplash.com/photo-Q80LYxv_Tbs?w=1000&q=80&fit=crop", type:"image", size:356000, date:"06.04.2026", width:1000, height:700, tags:"produkt, launch, praesentation", description:"Produkt-Launch Praesentation", altText:"Produkt Launch Event", category:"Event", focusPoint:{x:60,y:40}, mood:"excited", source:"upload" },
+  { id:"img-n1", workspaceId:"ws-ppi-n3xt",  name:"ki-dashboard.jpg",      url:"https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=1200&q=80&fit=crop", type:"image", size:287000, date:"08.04.2026", width:1200, height:800, tags:"ki, tech, dashboard, software", description:"KI-Dashboard Screenshot", altText:"KI-Dashboard Interface", category:"Tech", focusPoint:{x:50,y:50}, mood:"tech", source:"upload" },
+  { id:"img-n2", workspaceId:"ws-ppi-n3xt",  name:"developer-team.jpg",    url:"https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80&fit=crop",  type:"image", size:203000, date:"07.04.2026", width:800, height:600, tags:"team, entwickler, tech, remote", description:"Entwicklerteam beim Standup", altText:"Entwicklerteam", category:"Team", focusPoint:{x:50,y:45}, mood:"dynamic", source:"upload" },
+  { id:"img-n3", workspaceId:"ws-ppi-n3xt",  name:"product-launch.jpg",    url:"https://images.unsplash.com/photo-1573167507387-6b4b98cb7c13?w=1000&q=80&fit=crop", type:"image", size:356000, date:"06.04.2026", width:1000, height:700, tags:"produkt, launch, praesentation", description:"Produkt-Launch Praesentation", altText:"Produkt Launch Event", category:"Event", focusPoint:{x:60,y:40}, mood:"excited", source:"upload" },
   // ppi Talk (ws-ppi-talk) — 3 items
-  { id:"img-t1", workspaceId:"ws-ppi-talk",   name:"podcast-studio.jpg",    url:"https://images.unsplash.com/photo-c1ZN57GfDB0?w=900&q=80&fit=crop",  type:"image", size:178000, date:"08.04.2026", width:900, height:600, tags:"podcast, studio, audio, mikrofon", description:"Podcast-Aufnahme im Studio", altText:"Podcast Studio", category:"Event", focusPoint:{x:50,y:50}, mood:"creative", source:"upload" },
-  { id:"img-t2", workspaceId:"ws-ppi-talk",   name:"event-buehne.jpg",      url:"https://images.unsplash.com/photo-bzdhc5b3Bxs?w=1200&q=80&fit=crop", type:"image", size:445000, date:"07.04.2026", width:1200, height:800, tags:"event, buehne, vortrag, publikum", description:"Vortrag auf der Buehne", altText:"Buehne mit Redner", category:"Event", focusPoint:{x:50,y:35}, mood:"energetic", source:"upload" },
-  { id:"img-t3", workspaceId:"ws-ppi-talk",   name:"community-dinner.jpg",  url:"https://images.unsplash.com/photo-W3SEyZODn8U?w=800&q=80&fit=crop",  type:"image", size:223000, date:"05.04.2026", width:800, height:600, tags:"community, networking, event, abendessen", description:"Community Networking Abend", altText:"Networking Event", category:"Team", focusPoint:{x:50,y:50}, mood:"warm", source:"upload" },
+  { id:"img-t1", workspaceId:"ws-ppi-talk",   name:"podcast-studio.jpg",    url:"https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=900&q=80&fit=crop",  type:"image", size:178000, date:"08.04.2026", width:900, height:600, tags:"podcast, studio, audio, mikrofon", description:"Podcast-Aufnahme im Studio", altText:"Podcast Studio", category:"Event", focusPoint:{x:50,y:50}, mood:"creative", source:"upload" },
+  { id:"img-t2", workspaceId:"ws-ppi-talk",   name:"event-buehne.jpg",      url:"https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&q=80&fit=crop", type:"image", size:445000, date:"07.04.2026", width:1200, height:800, tags:"event, buehne, vortrag, publikum", description:"Vortrag auf der Buehne", altText:"Buehne mit Redner", category:"Event", focusPoint:{x:50,y:35}, mood:"energetic", source:"upload" },
+  { id:"img-t3", workspaceId:"ws-ppi-talk",   name:"community-dinner.jpg",  url:"https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=800&q=80&fit=crop",  type:"image", size:223000, date:"05.04.2026", width:800, height:600, tags:"community, networking, event, abendessen", description:"Community Networking Abend", altText:"Networking Event", category:"Team", focusPoint:{x:50,y:50}, mood:"warm", source:"upload" },
   // alphabeta neo (ws-alphabeta) — 3 items
-  { id:"img-a1", workspaceId:"ws-alphabeta",  name:"design-studio.jpg",     url:"https://images.unsplash.com/photo-XWPoEJnLQAc?w=1000&q=80&fit=crop", type:"image", size:312000, date:"08.04.2026", width:1000, height:700, tags:"design, studio, kreativ, workspace", description:"Kreativ-Studio von alphabeta neo", altText:"Design Studio", category:"Team", focusPoint:{x:50,y:50}, mood:"creative", source:"upload" },
-  { id:"img-a2", workspaceId:"ws-alphabeta",  name:"kampagne-visual.jpg",   url:"https://images.unsplash.com/photo-gc_jTz50feg?w=1200&q=80&fit=crop", type:"image", size:489000, date:"07.04.2026", width:1200, height:800, tags:"kampagne, visual, werbung, grafik", description:"Kampagnen-Visual fuer Stadtmuseum", altText:"Kampagnen Visual", category:"Kampagne", focusPoint:{x:40,y:50}, mood:"artistic", source:"upload" },
-  { id:"img-a3", workspaceId:"ws-alphabeta",  name:"preiszeremonie.jpg",    url:"https://images.unsplash.com/photo-ZDN-G1xBWHY?w=900&q=80&fit=crop",  type:"image", size:267000, date:"06.04.2026", width:900, height:600, tags:"preis, award, zeremonie, design", description:"Designpreis-Verleihung 2026", altText:"Preisverleihung", category:"Event", focusPoint:{x:50,y:45}, mood:"celebratory", source:"upload" },
+  { id:"img-a1", workspaceId:"ws-alphabeta",  name:"design-studio.jpg",     url:"https://images.unsplash.com/photo-1738676524296-364cf18900a8?w=1000&q=80&fit=crop", type:"image", size:312000, date:"08.04.2026", width:1000, height:700, tags:"design, studio, kreativ, workspace", description:"Kreativ-Studio von alphabeta neo", altText:"Design Studio", category:"Team", focusPoint:{x:50,y:50}, mood:"creative", source:"upload" },
+  { id:"img-a2", workspaceId:"ws-alphabeta",  name:"kampagne-visual.jpg",   url:"https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&q=80&fit=crop", type:"image", size:489000, date:"07.04.2026", width:1200, height:800, tags:"kampagne, visual, werbung, grafik", description:"Kampagnen-Visual fuer Stadtmuseum", altText:"Kampagnen Visual", category:"Kampagne", focusPoint:{x:40,y:50}, mood:"artistic", source:"upload" },
+  { id:"img-a3", workspaceId:"ws-alphabeta",  name:"preiszeremonie.jpg",    url:"https://images.unsplash.com/photo-1515169067868-5387ec356754?w=900&q=80&fit=crop",  type:"image", size:267000, date:"06.04.2026", width:900, height:600, tags:"preis, award, zeremonie, design", description:"Designpreis-Verleihung 2026", altText:"Preisverleihung", category:"Event", focusPoint:{x:50,y:45}, mood:"celebratory", source:"upload" },
   // ppi Media — additional content images
-  { id:"img-m5", workspaceId:"ws-ppi-media", name:"content-strategie-board.jpg", url:"https://images.unsplash.com/photo-26MJGnCM0Wc?w=1200&q=80&fit=crop", type:"image", size:378000, date:"14.04.2026", width:1200, height:800, tags:"strategie, whiteboard, planung, content", description:"Content-Strategie-Workshop am Whiteboard", altText:"Content Strategie Whiteboard", category:"Team", focusPoint:{x:50,y:45}, mood:"creative", source:"upload" },
-  { id:"img-m6", workspaceId:"ws-ppi-media", name:"analytics-screen.jpg",        url:"https://images.unsplash.com/photo-JKUTrJ4vK00?w=1400&q=80&fit=crop", type:"image", size:524000, date:"13.04.2026", width:1400, height:900, tags:"analytics, data, screen, dashboard, marketing", description:"Analytics Dashboard auf grossem Bildschirm", altText:"Analytics Dashboard", category:"Tech", focusPoint:{x:55,y:40}, mood:"professional", source:"upload" },
-  { id:"img-m7", workspaceId:"ws-ppi-media", name:"teammeeting-remote.jpg",      url:"https://images.unsplash.com/photo-s8KDEUHJErQ?w=900&q=80&fit=crop",  type:"image", size:267000, date:"12.04.2026", width:900, height:600, tags:"remote, team, video call, meeting", description:"Hybrid-Meeting mit Remote-Teilnehmern", altText:"Remote Team Meeting", category:"Team", focusPoint:{x:50,y:50}, mood:"collaborative", source:"upload" },
-  { id:"img-m8", workspaceId:"ws-ppi-media", name:"linkedin-mobile.jpg",         url:"https://images.unsplash.com/photo-0cpyFsSUiSc?w=800&q=80&fit=crop", type:"image", size:198000, date:"11.04.2026", width:800, height:1000, tags:"linkedin, mobile, smartphone, social media", description:"LinkedIn App auf Smartphone", altText:"LinkedIn auf dem Smartphone", category:"Social Media", focusPoint:{x:50,y:30}, mood:"modern", source:"upload" },
-  { id:"img-m9", workspaceId:"ws-ppi-media", name:"newsletter-laptop.jpg",       url:"https://images.unsplash.com/photo-hIYvdU9tbbk?w=1000&q=80&fit=crop", type:"image", size:312000, date:"10.04.2026", width:1000, height:700, tags:"newsletter, laptop, email, content", description:"Newsletter schreiben am Laptop", altText:"Newsletter am Laptop", category:"Content", focusPoint:{x:45,y:35}, mood:"focused", source:"upload" },
+  { id:"img-m5", workspaceId:"ws-ppi-media", name:"content-strategie-board.jpg", url:"https://images.unsplash.com/photo-1532622785990-d2c36a76f5a6?w=1200&q=80&fit=crop", type:"image", size:378000, date:"14.04.2026", width:1200, height:800, tags:"strategie, whiteboard, planung, content", description:"Content-Strategie-Workshop am Whiteboard", altText:"Content Strategie Whiteboard", category:"Team", focusPoint:{x:50,y:45}, mood:"creative", source:"upload" },
+  { id:"img-m6", workspaceId:"ws-ppi-media", name:"analytics-screen.jpg",        url:"https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1400&q=80&fit=crop", type:"image", size:524000, date:"13.04.2026", width:1400, height:900, tags:"analytics, data, screen, dashboard, marketing", description:"Analytics Dashboard auf grossem Bildschirm", altText:"Analytics Dashboard", category:"Tech", focusPoint:{x:55,y:40}, mood:"professional", source:"upload" },
+  { id:"img-m7", workspaceId:"ws-ppi-media", name:"teammeeting-remote.jpg",      url:"https://images.unsplash.com/photo-1766074903112-79661da9ab45?w=900&q=80&fit=crop",  type:"image", size:267000, date:"12.04.2026", width:900, height:600, tags:"remote, team, video call, meeting", description:"Hybrid-Meeting mit Remote-Teilnehmern", altText:"Remote Team Meeting", category:"Team", focusPoint:{x:50,y:50}, mood:"collaborative", source:"upload" },
+  { id:"img-m8", workspaceId:"ws-ppi-media", name:"linkedin-mobile.jpg",         url:"https://images.unsplash.com/photo-1724862936518-ae7fcfc052c1?w=800&q=80&fit=crop", type:"image", size:198000, date:"11.04.2026", width:800, height:1000, tags:"linkedin, mobile, smartphone, social media", description:"LinkedIn App auf Smartphone", altText:"LinkedIn auf dem Smartphone", category:"Social Media", focusPoint:{x:50,y:30}, mood:"modern", source:"upload" },
+  { id:"img-m9", workspaceId:"ws-ppi-media", name:"newsletter-laptop.jpg",       url:"https://images.unsplash.com/photo-1499914485622-a88fac536970?w=1000&q=80&fit=crop", type:"image", size:312000, date:"10.04.2026", width:1000, height:700, tags:"newsletter, laptop, email, content", description:"Newsletter schreiben am Laptop", altText:"Newsletter am Laptop", category:"Content", focusPoint:{x:45,y:35}, mood:"focused", source:"upload" },
   // === NACHHALTIGER RADSPORT – DEMO-CONTENT ====================================
   {
     id:"img-c1", workspaceId:"ws-ppi-media", name:"gravel-trail-herbst.jpg",
-    url:"https://images.unsplash.com/photo-betBfkaHxBI?w=1200&q=80",
+    url:"https://images.unsplash.com/photo-1623858898311-55c0c487f5f9?w=1200&q=80",
     type:"image", size:458000, date:"20.05.2026", width:1200, height:800,
     tags:"gravel, trail, herbst, wald, natur, outdoor, schotterweg",
     description:"Schotterweg durch herbstliche Heidelandschaft, weite Naturlandschaft",
@@ -690,7 +690,7 @@ export const DEMO_MEDIA = [
   },
   {
     id:"img-c2", workspaceId:"ws-ppi-media", name:"ebike-alpenpass.jpg",
-    url:"https://images.unsplash.com/photo-vj4Qi9ToRXQ?w=1200&q=80",
+    url:"https://images.unsplash.com/photo-1768471194880-95aea34df671?w=1200&q=80",
     type:"image", size:621000, date:"20.05.2026", width:1200, height:800,
     tags:"ebike, fahrrad, bergpass, panorama, natur, nachhaltig, outdoor",
     description:"Blau-weißes Fahrrad vor alpinem Hintergrund – E-Bike-Abenteuer in der Natur",
@@ -711,7 +711,7 @@ export const DEMO_MEDIA = [
   },
   {
     id:"img-c3", workspaceId:"ws-ppi-media", name:"winter-cycling-snow.jpg",
-    url:"https://images.unsplash.com/photo-xqtuYduxEUw?w=900&q=80",
+    url:"https://images.unsplash.com/photo-1635865898551-ba9afe9e7a43?w=900&q=80",
     type:"image", size:334000, date:"19.05.2026", width:900, height:600,
     tags:"winter, schnee, wald, tannen, outdoor, sport, frost",
     description:"Schneebedeckter Forstweg durch Tannenwald – malerische Winterkulisse fuers Training",
@@ -732,7 +732,7 @@ export const DEMO_MEDIA = [
   },
   {
     id:"img-c4", workspaceId:"ws-ppi-media", name:"cycling-community-event.jpg",
-    url:"https://images.unsplash.com/photo-hrrn0jUp9Z8?w=1400&q=80",
+    url:"https://images.unsplash.com/photo-1584278140365-2ab8bff2be82?w=1400&q=80",
     type:"image", size:789000, date:"18.05.2026", width:1400, height:900,
     tags:"event, community, radsport, gruppe, strasse, gemeinsam",
     description:"Gruppe von Radfahrern gemeinsam auf der Strasse – lebendige Radsport-Community",
@@ -753,7 +753,7 @@ export const DEMO_MEDIA = [
   },
   {
     id:"img-c5", workspaceId:"ws-ppi-media", name:"urban-bike-commute.jpg",
-    url:"https://images.unsplash.com/photo-GrdAN0NEIKY?w=1000&q=80&fit=crop",
+    url:"https://images.unsplash.com/photo-1440614167325-38cc54e85dff?w=1000&q=80&fit=crop",
     type:"image", size:287000, date:"18.05.2026", width:1000, height:700,
     tags:"stadt, pendeln, fahrrad, nachhaltig, urban, mobilitaet, gebaeude",
     description:"Radfahrer vor Stadtgebaeude – nachhaltiges Pendeln im urbanen Raum",
@@ -774,7 +774,7 @@ export const DEMO_MEDIA = [
   },
   {
     id:"img-c6", workspaceId:"ws-ppi-media", name:"fahrrad-laufrad-detail.jpg",
-    url:"https://images.unsplash.com/photo-PjuVX5Ks54o?w=1000&q=80",
+    url:"https://images.unsplash.com/photo-1523357585206-175e971f2ad9?w=1000&q=80",
     type:"image", size:412000, date:"15.05.2026", width:1000, height:800,
     tags:"fahrrad, laufrad, detail, technik, speichen, felge, komponenten",
     description:"Schwarz-braunes Fahrradlaufrad – Detailaufnahme hochwertiger Bike-Komponenten",
