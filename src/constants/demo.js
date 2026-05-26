@@ -642,6 +642,10 @@ export const DEMO_STORIES = [
   },
 ];
 
+// Increment this whenever DEMO_MEDIA URLs or structure changes.
+// AppContext uses this to invalidate stale localStorage demo_media entries.
+export const DEMO_MEDIA_VERSION = "2";
+
 export const DEMO_MEDIA = [
   // ppi Media (ws-ppi-media) — 4 items
   { id:"img-m1", workspaceId:"ws-ppi-media", name:"redaktion-team.jpg",    url:"https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&q=80&fit=crop", type:"image", size:245000, date:"08.04.2026", width:800, height:600, tags:"team, redaktion, buero", description:"Redaktionsteam bei der Arbeit", altText:"Redaktionsteam im Buero", category:"Team", focusPoint:{x:50,y:40}, mood:"professional", source:"upload" },

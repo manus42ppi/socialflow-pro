@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
-import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_PROJECTS, DEMO_PRODUCTS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
+import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_MEDIA_VERSION, DEMO_PROJECTS, DEMO_PRODUCTS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { uid, storeGet, storeSet, storeDelete } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
@@ -240,17 +240,20 @@ export function AppProvider({ children }) {
   // ── Demo-User: localStorage Fallback für Media ───────────────────────────
   // Clerk-User nutzen KV. Demo-User bekommen localStorage als Fallback,
   // damit Medien den Seiten-Reload überleben.
+  // DEMO_MEDIA_VERSION: wenn sich DEMO_MEDIA ändert wird die Version erhöht →
+  // veraltete localStorage-Einträge werden automatisch verworfen.
   useEffect(() => {
     if (!demoUser) { demoMediaLoaded.current = false; return; }
     if (demoMediaLoaded.current) return;
     try {
+      const savedVersion = localStorage.getItem("demo_media_version");
       const saved = localStorage.getItem("demo_media");
-      if (saved) {
+      if (saved && savedVersion === DEMO_MEDIA_VERSION) {
         const parsed = JSON.parse(saved);
         if (parsed?.length) { setItems(parsed); mediaLoaded.current = true; demoMediaLoaded.current = true; return; }
       }
     } catch {}
-    // No saved media → use demo media
+    // No saved media or version mismatch → reset from constants
     setItems(DEMO_MEDIA);
     mediaLoaded.current = true;
     demoMediaLoaded.current = true;
@@ -258,7 +261,10 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!demoUser || !demoMediaLoaded.current) return;
-    try { localStorage.setItem("demo_media", JSON.stringify(items)); }
+    try {
+      localStorage.setItem("demo_media", JSON.stringify(items));
+      localStorage.setItem("demo_media_version", DEMO_MEDIA_VERSION);
+    }
     catch {}
   }, [items, demoUser]);
 

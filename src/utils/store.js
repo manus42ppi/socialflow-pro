@@ -201,10 +201,18 @@ export const AI = {
     const raw=await aiCall([{role:"user",content:`10 passende Emojis fuer diesen Post. NUR JSON:{"emojis":[]}\n\n${text}`}],200);
     return parseJSON(raw)?.emojis||[];
   },
-  analyzeImg:async(dataUrl)=>{
-    const b64=dataUrl.split(",")[1],mime=dataUrl.split(";")[0].split(":")[1]||"image/jpeg";
+  analyzeImg:async(url)=>{
+    // Support both base64 data URLs (uploaded files) and external HTTP URLs (stock imports)
+    let imageSource;
+    if(url && url.startsWith("data:")){
+      const b64=url.split(",")[1], mime=url.split(";")[0].split(":")[1]||"image/jpeg";
+      imageSource={type:"base64",media_type:mime,data:b64};
+    } else {
+      // External HTTP URL → Anthropic supports type:"url" directly
+      imageSource={type:"url",url};
+    }
     const raw=await aiCall([{role:"user",content:[
-      {type:"image",source:{type:"base64",media_type:mime,data:b64}},
+      {type:"image",source:imageSource},
       {type:"text",text:'Analysiere dieses Bild fuer Social Media. NUR JSON:{"tags":[],"description":"","suggestedAlt":"","mood":"","subjects":[],"focalPoint":{"x":50,"y":50,"reason":""},"colorPalette":["#hex"],"score":{"brightness":0,"contrast":0,"composition":0,"engagementPotential":0,"overall":0},"platformFit":{"instagram":"gut","linkedin":"gut","facebook":"gut"},"improvements":[""]}'}
     ]}],700);
     return parseJSON(raw)||{};
