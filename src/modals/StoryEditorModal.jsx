@@ -13,7 +13,7 @@ import {
   Save, Check,
   Wand2,
   ChevronLeft, AlignLeft,
-  ExternalLink,
+  ExternalLink, Image, X,
 } from "lucide-react";
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
 import { STORY_CHANNELS } from "../constants/demo.js";
@@ -27,6 +27,7 @@ import BlockPickerPortal from "./StoryEditor/BlockPickerPortal.tsx";
 import { AddBlockButton, BlockTypeButton } from "./StoryEditor/SideMenuButtons.tsx";
 import UnifiedFormattingToolbar from "./StoryEditor/UnifiedFormattingToolbar.tsx";
 import MaterialsPanel from "./StoryEditor/MaterialsPanel.tsx";
+import ImagePicker from "./StoryEditor/ImagePicker.tsx";
 import DerivativesPanel from "./StoryEditor/DerivativesPanel.tsx";
 import SeoPanel from "./StoryEditor/SeoPanel.tsx";
 import WebsitePanel from "./StoryEditor/WebsitePanel.tsx";
@@ -268,6 +269,7 @@ export default function StoryEditorModal() {
   const [articleText, setArticleText] = useState(() => blocksToText(story.blocks || []));
   const [tagsLoading, setTagsLoading] = useState(false);
   const [hashtagLoading, setHashtagLoading] = useState(false);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
   // webPublishing/webPublished/webStats/statsLoading → moved to WebsitePanel
 
   // ── Right sidebar resize ─────────────────────────────────────────────────
@@ -1193,6 +1195,42 @@ Schreibe NUR den fertigen Post-Text ohne Erklärungen oder Anmerkungen.`;
                   </div>
                 )}
               </AccSection>
+
+              {/* TITELBILD */}
+              <AccSection label="Titelbild" isOpen={sOpen("titelbild")} onToggle={() => toggleSection("titelbild")}>
+                {(() => {
+                  const coverItem = items.find(m => m.id === form.coverMediaId);
+                  return coverItem ? (
+                    <div style={{ position: "relative" }}>
+                      <img src={coverItem.url} alt={coverItem.name || "Cover"}
+                        style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 7, display: "block" }} />
+                      <button onClick={() => setForm(f => ({ ...f, coverMediaId: null }))}
+                        style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,.55)", border: "none",
+                          borderRadius: "50%", width: 20, height: 20, cursor: "pointer", display: "flex", alignItems: "center",
+                          justifyContent: "center", color: "#fff", padding: 0 }}>
+                        <X size={11} strokeWidth={2.5} />
+                      </button>
+                      <div style={{ marginTop: 4, fontSize: 10.5, color: T.gray400, fontFamily: FONT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{coverItem.name}</div>
+                    </div>
+                  ) : (
+                    <button onClick={() => setShowCoverPicker(true)}
+                      style={{ width: "100%", padding: "12px 0", borderRadius: 7,
+                        border: `1.5px dashed ${T.gray300}`, background: "transparent",
+                        color: T.gray400, fontSize: 11, fontFamily: FONT, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                      <Image size={13} strokeWidth={IW} /> Titelbild wählen
+                    </button>
+                  );
+                })()}
+              </AccSection>
+
+              {showCoverPicker && (
+                <ImagePicker
+                  items={items}
+                  onSelect={img => { setForm(f => ({ ...f, coverMediaId: img.id })); setShowCoverPicker(false); }}
+                  onClose={() => setShowCoverPicker(false)}
+                />
+              )}
 
               {/* MATERIALIEN */}
               <MaterialsPanel
