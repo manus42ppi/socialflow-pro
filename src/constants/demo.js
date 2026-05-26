@@ -200,6 +200,11 @@ export const DEMO_POSTS = [
   },
 ];
 
+// Increment whenever DEMO_STORIES or DEMO_POSTS structure/content changes.
+// AppContext uses this to invalidate stale localStorage demo caches.
+export const DEMO_STORIES_VERSION = "1";
+export const DEMO_POSTS_VERSION   = "1";
+
 export const DEMO_STORIES = [
   {
     id:"story-1", title:"5 KI-Trends die dein Content Marketing 2026 veraendern",

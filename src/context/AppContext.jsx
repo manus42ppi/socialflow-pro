@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
-import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_MEDIA, DEMO_MEDIA_VERSION, DEMO_PROJECTS, DEMO_PRODUCTS, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
+import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_STORIES_VERSION, DEMO_MEDIA, DEMO_MEDIA_VERSION, DEMO_PROJECTS, DEMO_PRODUCTS, DEMO_POSTS_VERSION, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
 import { uid, storeGet, storeSet, storeDelete } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
@@ -274,8 +274,9 @@ export function AppProvider({ children }) {
     if (!demoUser) { demoStoriesLoaded.current = false; return; }
     if (demoStoriesLoaded.current) return;
     try {
+      const savedVersion = localStorage.getItem("demo_stories_version");
       const saved = localStorage.getItem("demo_stories");
-      if (saved) {
+      if (saved && savedVersion === DEMO_STORIES_VERSION) {
         const parsed = JSON.parse(saved);
         if (parsed?.length) {
           setStories(parsed);
@@ -285,15 +286,18 @@ export function AppProvider({ children }) {
         }
       }
     } catch {}
-    // No saved stories → keep DEMO_STORIES (already set), just unlock saving
+    // No saved stories or stale version → reset to DEMO_STORIES
+    setStories(DEMO_STORIES);
     storiesLoaded.current = true;
     demoStoriesLoaded.current = true;
   }, [demoUser]);
 
   useEffect(() => {
     if (!demoUser || !demoStoriesLoaded.current) return;
-    try { localStorage.setItem("demo_stories", JSON.stringify(stories)); }
-    catch {}
+    try {
+      localStorage.setItem("demo_stories", JSON.stringify(stories));
+      localStorage.setItem("demo_stories_version", DEMO_STORIES_VERSION);
+    } catch {}
   }, [stories, demoUser]);
 
   // ── Demo-User: localStorage Fallback für Projects ─────────────────────────
