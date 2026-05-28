@@ -5,7 +5,7 @@ import {
   ChevronRight, X, RefreshCw, Sparkles, Link as LinkIcon,
   FileText, Zap, MessageSquare, Search, ArrowRight, SkipForward,
   Package, Calendar, Mail, ShoppingCart, Briefcase, Monitor,
-  GraduationCap, MapPin, BarChart2, Play,
+  GraduationCap, MapPin, BarChart2, Play, Share2,
 } from "lucide-react";
 
 // Monochrome Lucide icon per template-id (no colored emojis)
@@ -32,6 +32,8 @@ import {
 } from "../utils/spark.js";
 import { useApp } from "../context/AppContext.jsx";
 import { TEMPLATES, generateContent, generateContentJSON, renderTemplate, buildEmailScript } from "../utils/spark-templates.js";
+import { CHANNELS } from "../constants/demo.js";
+import ChIco from "../components/ui/ChIco.jsx";
 
 // Dynamic — uses the same origin as the running app so the link always
 // points to a deployment that has functions/site/[slug].js available.
@@ -297,7 +299,7 @@ export default function VoodooPage() {
 
 // ── Project detail view ───────────────────────────────────────────────────────
 function ProjectDetail({ project, stories, posts, items, products, onSave, onDelete }) {
-  const { uploadItem, updateItem, currentWorkspaceId, setSparkJob } = useApp();
+  const { uploadItem, updateItem, currentWorkspaceId, setSparkJob, setEdPost } = useApp();
 
   const [form, setForm] = useState({ ...project });
   // Start on "site" tab if project is already live — avoids flash of "Nicht generiert"
@@ -332,6 +334,18 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
   // Shown during the auto-repair loop ("Repariere... 1/2")
   const [repairStatus, setRepairStatus] = useState("");
   const [genError, setGenError] = useState("");
+
+  // ── Social share sheet ────────────────────────────────────────────────────
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [shareChannels, setShareChannels] = useState(["linkedin","instagram"]);
+  const [shareCaption, setShareCaption] = useState("");
+  // Close share sheet on outside click
+  useEffect(() => {
+    if (!showShareSheet) return;
+    const close = (e) => { if (!e.target.closest("[data-share-sheet]")) setShowShareSheet(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [showShareSheet]);
 
   // ── Sync from AppContext when background generation completes ─────────────
   // generate() and sparkRefine() call onSave() even when this component is
@@ -834,6 +848,106 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
               {copied ? <Check size={11} strokeWidth={3} color="#10B981"/> : <Copy size={11} strokeWidth={2}/>}
               {copied ? "Kopiert!" : "Kopieren"}
             </button>
+            {/* Share to Social Media */}
+            <div data-share-sheet style={{ position:"relative" }}>
+              <button
+                onClick={() => {
+                  const url = getSiteUrl(form.slug);
+                  setShareCaption(`${form.name} – jetzt live! 🚀\n\n${form.description ? form.description + "\n\n" : ""}👉 ${url}`);
+                  setShowShareSheet(v => !v);
+                }}
+                style={{
+                  display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7,
+                  border:`1px solid ${T.gray200}`, background:"#fff", color:T.gray600,
+                  fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:FONT, whiteSpace:"nowrap",
+                }}>
+                <Share2 size={11} strokeWidth={2}/> Teilen
+              </button>
+              {showShareSheet && (
+                <div style={{
+                  position:"absolute", top:"calc(100% + 8px)", right:0, zIndex:9999,
+                  background:"#fff", borderRadius:12, width:320,
+                  boxShadow:"0 8px 40px rgba(0,0,0,.18)", border:`1px solid ${T.gray200}`,
+                  padding:"14px 16px", display:"flex", flexDirection:"column", gap:12,
+                }}>
+                  {/* Header */}
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                    <span style={{ fontSize:12, fontWeight:700, color:C.text }}>Als Social-Media-Post teilen</span>
+                    <button onClick={() => setShowShareSheet(false)} style={{ background:"none", border:"none", cursor:"pointer", color:T.gray400, padding:2 }}>
+                      <X size={13} strokeWidth={2.5}/>
+                    </button>
+                  </div>
+                  {/* Channel picker */}
+                  <div>
+                    <div style={{ fontSize:10.5, fontWeight:700, color:T.gray400, textTransform:"uppercase", letterSpacing:".05em", marginBottom:7 }}>Kanäle</div>
+                    <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                      {CHANNELS.map(ch => {
+                        const active = shareChannels.includes(ch.id);
+                        return (
+                          <button key={ch.id} onClick={() => setShareChannels(prev => active ? prev.filter(c => c !== ch.id) : [...prev, ch.id])}
+                            title={ch.label}
+                            style={{
+                              width:32, height:32, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center",
+                              border:`1.5px solid ${active ? ch.color + "66" : T.gray200}`,
+                              background: active ? ch.color + "14" : "transparent",
+                              cursor:"pointer", transition:"all .12s", position:"relative",
+                            }}>
+                            <ChIco id={ch.id} size={15} color={active ? ch.color : T.gray400}/>
+                            {active && (
+                              <div style={{ position:"absolute", top:-4, right:-4, width:12, height:12, borderRadius:"50%", background:ch.color, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                                <Check size={7} strokeWidth={3} color="#fff"/>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* Caption */}
+                  <div>
+                    <div style={{ fontSize:10.5, fontWeight:700, color:T.gray400, textTransform:"uppercase", letterSpacing:".05em", marginBottom:5 }}>Caption</div>
+                    <textarea
+                      value={shareCaption}
+                      onChange={e => setShareCaption(e.target.value)}
+                      rows={5}
+                      style={{
+                        width:"100%", padding:"8px 10px", borderRadius:7, border:`1px solid ${T.gray200}`,
+                        fontSize:11.5, fontFamily:FONT, resize:"vertical", outline:"none",
+                        color:C.text, lineHeight:1.5, boxSizing:"border-box",
+                        background:T.gray50,
+                      }}
+                    />
+                  </div>
+                  {/* CTA */}
+                  <button
+                    disabled={shareChannels.length === 0}
+                    onClick={() => {
+                      setEdPost({
+                        id: null,
+                        title: form.name,
+                        content: shareCaption,
+                        channels: shareChannels,
+                        status: "draft",
+                        mediaId: null,
+                        campaignId: null,
+                        workspaceId: form.workspaceId || currentWorkspaceId,
+                      });
+                      setShowShareSheet(false);
+                    }}
+                    style={{
+                      width:"100%", padding:"9px 0", borderRadius:8,
+                      border:"none", background: shareChannels.length === 0 ? T.gray200 : C.accent,
+                      color: shareChannels.length === 0 ? T.gray400 : "#fff",
+                      fontSize:12, fontWeight:700, cursor: shareChannels.length === 0 ? "not-allowed" : "pointer",
+                      fontFamily:FONT, display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                      transition:"background .12s",
+                    }}>
+                    <SendIcon size={12} strokeWidth={2}/>
+                    Post-Editor öffnen
+                  </button>
+                </div>
+              )}
+            </div>
             <a href={getSiteUrl(form.slug)} target="_blank" rel="noopener noreferrer" style={{
               display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7,
               border:"none", background:C.accent, color:"#fff",
