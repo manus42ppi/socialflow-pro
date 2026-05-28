@@ -649,7 +649,7 @@ export const DEMO_STORIES = [
 
 // Increment this whenever DEMO_MEDIA URLs or structure changes.
 // AppContext uses this to invalidate stale localStorage demo_media entries.
-export const DEMO_MEDIA_VERSION = "2";
+export const DEMO_MEDIA_VERSION = "3";
 
 export const DEMO_MEDIA = [
   // ppi Media (ws-ppi-media) — 4 items
@@ -801,6 +801,14 @@ export const DEMO_MEDIA = [
       suggestedAlt:"Fahrradlaufrad Detail – hochwertige Komponenten eines Gravelbikes",
       tags:["fahrrad","laufrad","detail","technik","speichen","felge","komponenten","qualitaet"],
     },
+  },
+  // === DEMO DOKUMENT – Dossier PDF =============================================
+  {
+    id:"doc-d1", workspaceId:"ws-ppi-media", name:"Gravel & E-Bike Sommer 2026 – Dossier.pdf",
+    url:"https://www.w3.org/WAI/WCAG21/wcag21.pdf",
+    type:"document", size:2100000, date:"22.05.2026",
+    tags:"dossier, gravel, ebike, sommer, 2026", description:"Redaktionelles Dossier zur Sommersaison 2026 – Gravel & E-Bike Special",
+    altText:"", category:"Dossier", source:"upload",
   },
 ];
 
