@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { BarChart2, Check, X, FileText, Tag, MapPin, Sparkles } from "lucide-react";
+import { BarChart2, Check, X, FileText, Tag, MapPin, Sparkles, ExternalLink, Download } from "lucide-react";
 import { C, T, FONT, IW, TYPO } from "../constants/colors.js";
 import { CHANNELS } from "../constants/demo.js";
 import { AI } from "../utils/store.js";
@@ -64,43 +64,103 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
 
           {/* ── Left: image + focal point + AI trigger ── */}
           <div style={{width:300,flexShrink:0,background:C.bg,display:"flex",flexDirection:"column",borderRight:`1px solid ${C.borderLight}`}}>
-            <div style={{position:"relative",flexShrink:0}}>
-              {form.type==="video"
-                ?<video src={form.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} controls muted/>
-                :<img ref={imgRef} src={form.url} alt=""
-                  style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block",userSelect:"none"}}/>
-              }
-              {/* Transparent overlay to capture focus-point clicks — sits above img and color palette */}
-              {fmode&&<div onMouseDown={imgMD}
-                style={{position:"absolute",inset:0,zIndex:10,cursor:"crosshair"}}/>}
-              {/* Focal point dot */}
-              <div style={{position:"absolute",left:`${fp.x}%`,top:`${fp.y}%`,transform:"translate(-50%,-50%)",pointerEvents:"none",zIndex:2}}>
-                <div style={{width:24,height:24,borderRadius:"50%",border:"3px solid #fff",background:`${C.accent}90`,boxShadow:"0 0 0 2px rgba(0,0,0,.4),0 0 12px rgba(0,0,0,.3)"}}/>
+            {/* ── PDF preview (document type) ── */}
+            {form.type==="document"&&(
+              <div style={{width:"100%",height:340,background:"#F8F9FA",position:"relative",flexShrink:0,borderBottom:`1px solid ${C.borderLight}`}}>
+                {form.url&&!form.url.startsWith("data:")
+                  ?<iframe
+                      src={form.url}
+                      title={form.name}
+                      style={{width:"100%",height:"100%",border:"none",display:"block"}}
+                    />
+                  :<div style={{height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10,padding:"16px"}}>
+                      <div style={{width:64,height:64,borderRadius:14,background:"#EEF2FF",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        <FileText size={32} strokeWidth={1.2} color="#6366F1"/>
+                      </div>
+                      <div style={{fontSize:11.5,color:T.gray500,textAlign:"center",fontFamily:FONT,lineHeight:1.5,maxWidth:220}}>
+                        {form.name}<br/>
+                        <span style={{color:T.gray400,fontSize:10.5}}>Lokale Datei – Vorschau nicht verfügbar</span>
+                      </div>
+                    </div>
+                }
               </div>
-              {/* Crosshair lines */}
-              {fmode&&<>
-                <div style={{position:"absolute",left:`${fp.x}%`,top:0,bottom:0,width:1,background:"rgba(255,255,255,.4)",pointerEvents:"none"}}/>
-                <div style={{position:"absolute",top:`${fp.y}%`,left:0,right:0,height:1,background:"rgba(255,255,255,.4)",pointerEvents:"none"}}/>
-              </>}
-              {/* Color palette strip from AI */}
-              {aiData?.colorPalette?.length>0&&(
-                <div style={{position:"absolute",bottom:0,left:0,right:0,height:20,display:"flex"}}>
-                  {aiData.colorPalette.slice(0,6).map((col,i)=>(
-                    <div key={i} style={{flex:1,background:col,title:col}}/>
-                  ))}
+            )}
+
+            {/* ── Image / Video preview ── */}
+            {form.type!=="document"&&(
+              <div style={{position:"relative",flexShrink:0}}>
+                {form.type==="video"
+                  ?<video src={form.url} style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block"}} controls muted/>
+                  :<img ref={imgRef} src={form.url} alt=""
+                    style={{width:"100%",aspectRatio:"1/1",objectFit:"cover",display:"block",userSelect:"none"}}/>
+                }
+                {/* Transparent overlay to capture focus-point clicks — sits above img and color palette */}
+                {fmode&&<div onMouseDown={imgMD}
+                  style={{position:"absolute",inset:0,zIndex:10,cursor:"crosshair"}}/>}
+                {/* Focal point dot */}
+                <div style={{position:"absolute",left:`${fp.x}%`,top:`${fp.y}%`,transform:"translate(-50%,-50%)",pointerEvents:"none",zIndex:2}}>
+                  <div style={{width:24,height:24,borderRadius:"50%",border:"3px solid #fff",background:`${C.accent}90`,boxShadow:"0 0 0 2px rgba(0,0,0,.4),0 0 12px rgba(0,0,0,.3)"}}/>
                 </div>
-              )}
-            </div>
+                {/* Crosshair lines */}
+                {fmode&&<>
+                  <div style={{position:"absolute",left:`${fp.x}%`,top:0,bottom:0,width:1,background:"rgba(255,255,255,.4)",pointerEvents:"none"}}/>
+                  <div style={{position:"absolute",top:`${fp.y}%`,left:0,right:0,height:1,background:"rgba(255,255,255,.4)",pointerEvents:"none"}}/>
+                </>}
+                {/* Color palette strip from AI */}
+                {aiData?.colorPalette?.length>0&&(
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,height:20,display:"flex"}}>
+                    {aiData.colorPalette.slice(0,6).map((col,i)=>(
+                      <div key={i} style={{flex:1,background:col,title:col}}/>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Controls */}
             <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:8,flex:1,overflow:"auto"}}>
-              {/* Focal point toggle */}
-              <button onMouseDown={e=>{e.stopPropagation();setFmode(v=>!v);}} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:8,border:`1px solid ${fmode?C.accent:C.border}`,background:fmode?C.accentLight:C.surface,color:fmode?C.accent:C.textMid,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,justifyContent:"center"}}>
-                <MapPin size={13} strokeWidth={2}/>{fmode?`Klicke aufs Bild · ${fp.x}% / ${fp.y}%`:"Fokuspunkt setzen"}
-              </button>
+              {/* Document: open in browser / download */}
+              {form.type==="document"&&(
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {form.url&&!form.url.startsWith("data:")&&(
+                    <a href={form.url} target="_blank" rel="noreferrer"
+                      style={{display:"flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:8,
+                        border:`1px solid ${C.border}`,background:C.surface,color:C.textMid,
+                        fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,
+                        justifyContent:"center",textDecoration:"none",transition:"border-color .12s"}}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+                      <ExternalLink size={13} strokeWidth={2}/>Im Browser öffnen
+                    </a>
+                  )}
+                  {form.url&&!form.url.startsWith("data:")&&(
+                    <a href={form.url} download={form.name}
+                      style={{display:"flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:8,
+                        border:`1px solid ${C.border}`,background:C.surface,color:C.textMid,
+                        fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,
+                        justifyContent:"center",textDecoration:"none",transition:"border-color .12s"}}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+                      <Download size={13} strokeWidth={2}/>Herunterladen
+                    </a>
+                  )}
+                  {form.url?.startsWith("data:")&&(
+                    <div style={{fontSize:11,color:"#92400E",background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:7,padding:"8px 10px",lineHeight:1.5}}>
+                      ⚠️ Lokal hochgeladen — Vorschau nur für dich verfügbar.
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* AI Analyse Button */}
-              {form.type!=="video"&&(
+              {/* Focal point toggle — images only */}
+              {form.type!=="document"&&(
+                <button onMouseDown={e=>{e.stopPropagation();setFmode(v=>!v);}} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:8,border:`1px solid ${fmode?C.accent:C.border}`,background:fmode?C.accentLight:C.surface,color:fmode?C.accent:C.textMid,fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:FONT,justifyContent:"center"}}>
+                  <MapPin size={13} strokeWidth={2}/>{fmode?`Klicke aufs Bild · ${fp.x}% / ${fp.y}%`:"Fokuspunkt setzen"}
+                </button>
+              )}
+
+              {/* AI Analyse Button — images only */}
+              {form.type!=="video"&&form.type!=="document"&&(
                 <Btn variant="ai" size="sm" onClick={runAI} disabled={aiLd} style={{justifyContent:"center"}}>
                   {aiLd?<><Sp/>Analysiere Bild…</>:<><Sparkles size={13} strokeWidth={2}/>KI-Vollanalyse</>}
                 </Btn>
@@ -144,7 +204,10 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
             {/* Tab bar */}
             <div style={{display:"flex",borderBottom:`1px solid ${C.borderLight}`,background:C.bg,flexShrink:0}}>
-              {[["meta","📝 Metadaten"],["score","📊 Bild-Score"],["platforms","📱 Plattform-Fit"]].map(([id,label])=>(
+              {(form.type==="document"
+                ?[["meta","📝 Metadaten"]]
+                :[["meta","📝 Metadaten"],["score","📊 Bild-Score"],["platforms","📱 Plattform-Fit"]]
+              ).map(([id,label])=>(
                 <button key={id} onClick={()=>setActiveTab(id)} style={{padding:"10px 16px",border:"none",borderBottom:`2px solid ${activeTab===id?C.accent:"transparent"}`,background:"transparent",color:activeTab===id?C.accent:C.textMid,fontWeight:activeTab===id?700:500,...TYPO.caption,cursor:"pointer",fontFamily:FONT,transition:"all .12s"}}>
                   {label}
                 </button>
