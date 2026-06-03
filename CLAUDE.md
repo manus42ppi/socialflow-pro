@@ -9,6 +9,8 @@
 2. `tasks/todo.md` lesen — offene Tasks kennen
 3. Branch prüfen: `git branch --show-current` → muss `develop` sein
 
+> **Stand: Juni 2026** — 246 Tests, 9 Test-Files, develop @ `13fe936`
+
 ---
 
 ## 1. Infrastruktur & Branches
@@ -48,7 +50,7 @@ git commit -m "refactor: ... [skip ci]"
 # Aktuellen Branch prüfen — muss immer "develop" sein
 git branch --show-current
 
-# Tests ausführen (193 Tests, müssen alle grün sein vor jedem Push)
+# Tests ausführen (246 Tests, müssen alle grün sein vor jedem Push)
 node node_modules/.bin/vitest run
 
 # Build prüfen
@@ -361,6 +363,16 @@ useEffect(() => {
 ```
 
 Demo-User → kein KV → localStorage-Fallback für Media (`"demo_media"`), Stories (`"demo_stories"`), Projects (`"demo_projects"`).
+
+### Demo-Versionierung (Stale-Cache-Schutz)
+```js
+// constants/demo.js — bei JEDER Änderung der Demo-Daten erhöhen:
+export const DEMO_MEDIA_VERSION   = "3";  // bump wenn DEMO_MEDIA ändert
+export const DEMO_STORIES_VERSION = "1";  // bump wenn DEMO_STORIES ändert
+// AppContext prüft localStorage("demo_media_version") gegen Konstante.
+// Mismatch → localStorage löschen → frische Demo-Daten laden.
+// Sofort-Fix im Browser: localStorage.removeItem("demo_media"); location.reload()
+```
 
 ### Projects-KV-Schema (getrennte Speicherung)
 ```js
@@ -687,16 +699,25 @@ function AddBlockButton({ block }) {
 ```
 
 ### StoryEditorModal – 3-Spalten Vollbild
-- **Links (230px):** Status, Kategorie, STORY_CHANNELS, Tags, Kommentare, History
+- **Links (230px):** Status, Kategorie, STORY_CHANNELS, Tags, **Titelbild** (coverMediaId), Materialien, Ableitungen, Website, History, Kommentare
 - **Mitte:** Titel (FONT_DISPLAY, 32px) + Subtitle + BlockNote-Editor
-- **Rechts (300px):** Tabs "Info" (Materialien, Ableitungen) + "SEO" (Score, Lesbarkeit, Meta)
+- **Rechts (300px, resizable):** Tabs "Spark" (KI-Assistent) + "SEO" (Score, Lesbarkeit, Meta)
+
+### Titelbild-Picker (coverMediaId)
+```jsx
+// AccSection "Titelbild" im linken Panel
+// Zeigt 16:9-Vorschau wenn form.coverMediaId gesetzt
+// X-Button → coverMediaId: null
+// Öffnet ImagePicker (./StoryEditor/ImagePicker.tsx) → Media-Bibliothek
+// Wird via ...form-Spread in updateStory() automatisch persistiert
+```
 
 ---
 
 ## 11. Tests
 
 ```bash
-# Alle Tests ausführen (193 Tests, alle müssen grün sein)
+# Alle Tests ausführen (246 Tests, alle müssen grün sein)
 node node_modules/.bin/vitest run
 
 # E2E Tests (Playwright, Chromium)
@@ -727,6 +748,7 @@ node node_modules/.bin/playwright test
 ### Story
 ```js
 { id, workspaceId, title, subtitle, blocks:[],
+  coverMediaId: null|string,              // ← Titelbild: id aus items[]
   materials:[{id, type:"link"|"note"|"image", url, title, addedAt}],
   derivatives:[{id, channel, postId, createdAt}],
   targetChannels:[], status:"idea"|"draft"|"ready"|"published",
@@ -792,16 +814,21 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 
 ---
 
-## 15. Entwicklungsstand (Mai 2026)
+## 15. Entwicklungsstand (Juni 2026)
 
 ### ✅ Fertig & aktiv
 
 **Core-Workflow**
 - Dashboard, Publisher (Kanban), Kalender, Planner (Gantt), Kampagnen
-- Medienbibliothek (Upload, KI-Analyse, Fokuspunkt)
+- **Medienbibliothek** — Upload, KI-Analyse (persistiert via onUpdate), Fokuspunkt
+  - PDF-Vorschau: iframe für HTTPS-URLs, Datei-Icon für data: URLs
+  - Buttons „Im Browser öffnen" + „Herunterladen" für Dokumente
+  - Nur Metadaten-Tab für Dokumente (Bild-Score/Plattform-Fit ausgeblendet)
 - Performance (Mock-Analytics), Instagram Monitoring
-- **PostEditorModal** (BlockNote Full-Screen) — ersetzt Editor.jsx; Medienbibliothek-Picker in BlockNote integriert
-- Story-Workflow (BlockNote, SEO, Varianten)
+- **PostEditorModal** (BlockNote Full-Screen) — Medienbibliothek-Picker integriert
+- **Story-Workflow** (BlockNote, SEO, Varianten)
+  - **Titelbild-Picker** — AccSection "Titelbild" im linken Panel, setzt `coverMediaId`
+  - 16:9-Vorschau + X-Button zum Löschen
 - **Content Library** (`/content`) — COPE / Hub & Spoke unified view (Articles + Posts)
 - Multi-Tenant / Mandanten-System (4 Demo-Mandanten)
 - UGC Portal (Einreichungen, Genehmigungs-Workflow)
@@ -816,20 +843,29 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 - Auto-Repair-Loop (3 Tiers: DOM → Section-Injektion → refinePage)
 - CSS-Sentinel: ~750 Token Einsparung pro Aufruf
 - Deployed Pages unter `/site/{slug}` öffentlich erreichbar
+- **Social-Share-Sheet** — „Teilen"-Button im Live-Header öffnet Kanal-Picker + Caption-Editor → erstellt Draft-Post im PostEditorModal
+
+**Demo-System (Radsport-Thema)**
+- Demo-User: ppi Media, ppi n3xt, ppi Talk, alphabeta neo
+- Cycling-Content: Stories (Gravel Cycling, E-Bike 2026, Wintertraining), 6 Bilder mit KI-Analyse, 2 Produkte
+- Demo-PDF „Gravel & E-Bike Sommer 2026 – Dossier.pdf" in Medienbibliothek (ws-ppi-media)
+- `DEMO_MEDIA_VERSION = "3"`, `DEMO_STORIES_VERSION = "1"` — automatische Cache-Invalidierung
 
 **Analyse-Suite**
 - Trends: RSS-Feed Reader (Tagesschau, DW, Heise, t3n, Golem …)
-- Domain-Analyse: Seiten-Content analysieren
-- Wettbewerber: Konkurrenz vergleichen
-- Content-Audit: SEO-Qualitätsprüfung
-- Structure-Audit: Schema.org / JSON-LD Validierung
-- Social Intelligence: Social-Media-Analyse
+- Domain-Analyse, Wettbewerber, Content-Audit, Structure-Audit (Schema.org), Social Intelligence
 
 ### 🔄 Geplant / Nächste Schritte
-- Medienbibliothek: KI-Analyse-Persistenz, Overlay-Fixes
-- Workspace-Zugriffsrechte im Admin änderbar machen
-- Mobile Responsive
-- Echter Publish-Endpunkt für Social Channels
+
+| Priorität | Task |
+|---|---|
+| Hoch | KI-Analyse-Persistenz (Ergebnisse bleiben nach Reload) |
+| Hoch | `public/_headers` Cache-Control: no-store |
+| Mittel | Workspace-Zugriffsrechte im Admin änderbar |
+| Mittel | Content Library: Inline-Bearbeitung, Bulk-Aktionen |
+| Niedrig | Mobile Responsive |
+| Niedrig | Echter Publish-Endpunkt für Social Channels |
+| Infrastruktur | Medien-Upload → Cloudflare R2 (Base64-in-KV löst sich ab) |
 
 **→ Vollständige Aufgabenliste: `tasks/todo.md`**
 

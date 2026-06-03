@@ -129,10 +129,43 @@
 
 ---
 
+## Sprint 3 — Demo-Präsentation (Juni 2026)
+
+- ✅ **Radsport-Demo-Content** (Juni 2026)  
+  3 Cycling-Stories, 6 Bilder mit KI-Analyse, 2 Produkte, Hub-Spoke-Verknüpfungen.  
+  Commit `848410f` + Bild-Fixes `9d52e2e`, `428df8a`, `c5927a8`.
+
+- ✅ **DEMO_STORIES_VERSION – stale Cache-Fix** (Juni 2026)  
+  Neue Konstante + Versionscheck in AppContext verhindert veraltete Demo-Stories in localStorage.  
+  Commit `3df79ea`.
+
+- ✅ **Titelbild-Picker im Story-Editor** (Juni 2026)  
+  AccSection „Titelbild" im linken Panel → setzt `story.coverMediaId` via ImagePicker.  
+  Commit `42512dd`.
+
+- ✅ **Demo-PDF in Medienbibliothek** (Juni 2026)  
+  `doc-d1` „Gravel & E-Bike Sommer 2026 – Dossier.pdf" in DEMO_MEDIA. DEMO_MEDIA_VERSION 2→3.  
+  Commit `5ac5dc8`.
+
+- ✅ **PDF-Vorschau in MediaDetail** (Juni 2026)  
+  iframe-Preview für HTTPS-PDFs, eigene Buttons (Öffnen/Herunterladen), nur Metadaten-Tab.  
+  Commit `375f706`.
+
+- ✅ **Social-Share-Sheet in VoodooPage** (Juni 2026)  
+  „Teilen"-Button im Live-Header → Kanal-Picker + Caption → öffnet PostEditorModal mit Draft.  
+  Commit `13fe936`.
+
+---
+
 ## Zuletzt erledigt
 
 | Datum | Task |
 |---|---|
+| Jun 2026 | Titelbild-Picker (coverMediaId) im StoryEditor |
+| Jun 2026 | PDF-Vorschau in Medienbibliothek (iframe + Buttons) |
+| Jun 2026 | Social-Share-Sheet in VoodooPage (Teilen → PostEditorModal) |
+| Jun 2026 | Demo-PDF in DEMO_MEDIA, DEMO_STORIES_VERSION Cache-Fix |
+| Jun 2026 | Radsport-Demo-Content (Stories, Bilder, Produkte, Hub-Spoke) |
 | Mai 2026 | UX-Analyse: vollständige Marketing-Mitarbeiter-Simulation, 10 Storys + 20 Posts + 3 Voodoo-Landingpages + vollständiger Verbesserungsplan in `docs/ux-improvement-plan.md` |
 | Mai 2026 | StoryEditorModal Split + React Router + Wrangler Cache-Fix |
 | Mai 2026 | Creation Voodoo: pdfMode Direkter-Download-Fix |

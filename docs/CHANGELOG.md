@@ -2,6 +2,63 @@
 
 ---
 
+## [develop] Juni 2026 – Session-Log
+
+### Features
+
+#### `feat(story-editor)`: Titelbild-Picker im Story-Editor — `42512dd`
+- Neue AccSection „Titelbild" im linken Panel des StoryEditorModal (zwischen Tags und Materialien)
+- Zeigt 16:9-Vorschau wenn `form.coverMediaId` gesetzt ist
+- X-Button (oben rechts auf dem Bild) → `coverMediaId: null`
+- „Titelbild wählen"-Button öffnet `ImagePicker.tsx` (Mediabibliothek)
+- `coverMediaId` wird via `...form`-Spread in allen `updateStory()`-Calls automatisch persistiert
+- Neu: `Image`, `X` zu Lucide-Imports; `ImagePicker` direkt in `StoryEditorModal.jsx` importiert
+- **Dateien:** `src/modals/StoryEditorModal.jsx`
+
+#### `feat(media)`: PDF-Vorschau in Medienbibliothek — `375f706`
+- `MediaDetail.jsx` erkennt `type === "document"` und zeigt:
+  - **HTTPS-URL:** `<iframe>` mit nativem Browser-PDF-Rendering (340 px Höhe)
+  - **data:-URL (lokal):** Datei-Icon + erklärender Hinweis „Vorschau nicht verfügbar"
+- Buttons „Im Browser öffnen" und „Herunterladen" statt Fokuspunkt/KI-Analyse
+- Tab-Leiste zeigt für Dokumente nur „📝 Metadaten" (Bild-Score + Plattform-Fit versteckt)
+- **Dateien:** `src/components/MediaDetail.jsx`
+
+#### `feat(voodoo)`: Social-Media-Share direkt aus Live-Seite — `13fe936`
+- Neuer „Teilen"-Button im Voodoo-Header (nur sichtbar wenn `form.status === "live"`)
+- Öffnet Share-Sheet (absolut-positioniertes Dropdown) mit:
+  - Kanal-Picker: alle 5 CHANNELS mit Icon, Häkchen-Overlay bei Auswahl
+  - Caption-Textarea (vorausgefüllt: Projektname + Beschreibung + Live-URL)
+  - Vorauswahl: LinkedIn + Instagram
+- „Post-Editor öffnen" → `setEdPost({...})` mit Channels + Caption → PostEditorModal öffnet
+- Sheet schließt bei Außenklick (mousedown-Listener auf `document`, stoppt bei `[data-share-sheet]`)
+- **Dateien:** `src/pages/VoodooPage.jsx`
+
+### Fixes & Demo-Daten
+
+#### `fix(demo)`: DEMO_STORIES_VERSION – stale Cache-Invalidierung — `3df79ea`
+- Neue Konstante `DEMO_STORIES_VERSION = "1"` in `constants/demo.js`
+- `AppContext` prüft `localStorage("demo_stories_version")` gegen Konstante
+- Mismatch → alte Stories werden verworfen → frische DEMO_STORIES geladen
+- Verhindert: Demo-User sieht alte Stories nach Content-Änderung
+- **Dateien:** `src/constants/demo.js`, `src/context/AppContext.jsx`
+
+#### `fix(demo)`: Demo-PDF in Medienbibliothek + DEMO_MEDIA_VERSION 2→3 — `5ac5dc8`
+- Neues Item `doc-d1` in DEMO_MEDIA (ws-ppi-media):
+  - Name: „Gravel & E-Bike Sommer 2026 – Dossier.pdf"
+  - `type: "document"`, 2,1 MB, HTTPS-URL
+- Ohne dieses Item war der „Aus Medienbibliothek wählen"-Button in VoodooPage → Dossier PDF komplett unsichtbar (`items.filter(m => m.type==="document").length === 0`)
+- **Dateien:** `src/constants/demo.js`
+
+### Demo-Content (Radsport-Serie) — `848410f` + Fixes
+
+Vollständiger Demo-Content für Präsentation als Radsport-Medienmarke „ppi Media":
+- **Stories:** story-11 „Gravel Cycling" (published), story-12 „E-Bike 2026" (ready), story-13 „7 Profi-Tipps Wintertraining" (published)
+- **Bilder:** img-c1…img-c6 — alle mit vollständiger KI-Analyse (Score 76–91, Plattform-Fit, Verbesserungsvorschläge)
+- **Produkte:** prod-1 Canyon Grail SL 8, prod-2 Specialized Turbo Creo SL
+- **Hub & Spoke:** story-12 hat Ableitungen für Instagram + LinkedIn + Facebook
+
+---
+
 ## [develop] Mai 2026 – Session-Log
 
 ### Kritische Bugfixes

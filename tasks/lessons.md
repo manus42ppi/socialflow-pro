@@ -95,4 +95,45 @@ Im Spark-Prompt `/* PAGE_CSS_PLACEHOLDER */` statt dem vollen `PAGE_CSS` (~3 KB 
 ### L-013: Testanzahl in CLAUDE.md aktuell halten
 Nach jedem neuen Test-File die Zahl in CLAUDE.md (Abschnitt "Tests ausführen") anpassen:  
 - `node node_modules/.bin/vitest run` → letzte Zeile zeigt aktuelle Anzahl
-- Stand Mai 2026: **212 Tests** (8 Test-Files)
+- Stand Juni 2026: **246 Tests** (9 Test-Files)
+
+---
+
+## Demo-System
+
+### L-014: Demo-Versionen immer bumpen bei Daten-Änderungen
+**Problem:** Demo-User sehen alte Daten, weil localStorage gecacht ist.  
+**Muster:** Konstanten `DEMO_MEDIA_VERSION` und `DEMO_STORIES_VERSION` in `constants/demo.js` erhöhen, sobald die zugehörigen Arrays geändert werden. AppContext prüft Version beim Start.  
+**Sofort-Fix im Browser:** `localStorage.removeItem("demo_media"); location.reload()`
+
+### L-015: DEMO_MEDIA braucht mind. 1 Dokument für VoodooPage-Picker
+**Problem:** `items.filter(m => m.type==="document").length > 0` — der „Aus Medienbibliothek wählen"-Button in VoodooPage → Dossier PDF ist **unsichtbar** wenn keine Dokumente existieren.  
+**Fix:** In DEMO_MEDIA immer mind. 1 Item mit `type: "document"` und HTTPS-URL vorhalten (kein data: URL — sonst zeigt VoodooPage einen ⚠️-Warning).
+
+---
+
+## MediaDetail
+
+### L-016: type==="document" separat behandeln in MediaDetail
+Für `type === "document"` sind folgende Teile von MediaDetail nicht geeignet:
+- `<img>` → zeigt kaputtes Bild
+- Fokuspunkt-Button → nicht relevant für PDFs
+- KI-Vollanalyse → nicht relevant
+- Bild-Score + Plattform-Fit Tabs → nicht relevant
+
+**Korrekte Behandlung:** Frühzeitig `form.type === "document"` prüfen und alle oben genannten Elemente mit `{form.type !== "document" && (...)}` ausblenden. Stattdessen iframe-Preview + Öffnen/Herunterladen-Links zeigen.
+
+---
+
+## VoodooPage / Social Share
+
+### L-017: Share-Sheet Außenklick: data-Attribut statt Ref
+Für Außenklick-Erkennung bei einem Dropdown/Sheet in komplexen Komponenten empfiehlt sich das `data-share-sheet`-Attribut-Pattern:
+```js
+// Schließen wenn Klick NICHT im Sheet:
+const close = (e) => { if (!e.target.closest("[data-share-sheet]")) setShowShareSheet(false); };
+document.addEventListener("mousedown", close);
+// Container:
+<div data-share-sheet style={{ position:"relative" }}>
+```
+Kein Ref nötig, funktioniert mit geschachtelten Portals.
