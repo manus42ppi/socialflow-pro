@@ -213,8 +213,39 @@ export const AI = {
     }
     const raw=await aiCall([{role:"user",content:[
       {type:"image",source:imageSource},
-      {type:"text",text:'Analysiere dieses Bild fuer Social Media. NUR JSON:{"tags":[],"description":"","suggestedAlt":"","mood":"","subjects":[],"focalPoint":{"x":50,"y":50,"reason":""},"colorPalette":["#hex"],"score":{"brightness":0,"contrast":0,"composition":0,"engagementPotential":0,"overall":0},"platformFit":{"instagram":"gut","linkedin":"gut","facebook":"gut"},"improvements":[""]}'}
-    ]}],700);
+      {type:"text",text:`Analysiere dieses Bild fuer Social Media Marketing. Antworte NUR mit validem JSON, kein Text davor oder danach.
+
+JSON-Schema (alle Felder pflicht):
+{
+  "tags": ["max 6 kurze Schlagwoerter"],
+  "description": "1-2 Saetze was zu sehen ist",
+  "suggestedAlt": "SEO-optimierter Alt-Text",
+  "mood": "3-4 Adjektive durch Komma",
+  "subjects": ["Hauptmotive im Bild"],
+  "focalPoint": {"x": 0-100, "y": 0-100, "reason": "Begruendung wohin das Auge geht"},
+  "colorPalette": ["#hex1","#hex2","#hex3"],
+  "score": {
+    "brightness": 0-100,
+    "contrast": 0-100,
+    "composition": 0-100,
+    "engagementPotential": 0-100,
+    "overall": 0-100
+  },
+  "platformFit": {
+    "instagram": {"rating": "gut|ok|schlecht", "reason": "1 Satz warum - beziehe dich auf Format 1:1 oder 4:5, Bildqualitaet, Motiv, Farben, Storytelling-Potenzial"},
+    "linkedin":  {"rating": "gut|ok|schlecht", "reason": "1 Satz warum - beziehe dich auf Professionalitaet, Corporate-Wirkung, B2B-Relevanz, Sachlichkeit"},
+    "facebook":  {"rating": "gut|ok|schlecht", "reason": "1 Satz warum - beziehe dich auf emotionale Ansprache, Shareability, Zielgruppenbreite, Storytelling"},
+    "twitter":   {"rating": "gut|ok|schlecht", "reason": "1 Satz warum - beziehe dich auf Aufmerksamkeitswert im Feed, 16:9-Format, klare Aussage auf den ersten Blick"},
+    "tiktok":    {"rating": "gut|ok|schlecht", "reason": "1 Satz warum - beziehe dich auf 9:16-Hochformat, Jugendlichkeit, Trendpotenzial, Dynamik"}
+  },
+  "improvements": ["max 3 konkrete Verbesserungsvorschlaege"]
+}
+
+Bewertungskriterien fuer rating:
+- "gut": Bild erfuellt die plattformspezifischen Anforderungen ohne Anpassung
+- "ok": Bild funktioniert mit kleineren Anpassungen (z.B. Zuschnitt, Helligkeit)
+- "schlecht": Bild passt grundlegend nicht zur Plattform (falsche Stimmung, Format, Qualitaet)`}
+    ]}],900);
     return parseJSON(raw)||{};
   },
 };

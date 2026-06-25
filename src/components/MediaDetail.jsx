@@ -48,8 +48,15 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
   };
 
   const scoreColor=s=>s>=80?"#22C55E":s>=55?"#F59E0B":"#EF4444";
-  const normFit=f=>{const v=(f||"").toLowerCase();return v==="gut"||v==="sehr gut"||v==="good"?"gut":v==="ok"||v==="mittel"?"ok":"schlecht";};
-  const fitIcon=f=>{const n=normFit(f);return n==="gut"?"✅":n==="ok"?"🟡":"⚠️";};
+  // Normalisiert altes Format (string) und neues Format ({rating, reason})
+  const normFitEntry=raw=>{
+    if(!raw) return {rating:"schlecht",reason:""};
+    if(typeof raw==="string"){const v=raw.toLowerCase();return {rating:v==="gut"||v==="sehr gut"||v==="good"?"gut":v==="ok"||v==="mittel"?"ok":"schlecht",reason:""};}
+    const v=(raw.rating||"").toLowerCase();
+    return {rating:v==="gut"||v==="sehr gut"?"gut":v==="ok"||v==="mittel"?"ok":"schlecht",reason:raw.reason||""};
+  };
+  const fitColors={gut:{fg:"#16A34A",bg:"#F0FDF4",border:"#BBF7D0"},ok:{fg:"#D97706",bg:"#FFFBEB",border:"#FDE68A"},schlecht:{fg:"#DC2626",bg:"#FEF2F2",border:"#FECACA"}};
+  const fitLabel={gut:"Sehr gut geeignet",ok:"Mit Anpassungen geeignet",schlecht:"Nicht geeignet"};
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -304,27 +311,30 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
               {/* ── PLATFORM FIT TAB ── */}
               {activeTab==="platforms"&&(
                 aiData?.platformFit
-                  ?<div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    <div style={{fontSize:12,color:C.textSoft,marginBottom:4}}>Wie gut passt dieses Bild auf die verschiedenen Plattformen?</div>
-                    {Object.entries(aiData.platformFit).map(([plat,fit])=>{
-                      const ch=CHANNELS.find(c=>c.id===plat);
+                  ?<div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    <div style={{fontSize:12,color:C.textSoft,marginBottom:2}}>KI-Bewertung: Eignung des Bildes je Plattform mit Begründung.</div>
+                    {Object.entries(aiData.platformFit).map(([plat,raw])=>{
+                      const ch=CHANNELS.find(c=>c.id===plat||c.id===plat.replace("twitter","x"));
                       if(!ch)return null;
-                      const nfit=normFit(fit);
-                      const fitColor=nfit==="gut"?"#22C55E":nfit==="ok"?"#F59E0B":"#EF4444";
-                      const fitBg=nfit==="gut"?"#F0FDF4":nfit==="ok"?"#FFFBEB":"#FEF2F2";
+                      const {rating,reason}=normFitEntry(raw);
+                      const col=fitColors[rating];
+                      const icon=rating==="gut"?"✅":rating==="ok"?"🟡":"⚠️";
                       return(
-                        <div key={plat} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,border:`1px solid ${fitColor}30`,background:fitBg}}>
-                          <ChIco id={plat} size={20}/>
-                          <div style={{flex:1}}>
-                            <div style={{fontWeight:700,fontSize:13,color:C.text}}>{ch.label}</div>
-                            <div style={{fontSize:11,color:C.textSoft}}>{nfit==="gut"?"Sehr gut geeignet":nfit==="ok"?"Geeignet, aber Anpassungen empfohlen":"Nicht optimal – Bild anpassen"}</div>
+                        <div key={plat} style={{borderRadius:10,border:`1px solid ${col.border}`,background:col.bg,overflow:"hidden"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px"}}>
+                            <ChIco id={ch.id} size={20}/>
+                            <div style={{flex:1}}>
+                              <div style={{fontWeight:700,fontSize:13,color:C.text}}>{ch.label}</div>
+                              <div style={{fontSize:11,color:col.fg,fontWeight:600}}>{fitLabel[rating]}</div>
+                            </div>
+                            <span style={{fontSize:12,fontWeight:700,color:col.fg,background:"rgba(255,255,255,.7)",padding:"3px 10px",borderRadius:20,border:`1px solid ${col.border}`,whiteSpace:"nowrap"}}>{icon} {rating}</span>
                           </div>
-                          <span style={{fontSize:14,fontWeight:700,color:fitColor,background:`${fitColor}18`,padding:"4px 10px",borderRadius:7,border:`1px solid ${fitColor}40`}}>{fitIcon(fit)} {nfit}</span>
+                          {reason&&<div style={{padding:"0 14px 10px 44px",fontSize:11.5,color:C.textMid,lineHeight:1.55}}>{reason}</div>}
                         </div>
                       );
                     })}
-                    <div style={{padding:"10px 12px",background:C.bg,borderRadius:9,border:`1px solid ${C.border}`,fontSize:11.5,color:C.textSoft,lineHeight:1.6}}>
-                      💡 <strong>Tipp:</strong> Optimales Seitenverhältnis: 1:1 (Instagram), 1.91:1 (LinkedIn/Facebook), 4:5 (Instagram Feed-Posts).
+                    <div style={{padding:"10px 12px",background:C.bg,borderRadius:9,border:`1px solid ${C.border}`,fontSize:11.5,color:C.textSoft,lineHeight:1.6,marginTop:2}}>
+                      💡 <strong>Optimale Formate:</strong> 1:1 oder 4:5 (Instagram Feed), 9:16 (Reels/TikTok), 1.91:1 (LinkedIn/Facebook/Twitter).
                     </div>
                   </div>
                   :<div style={{textAlign:"center",padding:"40px 20px",color:C.textMute}}>
