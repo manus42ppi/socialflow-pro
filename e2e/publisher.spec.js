@@ -47,11 +47,12 @@ test.describe('Publisher', () => {
 
   test('editor can be closed', async ({ page }) => {
     await page.locator('text=Neuer Post').first().click();
-    await page.locator('input[placeholder*="Arbeitstitel"]').or(page.locator('text=/Titel.*intern/i')).first().waitFor({ timeout: 6_000 });
-    // Press Escape or click close button
-    await page.keyboard.press('Escape');
-    // Publisher content should still be visible
-    await expect(page.locator('text=/Geplant|Alle/i').first()).toBeVisible({ timeout: 3_000 });
+    // Warte auf den Titel-Input (BlockNote braucht etwas zum Laden)
+    await page.locator('input[placeholder*="Arbeitstitel"]').first().waitFor({ timeout: 10_000 });
+    // Editor öffnet als Fullscreen-Seite → "← Zurück"-Button navigiert zurück zum Publisher
+    await page.locator('text=Zurück').first().click();
+    // Publisher-Inhalt muss wieder sichtbar sein
+    await expect(page.locator('text=/Geplant|Alle/i').first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('can type a title in the editor', async ({ page }) => {
@@ -63,14 +64,12 @@ test.describe('Publisher', () => {
   });
 
   test('clicking a post opens the editor', async ({ page }) => {
-    // Click edit on the first post card
-    const editBtn = page.locator('button:has-text("Bearbeiten")').first();
-    await editBtn.waitFor({ timeout: 5_000 });
-    await editBtn.click();
+    // Demo-Post mit bekanntem Titel direkt anklicken (PostCard.onClick → onEdit)
+    const card = page.locator('text=X/Twitter: 7 Tipps Wintertraining').first();
+    await card.waitFor({ timeout: 5_000 });
+    await card.click();
     await expect(
-      page.locator('input[placeholder*="Arbeitstitel"]')
-        .or(page.locator('text=/Bearbeiten|Titel.*intern/i'))
-        .first()
-    ).toBeVisible({ timeout: 5_000 });
+      page.locator('input[placeholder*="Arbeitstitel"]').first()
+    ).toBeVisible({ timeout: 10_000 });
   });
 });

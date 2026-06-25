@@ -39,9 +39,9 @@ test.describe('Navigation', () => {
     await expect(page.locator('text=Papierkorb').first()).toBeVisible({ timeout: 5_000 });
   });
 
-  test('Storys nav item navigates to Storys page', async ({ page }) => {
-    // Sidebar label is "Storys"
-    await page.locator('text=Storys').first().click();
-    await expect(page.locator('text=Storys').first()).toBeVisible({ timeout: 5_000 });
+  test('Inhalte nav item navigates to Content Library', async ({ page }) => {
+    // "Storys" wurde durch "Inhalte" (COPE/Hub & Spoke) ersetzt
+    await page.locator('text=Inhalte').first().click();
+    await expect(page.locator('text=Inhalte').first()).toBeVisible({ timeout: 5_000 });
   });
 });
