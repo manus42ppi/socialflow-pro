@@ -69,15 +69,25 @@ export default function MediaPage(){
       const item={id,name:file.name,url,type:mtype,size:file.size,date:new Date().toLocaleDateString("de"),tags:"",description:"",altText:"",category:"",focusPoint:{x:50,y:50},mood:"",analyzing:mtype==="image",width,height,workspaceId:currentWorkspaceId||"ws-ppi-media"};
       onUpload(item);
       if(mtype==="image"){
-        const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
+        const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
         Promise.race([AI.analyzeImg(url),timeout])
-          .then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
+          .then(r=>{onUpdate({...item,analyzing:false,aiError:false,tags:Array.isArray(r.tags)?r.tags.join(", "):"",description:r.description||"",altText:r.suggestedAlt||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
           .catch(()=>onUpdate({...item,analyzing:false,aiError:true}));
       } else { onUpdate({...item,analyzing:false}); }
     }
   },[onUpload,onUpdate]);
 
   const saveKey=(id,v)=>{skSet(id,v);setKeys(p=>({...p,[id]:v}));};
+
+  const retryAnalysis=useCallback((item,e)=>{
+    e.stopPropagation();
+    if(!item.url||item.type!=="image"||item.analyzing)return;
+    onUpdate({...item,analyzing:true,aiError:false});
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
+    Promise.race([AI.analyzeImg(item.url),timeout])
+      .then(r=>{onUpdate({...item,analyzing:false,aiError:false,tags:Array.isArray(r.tags)?r.tags.join(", "):(item.tags||""),description:r.description||item.description||"",altText:r.suggestedAlt||item.altText||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
+      .catch(()=>onUpdate({...item,analyzing:false,aiError:true}));
+  },[onUpdate]);
 
   // Add external image to library — with duplicate guard
   const addToLib=async ext=>{
@@ -91,9 +101,10 @@ export default function MediaPage(){
     const item={...ext,id:uid(),stockId:ext.id||null,analyzing:ext.type==="image",workspaceId:currentWorkspaceId||"ws-ppi-media"};
     onUpload(item);
     if(item.type==="image"){
-      const timeout2=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),30000));
+      // Externe URLs (Unsplash/Pexels) brauchen mehr Zeit — Anthropic muss das Bild erst selbst laden
+      const timeout2=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),45000));
       Promise.race([AI.analyzeImg(item.url),timeout2])
-        .then(r=>{onUpdate({...item,analyzing:false,tags:Array.isArray(r.tags)?r.tags.join(", "):(item.tags||""),description:r.description||item.description||"",altText:r.suggestedAlt||item.altText||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
+        .then(r=>{onUpdate({...item,analyzing:false,aiError:false,tags:Array.isArray(r.tags)?r.tags.join(", "):(item.tags||""),description:r.description||item.description||"",altText:r.suggestedAlt||item.altText||"",mood:r.mood||"",focusPoint:r.focalPoint?{x:r.focalPoint.x,y:r.focalPoint.y}:{x:50,y:50},aiAnalysis:r});})
         .catch(()=>onUpdate({...item,analyzing:false,aiError:true}));
     } else {
       onUpdate({...item,analyzing:false});
@@ -175,7 +186,7 @@ export default function MediaPage(){
           <div style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.3}}>KI analysiert…</div>
         </div>}
         {/* KI-Fehler-Badge */}
-        {item.aiError&&!item.analyzing&&<div style={{position:"absolute",top:8,left:8,background:"rgba(196,81,30,.88)",color:"#fff",fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:10,backdropFilter:"blur(4px)",pointerEvents:"none"}}>KI ✕</div>}
+        {item.aiError&&!item.analyzing&&<div onClick={e=>retryAnalysis(item,e)} title="KI-Analyse fehlgeschlagen – klicken zum Wiederholen" style={{position:"absolute",top:8,left:8,background:"rgba(196,81,30,.92)",color:"#fff",fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:10,backdropFilter:"blur(4px)",cursor:"pointer",display:"flex",alignItems:"center",gap:3}}>⟳ KI ✕</div>}
         {/* Batch mode: checkbox top-left (always visible) */}
         {batchMode&&<div style={{position:"absolute",top:8,left:8,width:20,height:20,borderRadius:6,background:isSel?C.accent:"rgba(255,255,255,.85)",border:`2px solid ${isSel?C.accent:"rgba(0,0,0,.25)"}`,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",transition:"all .12s"}}>
           {isSel&&<Check size={12} color="#fff" strokeWidth={3}/>}

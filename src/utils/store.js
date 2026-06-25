@@ -231,6 +231,28 @@ JSON-Schema (alle Felder pflicht):
     "engagementPotential": 0-100,
     "overall": 0-100
   },
+  "faces": {
+    "count": 0,
+    "ageGroups": ["z.B. jung-erwachsen, mittleres-Alter"],
+    "emotions": ["z.B. Freude, Konzentration"],
+    "note": "kurze Einschaetzung ob Gesichter das Engagement foerdern"
+  },
+  "textInImage": {
+    "hasText": true,
+    "content": "erkannter Text oder leer",
+    "readability": "gut|schwer|kein"
+  },
+  "contentSafety": {
+    "safe": true,
+    "flags": ["z.B. Gewalt, Nudity, politisch – leer wenn safe"],
+    "publishRecommendation": "unbedenklich|mit-Vorsicht|nicht-empfohlen"
+  },
+  "dominantEmotion": "eine Emotion die das Bild ausloest: z.B. Freude|Vertrauen|Spannung|Ruhe|Inspiration|Nostalgie|Neugier",
+  "ctaPotential": {
+    "suitable": true,
+    "reason": "1 Satz ob das Bild als Hintergrund fuer Text-Overlay oder CTA geeignet ist",
+    "bestZone": "wo am Bild Platz fuer Text waere: z.B. unten-links, oben-rechts, Mitte"
+  },
   "platformFit": {
     "instagram": {"rating": "gut|ok|schlecht", "reason": "1 Satz warum - beziehe dich auf Format 1:1 oder 4:5, Bildqualitaet, Motiv, Farben, Storytelling-Potenzial"},
     "linkedin":  {"rating": "gut|ok|schlecht", "reason": "1 Satz warum - beziehe dich auf Professionalitaet, Corporate-Wirkung, B2B-Relevanz, Sachlichkeit"},
@@ -241,11 +263,11 @@ JSON-Schema (alle Felder pflicht):
   "improvements": ["max 3 konkrete Verbesserungsvorschlaege"]
 }
 
-Bewertungskriterien fuer rating:
+Bewertungskriterien fuer platformFit rating:
 - "gut": Bild erfuellt die plattformspezifischen Anforderungen ohne Anpassung
 - "ok": Bild funktioniert mit kleineren Anpassungen (z.B. Zuschnitt, Helligkeit)
 - "schlecht": Bild passt grundlegend nicht zur Plattform (falsche Stimmung, Format, Qualitaet)`}
-    ]}],900);
+    ]}],1200);
     return parseJSON(raw)||{};
   },
 };

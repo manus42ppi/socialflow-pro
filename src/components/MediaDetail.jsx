@@ -286,6 +286,47 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
                         </div>
                       </div>
                     ))}
+                    {/* Dominant Emotion + CTA */}
+                    {(aiData.dominantEmotion||aiData.ctaPotential)&&(
+                      <div style={{display:"flex",gap:8}}>
+                        {aiData.dominantEmotion&&<div style={{flex:1,padding:"10px 12px",background:"#FFF7ED",borderRadius:9,border:"1px solid #FED7AA"}}>
+                          <div style={{fontSize:10,fontWeight:700,color:"#C2410C",marginBottom:3,textTransform:"uppercase",letterSpacing:.5}}>Dominante Emotion</div>
+                          <div style={{fontSize:13,fontWeight:700,color:"#9A3412"}}>{aiData.dominantEmotion}</div>
+                        </div>}
+                        {aiData.ctaPotential&&<div style={{flex:1,padding:"10px 12px",background:aiData.ctaPotential.suitable?"#F0FDF4":"#FEF2F2",borderRadius:9,border:`1px solid ${aiData.ctaPotential.suitable?"#BBF7D0":"#FECACA"}`}}>
+                          <div style={{fontSize:10,fontWeight:700,color:aiData.ctaPotential.suitable?"#166534":"#991B1B",marginBottom:3,textTransform:"uppercase",letterSpacing:.5}}>CTA-Potenzial</div>
+                          <div style={{fontSize:12,fontWeight:700,color:aiData.ctaPotential.suitable?"#15803D":"#DC2626"}}>{aiData.ctaPotential.suitable?"✅ Geeignet":"⚠️ Weniger geeignet"}</div>
+                          {aiData.ctaPotential.bestZone&&<div style={{fontSize:10.5,color:C.textSoft,marginTop:2}}>Textzone: {aiData.ctaPotential.bestZone}</div>}
+                        </div>}
+                      </div>
+                    )}
+                    {/* Faces */}
+                    {aiData.faces&&aiData.faces.count>0&&(
+                      <div style={{padding:"10px 12px",background:"#F0F9FF",borderRadius:9,border:"1px solid #BAE6FD"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#0369A1",marginBottom:5,textTransform:"uppercase",letterSpacing:.5}}>👤 Personen im Bild</div>
+                        <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+                          <span style={{fontSize:12,color:C.textMid}}><strong>{aiData.faces.count}</strong> Person{aiData.faces.count!==1?"en":""}</span>
+                          {aiData.faces.emotions?.length>0&&<span style={{fontSize:12,color:C.textMid}}>Emotion: {aiData.faces.emotions.join(", ")}</span>}
+                          {aiData.faces.ageGroups?.length>0&&<span style={{fontSize:12,color:C.textMid}}>Altersgruppe: {aiData.faces.ageGroups.join(", ")}</span>}
+                        </div>
+                        {aiData.faces.note&&<div style={{fontSize:11,color:C.textSoft,marginTop:4}}>{aiData.faces.note}</div>}
+                      </div>
+                    )}
+                    {/* Text in Image */}
+                    {aiData.textInImage?.hasText&&(
+                      <div style={{padding:"10px 12px",background:"#FAFAFA",borderRadius:9,border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:10,fontWeight:700,color:C.textMid,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>🔤 Text im Bild erkannt</div>
+                        {aiData.textInImage.content&&<div style={{fontSize:12,color:C.text,fontStyle:"italic",marginBottom:4}}>„{aiData.textInImage.content}"</div>}
+                        <div style={{fontSize:11,color:C.textSoft}}>Lesbarkeit: {aiData.textInImage.readability==="gut"?"✅ Gut lesbar":aiData.textInImage.readability==="schwer"?"⚠️ Schwer lesbar":"–"}</div>
+                      </div>
+                    )}
+                    {/* Content Safety */}
+                    {aiData.contentSafety&&aiData.contentSafety.publishRecommendation!=="unbedenklich"&&(
+                      <div style={{padding:"10px 12px",background:"#FEF2F2",borderRadius:9,border:"1px solid #FECACA"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#991B1B",marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>⚠️ Sicherheitshinweis</div>
+                        <div style={{fontSize:12,color:"#7F1D1D"}}>{aiData.contentSafety.flags?.join(", ")||"Inhalt prüfen vor Veröffentlichung"}</div>
+                      </div>
+                    )}
                     {/* Improvements */}
                     {aiData.improvements?.length>0&&(
                       <div style={{padding:"10px 12px",background:`${C.ai1}08`,borderRadius:9,border:`1px solid ${C.ai1}25`}}>
