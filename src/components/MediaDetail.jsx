@@ -48,7 +48,8 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
   };
 
   const scoreColor=s=>s>=80?"#22C55E":s>=55?"#F59E0B":"#EF4444";
-  const fitIcon=f=>f==="gut"?"✅":f==="ok"?"🟡":"⚠️";
+  const normFit=f=>{const v=(f||"").toLowerCase();return v==="gut"||v==="sehr gut"||v==="good"?"gut":v==="ok"||v==="mittel"?"ok":"schlecht";};
+  const fitIcon=f=>{const n=normFit(f);return n==="gut"?"✅":n==="ok"?"🟡":"⚠️";};
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -308,16 +309,17 @@ export default function MediaDetail({item,onSave,onUpdate,onClose}){
                     {Object.entries(aiData.platformFit).map(([plat,fit])=>{
                       const ch=CHANNELS.find(c=>c.id===plat);
                       if(!ch)return null;
-                      const fitColor=fit==="gut"?"#22C55E":fit==="ok"?"#F59E0B":"#EF4444";
-                      const fitBg=fit==="gut"?"#F0FDF4":fit==="ok"?"#FFFBEB":"#FEF2F2";
+                      const nfit=normFit(fit);
+                      const fitColor=nfit==="gut"?"#22C55E":nfit==="ok"?"#F59E0B":"#EF4444";
+                      const fitBg=nfit==="gut"?"#F0FDF4":nfit==="ok"?"#FFFBEB":"#FEF2F2";
                       return(
                         <div key={plat} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,border:`1px solid ${fitColor}30`,background:fitBg}}>
                           <ChIco id={plat} size={20}/>
                           <div style={{flex:1}}>
                             <div style={{fontWeight:700,fontSize:13,color:C.text}}>{ch.label}</div>
-                            <div style={{fontSize:11,color:C.textSoft}}>{fit==="gut"?"Sehr gut geeignet":fit==="ok"?"Geeignet, aber Anpassungen empfohlen":"Nicht optimal – Bild anpassen"}</div>
+                            <div style={{fontSize:11,color:C.textSoft}}>{nfit==="gut"?"Sehr gut geeignet":nfit==="ok"?"Geeignet, aber Anpassungen empfohlen":"Nicht optimal – Bild anpassen"}</div>
                           </div>
-                          <span style={{fontSize:14,fontWeight:700,color:fitColor,background:`${fitColor}18`,padding:"4px 10px",borderRadius:7,border:`1px solid ${fitColor}40`}}>{fitIcon(fit)} {fit}</span>
+                          <span style={{fontSize:14,fontWeight:700,color:fitColor,background:`${fitColor}18`,padding:"4px 10px",borderRadius:7,border:`1px solid ${fitColor}40`}}>{fitIcon(fit)} {nfit}</span>
                         </div>
                       );
                     })}
