@@ -6,9 +6,11 @@
 //   stream:true            – forward Anthropic SSE stream directly to client
 //                            (avoids 30s Worker timeout for long generations)
 
+import { requireAuth } from "./_lib/auth.js";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -19,6 +21,15 @@ export async function onRequest({ request, env }) {
 
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  try {
+    await requireAuth(request, env);
+  } catch {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json", ...CORS },
+    });
   }
 
   try {

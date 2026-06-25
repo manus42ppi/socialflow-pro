@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
 import { Card, Btn } from "../components/ui/index.jsx";
+import { getAuthHeader } from "../utils/store.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function cleanDomainStr(s) {
@@ -184,8 +185,9 @@ export default function SocialIntelligencePage() {
   const [manualLoading,   setManualLoading]   = useState({});
 
   async function fetchSocial(d) {
+    const auth = await getAuthHeader();
     const r = await fetch("/social-analyze", {
-      method:"POST", headers:{"Content-Type":"application/json"},
+      method:"POST", headers:{"Content-Type":"application/json",...(auth?{"Authorization":auth}:{})},
       body:JSON.stringify({domain:d}), signal:AbortSignal.timeout(90000),
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -227,7 +229,8 @@ export default function SocialIntelligencePage() {
     const compText = compRes ? `\nWettbewerber "${cd}": ${JSON.stringify(compRes.metrics)}` : "";
     const prompt = `Analysiere die Social-Media-Präsenz von "${d}" als Marketing-Strategieberater.\nProfile: ${pText}\nMetriken: ${mText}${compText}\n\nGib 3 konkrete Stärken, 3 Handlungslücken und 3 sofort umsetzbare Quick Wins.\nReturn ONLY valid JSON (no markdown):\n{"strengths":["...","...","..."],"gaps":["...","...","..."],"quick_wins":["...","...","..."]}`;
     try {
-      const r = await fetch("/ai", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ messages:[{role:"user",content:prompt}], max_tokens:800 }), signal:AbortSignal.timeout(40000) });
+      const auth = await getAuthHeader();
+      const r = await fetch("/ai", { method:"POST", headers:{"Content-Type":"application/json",...(auth?{"Authorization":auth}:{})}, body:JSON.stringify({ messages:[{role:"user",content:prompt}], max_tokens:800 }), signal:AbortSignal.timeout(40000) });
       if (!r.ok) return null;
       const d2 = await r.json();
       const text = d2.content?.[0]?.text ?? "";
@@ -245,7 +248,8 @@ export default function SocialIntelligencePage() {
     try {
       const d = cleanDomainStr(domain);
       const prompt = `Estimate social media metrics for ${platform} handle "@${handle}" of the company "${d}". Return ONLY valid JSON: { "followers": <int|null>, "posts_per_month": <int|null>, "engagement_rate": <0.001-0.1|null>, "last_post": "<ISO|null>" }`;
-      const r = await fetch("/ai", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ messages:[{role:"user",content:prompt}], max_tokens:200 }), signal:AbortSignal.timeout(20000) });
+      const auth2 = await getAuthHeader();
+      const r = await fetch("/ai", { method:"POST", headers:{"Content-Type":"application/json",...(auth2?{"Authorization":auth2}:{})}, body:JSON.stringify({ messages:[{role:"user",content:prompt}], max_tokens:200 }), signal:AbortSignal.timeout(20000) });
       if (r.ok) {
         const data = await r.json();
         const text = data.content?.[0]?.text??"";

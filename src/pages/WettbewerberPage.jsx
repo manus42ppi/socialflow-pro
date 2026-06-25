@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertCircle, Plus, X } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { getAuthHeader } from "../utils/store.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function cleanDomainStr(s) {
@@ -42,7 +43,8 @@ export default function WettbewerberPage() {
 
     const tasks = domains.map(async d => {
       try {
-        const res  = await fetch("/analyze", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ domain: d }) });
+        const auth = await getAuthHeader();
+        const res  = await fetch("/analyze", { method:"POST", headers:{"Content-Type":"application/json",...(auth?{"Authorization":auth}:{})}, body:JSON.stringify({ domain: d }) });
         const json = await res.json();
         setResults(prev => ({ ...prev, [d]: json }));
       } catch {

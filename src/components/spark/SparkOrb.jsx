@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Mic, MicOff, ChevronDown, Sparkles } from "lucide-react";
 import { C, T, FONT, IW, TYPO } from "../../constants/colors.js";
-import { aiCall, parseJSON, uid } from "../../utils/store.js";
+import { aiCall, parseJSON, uid, getAuthHeader } from "../../utils/store.js";
 import { useApp } from "../../context/AppContext.jsx";
 
 // ── Voice states ─────────────────────────────────────────────────────────────
@@ -138,9 +138,10 @@ export default function SparkOrb() {
 
     try {
       setVs(SPEAKING);
+      const auth = await getAuthHeader();
       const r = await fetch("/tts", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(auth ? { "Authorization": auth } : {}) },
         body:    JSON.stringify({ text, voice: "nova", model: "tts-1" }),
       });
 

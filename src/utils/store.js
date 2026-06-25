@@ -5,13 +5,43 @@ export const getMediaType = f => f.type.startsWith("video/")?"video": f.name.toL
 export const fmtDate = d => d ? new Date(d).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"}) : "";
 export const fpos = m => m?.focusPoint ? `${m.focusPoint.x}% ${m.focusPoint.y}%` : "center";
 
+// ── AUTH HEADER ───────────────────────────────────────────────────────────────
+// Returns the appropriate Authorization header for the current session:
+//   - Real Clerk users: short-lived Clerk JWT
+//   - Demo users: HMAC-signed demo token (cached 55 min, fetched from /demo-token)
+let _demoTokenCache = null; // { token, expiresAt }
+
+export async function getAuthHeader() {
+  // Real Clerk user
+  try {
+    const t = await window.Clerk?.session?.getToken();
+    if (t) return `Bearer ${t}`;
+  } catch {}
+
+  // Demo user — use cached token or fetch a fresh one
+  const now = Date.now();
+  if (_demoTokenCache && _demoTokenCache.expiresAt - now > 60_000) {
+    return `Bearer ${_demoTokenCache.token}`;
+  }
+  try {
+    const r = await fetch("/demo-token", { method: "POST" });
+    if (r.ok) {
+      const d = await r.json();
+      _demoTokenCache = { token: d.token, expiresAt: d.expiresAt };
+      return `Bearer ${d.token}`;
+    }
+  } catch {}
+  return null;
+}
+
 // ── AI SERVICE (via Cloudflare Function Proxy) ────────────────────────────
 export async function aiCall(messages, max_tokens=800, tools=null) {
   const body = {model:"claude-sonnet-4-6",max_tokens,messages};
   if (tools?.length) body.tools = tools;
+  const auth = await getAuthHeader();
   const r = await fetch("/ai",{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{"Content-Type":"application/json",...(auth?{"Authorization":auth}:{})},
     body:JSON.stringify(body),
   });
   const data = await r.json();
@@ -32,9 +62,10 @@ export const parseJSON = raw => { try{return JSON.parse(raw.replace(/```json|```
 async function _aiStreamOnce(messages, max_tokens, onChunk, tools) {
   const body = { model: "claude-sonnet-4-6", max_tokens, messages, stream: true };
   if (tools?.length) body.tools = tools;
+  const auth = await getAuthHeader();
   const r = await fetch("/ai", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(auth ? { "Authorization": auth } : {}) },
     body: JSON.stringify(body),
   });
   if (!r.ok) {

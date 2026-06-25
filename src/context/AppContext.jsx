@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, useMemo } from 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { DEMO_POSTS, DEMO_CAMPAIGNS, DEMO_STORIES, DEMO_STORIES_VERSION, DEMO_MEDIA, DEMO_MEDIA_VERSION, DEMO_PROJECTS, DEMO_PRODUCTS, DEMO_POSTS_VERSION, DEMO_WORKSPACES, DEMO_WORKSPACE_MEMBERS } from "../constants/demo.js";
-import { uid, storeGet, storeSet, storeDelete } from "../utils/store.js";
+import { uid, storeGet, storeSet, storeDelete, getAuthHeader } from "../utils/store.js";
 
 // Map a Clerk user object to our internal user format
 function mapClerkUser(clerkUser) {
@@ -503,11 +503,13 @@ export function AppProvider({ children }) {
       } catch {}
       // Remove the deployed site from global KV so the public URL 404s properly
       if (project.slug) {
-        fetch("/deploy-site", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug: project.slug, delete: true }),
-        }).catch(() => {});
+        getAuthHeader().then(auth => {
+          fetch("/deploy-site", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(auth ? { "Authorization": auth } : {}) },
+            body: JSON.stringify({ slug: project.slug, delete: true }),
+          }).catch(() => {});
+        });
       }
     }
   };

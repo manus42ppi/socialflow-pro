@@ -6,12 +6,14 @@ import {
 } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
 import { Card, Btn } from "../components/ui/index.jsx";
+import { getAuthHeader } from "../utils/store.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function researchAI(messages, system = "") {
+  const auth = await getAuthHeader();
   const res = await fetch("/ai", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(auth ? { "Authorization": auth } : {}) },
     body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4096, system, messages }),
   });
   const d = await res.json();
@@ -146,7 +148,8 @@ export default function ContentAuditPage() {
 
   async function fetchWebContentCA(d) {
     try {
-      const r = await fetch("/content", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({domain:d}), signal:AbortSignal.timeout(30000) });
+      const auth = await getAuthHeader();
+      const r = await fetch("/content", { method:"POST", headers:{"Content-Type":"application/json",...(auth?{"Authorization":auth}:{})}, body:JSON.stringify({domain:d}), signal:AbortSignal.timeout(30000) });
       if (!r.ok) return [];
       const data = await r.json();
       return data?.pages?.length > 0 ? data.pages : [];

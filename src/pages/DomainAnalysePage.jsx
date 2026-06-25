@@ -3,6 +3,7 @@ import {
   Globe, Users, BarChart2, TrendingUp, Zap, Target, Plus, AlertCircle,
 } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { getAuthHeader } from "../utils/store.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function cleanDomain(input) {
@@ -78,7 +79,8 @@ export default function DomainAnalysePage() {
       setStepIdx(si);
     }, 3000);
     try {
-      const res  = await fetch("/analyze", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ domain: d }) });
+      const auth = await getAuthHeader();
+      const res  = await fetch("/analyze", { method:"POST", headers:{"Content-Type":"application/json",...(auth?{"Authorization":auth}:{})}, body:JSON.stringify({ domain: d }) });
       const json = await res.json();
       if (json.error) { setErr(json.error); return; }
       setData(json);

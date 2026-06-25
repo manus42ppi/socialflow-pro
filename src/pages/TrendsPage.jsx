@@ -5,6 +5,7 @@ import {
   AlertCircle, Heart, MessageSquare, Share2, BadgeCheck,
 } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
+import { getAuthHeader } from "../utils/store.js";
 
 // ── Feed sources ──────────────────────────────────────────────────────────────
 const NEWS_SOURCES = [
@@ -52,8 +53,12 @@ function parseRssXml(xml, src) {
 async function fetchFeed(src) {
   // Strategy 1: CF Pages Function /rss (server-side, no CORS)
   try {
+    const auth = await getAuthHeader();
     const { signal, clear } = withTimeout(10000);
-    const res = await fetch(`${RSS_PROXY}${encodeURIComponent(src.url)}`, { signal });
+    const res = await fetch(`${RSS_PROXY}${encodeURIComponent(src.url)}`, {
+      signal,
+      headers: auth ? { "Authorization": auth } : {},
+    });
     clear();
     if (res.ok) {
       const items = parseRssXml(await res.text(), src);

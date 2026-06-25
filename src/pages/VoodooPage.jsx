@@ -23,7 +23,7 @@ const TMPL_ICONS = {
   freeform:   Wand2,
 };
 import { C, T, FONT, IW, CSS } from "../constants/colors.js";
-import { uid } from "../utils/store.js";
+import { uid, getAuthHeader } from "../utils/store.js";
 import {
   slugify, buildContext, runPreflight, searchImages, searchMediaLibrary,
   analyzeUploadedImage,
@@ -673,9 +673,10 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
 
       const html = useTemplate ? domFixed : await autoRepairLoop(domFixed, 1, 2);
 
+      const deployAuth = await getAuthHeader();
       const res = await fetch("/deploy-site", {
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json",...(deployAuth?{"Authorization":deployAuth}:{})},
         body:JSON.stringify({ slug:form.slug, html }),
       });
       const data = await res.json().catch(() => ({}));
@@ -743,9 +744,10 @@ function ProjectDetail({ project, stories, posts, items, products, onSave, onDel
       //    would double the token cost and risk triggering rate-limit errors.
       const html = await autoRepairLoop(domFixed, 2, 2);
 
+      const deployAuth2 = await getAuthHeader();
       const deployRes  = await fetch("/deploy-site", {
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json",...(deployAuth2?{"Authorization":deployAuth2}:{})},
         body:JSON.stringify({ slug:form.slug, html }),
       });
       const deployData = await deployRes.json().catch(() => ({}));

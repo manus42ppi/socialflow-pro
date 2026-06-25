@@ -1,7 +1,9 @@
+import { requireAuth } from "./_lib/auth.js";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Content-Type": "application/json",
 };
 
@@ -38,6 +40,9 @@ async function fetchPage(url) {
 }
 
 export async function onRequestPost(ctx) {
+  try { await requireAuth(ctx.request, ctx.env); }
+  catch { return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: CORS }); }
+
   const { domain } = await ctx.request.json();
   if (!domain) return new Response(JSON.stringify({ error: "domain required" }), { status: 400, headers: CORS });
 

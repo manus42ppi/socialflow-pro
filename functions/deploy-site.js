@@ -1,3 +1,5 @@
+import { requireAuth } from "./_lib/auth.js";
+
 /**
  * Cloudflare Pages Function — Creation Voodoo site deployer
  * Route:  POST /deploy-site
@@ -37,6 +39,9 @@ export async function onRequest({ request, env }) {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
   }
+
+  try { await requireAuth(request, env); }
+  catch { return json({ error: "Unauthorized" }, 401); }
 
   const body = await request.json().catch(() => ({}));
   const { slug, html, delete: del } = body;

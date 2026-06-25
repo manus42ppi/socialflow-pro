@@ -1,3 +1,5 @@
+import { requireAuth } from "./_lib/auth.js";
+
 /**
  * POST /social-analyze
  * Deep social media intelligence:
@@ -192,7 +194,7 @@ async function fetchLinkedInData(handle) {
 
 // ── 6. AI enrichment with real context ───────────────────────────────────────
 
-async function enrichWithAI(origin, domain, crawledProfiles, realMetrics, ogData) {
+async function enrichWithAI(origin, authHeader, domain, crawledProfiles, realMetrics, ogData) {
   const foundList = Object.entries(crawledProfiles)
     .map(([p, d]) => `  ${p}: @${d.handle} → ${d.url}`)
     .join("\n") || "  (no social links found on website)";
@@ -245,7 +247,7 @@ Antworte NUR mit gültigem JSON (kein Markdown):
   try {
     const r = await fetch(`${origin}/ai`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": authHeader },
       body: JSON.stringify({ messages: [{ role: "user", content: prompt }], max_tokens: 1800 }),
       signal: AbortSignal.timeout(45000),
     });
@@ -262,11 +264,15 @@ Antworte NUR mit gültigem JSON (kein Markdown):
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function onRequestPost(ctx) {
+  try { await requireAuth(ctx.request, ctx.env); }
+  catch { return json({ error: "Unauthorized" }, 401); }
+
   const body = await ctx.request.json().catch(() => ({}));
   const domain = (body.domain || "").trim().replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
   if (!domain) return json({ error: "Missing domain" }, 400);
 
   const origin = new URL(ctx.request.url).origin;
+  const authHeader = ctx.request.headers.get("Authorization");
 
   // Step 1: Crawl website
   const html = await fetchHtml(domain);
@@ -295,7 +301,7 @@ export async function onRequestPost(ctx) {
   await Promise.allSettled(tasks);
 
   // Step 3: AI enrichment
-  const ai = await enrichWithAI(origin, domain, crawledProfiles, realMetrics, ogData);
+  const ai = await enrichWithAI(origin, authHeader, domain, crawledProfiles, realMetrics, ogData);
 
   // Step 4: Merge (real data wins over AI)
   const platforms = ["linkedin", "twitter", "instagram", "facebook", "youtube", "tiktok"];

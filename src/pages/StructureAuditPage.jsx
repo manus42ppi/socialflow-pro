@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY, IW } from "../constants/colors.js";
 import { Card, Btn } from "../components/ui/index.jsx";
+import { getAuthHeader } from "../utils/store.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function cleanDomainStr(s) {
@@ -101,8 +102,9 @@ export default function StructureAuditPage() {
     if (!d) return;
     setLoading(true); setError(""); setResult(null);
     try {
+      const auth = await getAuthHeader();
       const r = await fetch("/schema-validate", {
-        method:"POST", headers:{"Content-Type":"application/json"},
+        method:"POST", headers:{"Content-Type":"application/json",...(auth?{"Authorization":auth}:{})},
         body:JSON.stringify({domain:d}), signal:AbortSignal.timeout(65000),
       });
       const data = await r.json();

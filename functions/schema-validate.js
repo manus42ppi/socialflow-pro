@@ -1,6 +1,8 @@
 // Schema.org Structured Data Validator
 // Fetches the target page, extracts real JSON-LD, validates with AI
 
+import { requireAuth } from "./_lib/auth.js";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Content-Type": "application/json",
@@ -8,7 +10,7 @@ const CORS = {
 
 export async function onRequestOptions() {
   return new Response(null, {
-    headers: { ...CORS, "Access-Control-Allow-Methods": "POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type" },
+    headers: { ...CORS, "Access-Control-Allow-Methods": "POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type, Authorization" },
   });
 }
 
@@ -119,10 +121,14 @@ const EXTRA_PATHS = ["/produkte", "/products", "/blog", "/about", "/ueber-uns", 
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 export async function onRequestPost(ctx) {
+  try { await requireAuth(ctx.request, ctx.env); }
+  catch { return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: CORS }); }
+
   const { domain } = await ctx.request.json();
   if (!domain) return new Response(JSON.stringify({ error: "domain required" }), { status: 400, headers: CORS });
 
   const origin = new URL(ctx.request.url).origin;
+  const authHeader = ctx.request.headers.get("Authorization");
   const clean  = domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/\/$/, "").toLowerCase();
 
   // 1. Fetch homepage + secondary pages in parallel
@@ -212,7 +218,7 @@ Regeln:
   try {
     const aiRes = await fetch(`${origin}/ai`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": authHeader },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 4096,

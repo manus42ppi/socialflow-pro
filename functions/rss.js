@@ -3,8 +3,10 @@
  * Server-side RSS proxy – no CORS issues, works for any public RSS feed.
  * Cached 5 min on CF edge to reduce origin load.
  */
+import { requireAuth } from "./_lib/auth.js";
+
 export async function onRequest(context) {
-  const { request } = context;
+  const { request, env } = context;
   const url     = new URL(request.url);
   const feedUrl = url.searchParams.get("url");
 
@@ -14,8 +16,15 @@ export async function onRequest(context) {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization",
       },
     });
+  }
+
+  try {
+    await requireAuth(request, env);
+  } catch {
+    return new Response("Unauthorized", { status: 401, headers: { "Access-Control-Allow-Origin": "*" } });
   }
 
   if (!feedUrl) {
