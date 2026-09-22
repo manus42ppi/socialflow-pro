@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
   Flag, Trash2, BookOpen, CalendarRange, Eye, Inbox,
-  Flame, Globe, Target, FileText, Code2, Share2,
+  Flame, Globe, Target, FileText, Code2, Share2, Printer,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -34,6 +34,7 @@ export const NAV_GROUPS = [
       { id:"stories",     label:"Storys",            I:BookOpen     },
       { id:"ugc",         label:"UGC Portal",        I:Inbox        },
       { id:"publisher",   label:"Publisher",         I:Send         },
+      { id:"druck",       label:"Druckausgaben",     I:Printer      },
     ],
   },
   {
@@ -96,4 +97,5 @@ export const TITLE = {
   "content-audit":    "Content-Audit",
   "structure-audit":  "Structure-Audit",
   "social-intel":     "Social Intelligence",
+  druck:              "Druckausgaben",
 };

@@ -3,9 +3,21 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "/Users/mas/DEV/socialflow-pro/.claude/start-dev.sh",
+      "runtimeArgs": [],
       "port": 5173
+    },
+    {
+      "name": "dev-full",
+      "runtimeExecutable": "/Users/mas/DEV/socialflow-pro/.claude/start-dev-full.sh",
+      "runtimeArgs": [],
+      "port": 8788
+    },
+    {
+      "name": "typst-bridge",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/mas/dev/socialflow-pro/.claude/worktrees/dazzling-cannon/typst-bridge/server.js"],
+      "port": 9000
     }
   ]
 }
