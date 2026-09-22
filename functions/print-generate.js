@@ -61,6 +61,15 @@ const LAYOUT_SCHEMA = `
 {
   "seiten": [
     {
+      "nr": 1,
+      "typ": "cover",
+      "magazin": "ppi Cycling",
+      "ausgabe": "Oktober 2026",
+      "preis": "9,80 €",
+      "headline": "Schotter, Staub und Freiheit",
+      "teasers": ["E-Bike Test: 5 Modelle im Härtetest", "Gravel Trophy KW38", "Winter-Layering"]
+    },
+    {
       "nr": [4, 5],
       "typ": "spread-opener",
       "artikel_id": "story-123",
@@ -68,9 +77,27 @@ const LAYOUT_SCHEMA = `
       "headline": "Schotter, Staub und Freiheit",
       "unterzeile": "Wie Gravel Bikes...",
       "byline": "Von Max Mustermann · Fotos: Anna Beispiel",
-      "body_woerter": 350,
       "rubrik": "FAHRTECHNIK",
       "bild_empfehlung": "Starkes Querformat, Natur/Bewegung"
+    },
+    {
+      "nr": 6,
+      "typ": "standard-feature",
+      "artikel_id": "story-456",
+      "dachzeile": "TEST",
+      "headline": "Specialized Diverge: Der Maßstab",
+      "unterzeile": "800 km Schotter im Härtetest",
+      "byline": "Test: Johanna Keller",
+      "rubrik": "TEST"
+    },
+    {
+      "nr": 7,
+      "typ": "kurzmeldungen",
+      "rubrik": "NEWS",
+      "meldungen": [
+        { "dachzeile": "MARKT", "titel": "Canyon startet E-Gravel", "text": "..." },
+        { "dachzeile": "RENNEN", "titel": "Trophy-Ergebnisse KW38", "text": "..." }
+      ]
     }
   ]
 }
@@ -99,11 +126,13 @@ Artikel ${i + 1}:
 `).join("")}
 
 DRUCKTECHNIK-REGELN die du kennen musst:
-- Aufmacher-Spread (Typ "spread-opener"): NUR wenn Artikel ≥ 600 Wörter UND starkes Bild vorhanden. Braucht 2 Seiten (links=Bild, rechts=Text). Beginnt immer auf ungerader Seite (rechts).
-- Standard-Feature (Typ "standard-feature"): 1 Seite, Bild oben, Text unten.
-- Kurzmeldungen (Typ "kurzmeldungen"): Mehrere kurze Artikel auf einer Seite.
-- Seiten beginnen bei 4 (U1=1, U2=2, IHV=3 sind reserviert).
+- Titelseite (Typ "cover"): IMMER Seite 1 (U1). Felder: magazin, ausgabe, preis, headline (Aufmacher-Thema), teasers (Array mit 2–4 kurzen Texten für Teaserleiste).
+- Aufmacher-Spread (Typ "spread-opener"): NUR wenn Artikel ≥ 600 Wörter UND starkes Bild vorhanden. Braucht 2 Seiten (links=Bild, rechts=Text). Beginnt immer auf ungerader Seite (rechts), also Seiten 5, 7, 9...
+- Standard-Feature (Typ "standard-feature"): 1 Seite, Bild oben, Text darunter.
+- Kurzmeldungen (Typ "kurzmeldungen"): 1 Seite für 3–5 kurze Artikel (< 150 Wörter). Felder: meldungen (Array mit {titel, text, dachzeile}).
+- Seiten beginnen bei 4 (U1=1, U2=2, IHV=3 sind fix reserviert).
 - Ungerade Seitenzahlen = rechts, gerade = links.
+- Seitenanzahl muss Vielfaches von 4 sein (Saddle-Stitch-Bindung).
 
 Gib AUSSCHLIESSLICH gültiges JSON zurück, kein Markdown, keine Erklärungen.
 Schema:
@@ -201,6 +230,98 @@ ${seite.byline ? `#v(3mm)\n#hrule(thickness: 0.3pt)\n#v(2mm)\n#t-byline[${seite.
 #v(5mm)
 #columns(2, gutter: col-gutter)[
   #t-body[${body.slice(0, 1500)}]
+]
+#place(bottom + right, dy: 12mm, t-pagina(${nr}))
+`;
+  }
+
+  if (seite.typ === "cover") {
+    const teaserStr = (seite.teasers ?? []).join("|");
+    return `
+// ── U1 Titelseite ──
+#import "templates/base.typ": *
+#set page(width: page-w, height: page-h, margin: 0mm)
+#place(top + left,
+  rect(width: page-w, height: page-h,
+    fill: gradient.linear(rgb("#0d1f2d"), rgb("#1a3a4a"), rgb("#2d5a6a"), angle: 160deg)
+  )
+)
+#place(top + left,
+  rect(width: page-w, height: 55mm,
+    fill: gradient.linear(rgb("#000000").transparentize(15%), rgb("#000000").transparentize(100%))
+  )
+)
+#place(bottom + left,
+  rect(width: page-w, height: 72mm,
+    fill: gradient.linear(rgb("#000000").transparentize(100%), rgb("#000000").transparentize(5%))
+  )
+)
+#place(top + left, dx: margin-outer, dy: margin-top - 4mm, {
+  set text(font: "Inter")
+  stack(dir: ttb, spacing: 2mm,
+    { set text(size: 28pt, weight: "bold", fill: white); upper("${seite.magazin ?? "ppi Cycling"}") },
+    line(length: 38mm, stroke: 2pt + col-accent),
+    { set text(size: 8pt, fill: white.transparentize(30%), tracking: 0.8pt)
+      upper("${seite.ausgabe ?? ""}  ·  ${seite.preis ?? "9,80 €"}") },
+  )
+})
+${seite.headline ? `#place(center + horizon, dy: -18mm,
+  block(width: page-w - (margin-outer * 2), {
+    set text(size: 52pt, weight: "bold", fill: white, font: "Inter", tracking: -1pt)
+    set par(leading: 0.8em, justify: false)
+    [${seite.headline}]
+  })
+)` : ""}
+${teaserStr ? `#place(bottom + left, dx: margin-outer, dy: -(margin-bottom - 2mm), {
+  let ts = "${teaserStr}".split("|")
+  set text(font: "Inter")
+  grid(columns: range(ts.len()).map(_ => 1fr), column-gutter: 5mm,
+    ..ts.map(t => stack(dir: ttb, spacing: 1.5mm,
+      line(length: 100%, stroke: 0.4pt + col-accent),
+      v(1.5mm),
+      { set text(size: 8pt, fill: white.transparentize(20%)); t.trim() },
+    ))
+  )
+})` : ""}
+`;
+  }
+
+  if (seite.typ === "kurzmeldungen") {
+    const nr = Array.isArray(seite.nr) ? seite.nr[0] : seite.nr;
+    const items = (seite.meldungen ?? [])
+      .map(m => `${m.titel}||${m.text}||${m.dachzeile ?? ""}`)
+      .join(":::");
+
+    return `
+// ── Kurzmeldungen Seite ${nr} ──
+#import "templates/base.typ": *
+#set page(width: page-w, height: page-h,
+  margin: (top: margin-top, bottom: margin-bottom,
+           left: margin-inner, right: margin-outer))
+#block(width: 100%)[
+  #rect(width: 100%, height: 7mm, fill: col-accent)
+  #place(left + horizon, dx: 4mm, dy: -5mm,
+    text(size: 9pt, weight: "bold", fill: white, tracking: 2pt, font: "Inter")[${(seite.rubrik ?? "KURZMELDUNGEN").toUpperCase()}]
+  )
+]
+#v(5mm)
+#kolumnentitel(rubrik: "${seite.rubrik ?? "KURZMELDUNGEN"}", seite: ${nr})
+#v(2mm)
+#columns(2, gutter: col-gutter)[
+${(seite.meldungen ?? []).map(m => `
+  #t-dachzeile("${m.dachzeile ?? ""}")
+  #v(1.5mm)
+  #block(width: 100%)[
+    #set text(size: 20pt, weight: "bold", fill: col-text, font: "Inter")
+    #set par(leading: 0.88em, justify: false)
+    ${m.titel}
+  ]
+  #v(2mm)
+  #hrule(thickness: 0.25pt)
+  #v(2.5mm)
+  #t-body[${m.text}]
+  #v(5mm)
+`).join("\n")}
 ]
 #place(bottom + right, dy: 12mm, t-pagina(${nr}))
 `;

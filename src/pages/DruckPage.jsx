@@ -316,7 +316,7 @@ export default function DruckPage() {
 
       if (data.ok) {
         setAusgaben(prev => prev.map(a => a.id === id
-          ? { ...a, status: "ready", pdfBase64: data.pdf, seitenanzahl: data.pages * 2, generatedAt: new Date().toISOString() }
+          ? { ...a, status: "ready", pdfBase64: data.pdf, layoutPlan: data.layoutPlan, seitenanzahl: data.pages * 2, generatedAt: new Date().toISOString() }
           : a
         ));
       } else {
@@ -330,9 +330,28 @@ export default function DruckPage() {
     }
   }, [stories, currentWorkspaceId]);
 
-  const handleApprove = useCallback((id) => {
+  const handleApprove = useCallback(async (id) => {
     setAusgaben(prev => prev.map(a => a.id === id ? { ...a, status: "approved" } : a));
-  }, []);
+
+    const ausgabe = ausgaben.find(a => a.id === id);
+    if (!ausgabe?.layoutPlan) return;
+
+    try {
+      await fetch("/print-approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          issueId: id,
+          workspaceId: currentWorkspaceId ?? "ws-ppi-media",
+          layoutPlan: ausgabe.layoutPlan,
+          komposition: `${ausgabe.artikel} Artikel, ${ausgabe.seitenanzahl} Seiten`,
+          layoutZusammenfassung: "Freigegeben durch Redaktion",
+        }),
+      });
+    } catch (err) {
+      console.error("Approve-Call fehlgeschlagen:", err.message);
+    }
+  }, [ausgaben, currentWorkspaceId]);
 
   const stats = {
     gesamt: ausgaben.length,
