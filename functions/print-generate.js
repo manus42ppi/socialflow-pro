@@ -34,7 +34,7 @@ async function loadStyleGuide(kv, workspaceId) {
                beschnitt_mm: 3, grundlinienraster_mm: 4.8 },
     typografie: { display_font: "Inter", text_font: "Inter",
                   h1_pt: 52, h2_pt: 30, body_pt: 10, leading_faktor: 1.42,
-                  spalten_standard: 2, spaltenabstand_mm: 4.8 },
+                  spalten_standard: 3, spaltenabstand_mm: 4.8 },
     farben: { akzent_cmyk: [100, 45, 0, 0], text_cmyk: [0, 0, 0, 92] },
   };
 }
@@ -70,15 +70,21 @@ const LAYOUT_SCHEMA = `
       "teasers": ["E-Bike Test: 5 Modelle im Härtetest", "Gravel Trophy KW38", "Winter-Layering"]
     },
     {
-      "nr": [4, 5],
-      "typ": "spread-opener",
+      "nr": 4,
+      "typ": "opener-solo",
       "artikel_id": "story-123",
-      "dachzeile": "GRAVEL CYCLING · REPORTAGE",
       "headline": "Schotter, Staub und Freiheit",
-      "unterzeile": "Wie Gravel Bikes...",
+      "unterzeile": "Gravel Cycling · Reportage",
       "byline": "Von Max Mustermann · Fotos: Anna Beispiel",
       "rubrik": "FAHRTECHNIK",
-      "bild_empfehlung": "Starkes Querformat, Natur/Bewegung"
+      "bild_empfehlung": "Dramatisches Querformat, Bewegungsunschärfe"
+    },
+    {
+      "nr": 5,
+      "typ": "intro-page",
+      "artikel_id": "story-123",
+      "rubrik": "FAHRTECHNIK",
+      "bild_empfehlung": "Detailaufnahme oder atmosphärisches Bild"
     },
     {
       "nr": 6,
@@ -127,12 +133,14 @@ Artikel ${i + 1}:
 
 DRUCKTECHNIK-REGELN die du kennen musst:
 - Titelseite (Typ "cover"): IMMER Seite 1 (U1). Felder: magazin, ausgabe, preis, headline (Aufmacher-Thema), teasers (Array mit 2–4 kurzen Texten für Teaserleiste).
-- Aufmacher-Spread (Typ "spread-opener"): NUR wenn Artikel ≥ 600 Wörter UND starkes Bild vorhanden. Braucht 2 Seiten (links=Bild, rechts=Text). Beginnt immer auf ungerader Seite (rechts), also Seiten 5, 7, 9...
-- Standard-Feature (Typ "standard-feature"): 1 Seite, Bild oben, Text darunter.
+- Feature-Opener (Typ "opener-solo"): NUR wenn Artikel ≥ 600 Wörter UND starkes Bild vorhanden. 1 Seite, Vollbild-Foto, sehr große Headline unten. BEGINNT IMMER AUF GERADER SEITE (links/verso): Seiten 4, 6, 8, 10, 12... NIEMALS auf ungeraden!
+- Intro-Seite (Typ "intro-page"): Folgt DIREKT auf opener-solo (immer nächste, ungerade Seite). Vollbild-Foto + schwebende Textbox mit Artikel-Einstieg. Felder: artikel_id, rubrik, bild_empfehlung.
+- Standard-Feature (Typ "standard-feature"): 1 Seite, Bild oben (~55%), 3-spaltige Text darunter.
 - Kurzmeldungen (Typ "kurzmeldungen"): 1 Seite für 3–5 kurze Artikel (< 150 Wörter). Felder: meldungen (Array mit {titel, text, dachzeile}).
 - Seiten beginnen bei 4 (U1=1, U2=2, IHV=3 sind fix reserviert).
-- Ungerade Seitenzahlen = rechts, gerade = links.
+- Gerade Seitenzahlen = links, ungerade = rechts.
 - Seitenanzahl muss Vielfaches von 4 sein (Saddle-Stitch-Bindung).
+- Fließtext-Standard: 3 Spalten (nicht 2).
 
 Gib AUSSCHLIESSLICH gültiges JSON zurück, kein Markdown, keine Erklärungen.
 Schema:
@@ -164,20 +172,115 @@ function seiteToTypst(seite, articles) {
   const art = articles.find(a => a.id === seite.artikel_id) ?? {};
   const body = art.content ?? art.body ?? "(Kein Inhalt)";
 
-  if (seite.typ === "spread-opener") {
-    const [seiteL, seiteR] = Array.isArray(seite.nr) ? seite.nr : [seite.nr, seite.nr + 1];
+  if (seite.typ === "opener-solo") {
+    const nr = Array.isArray(seite.nr) ? seite.nr[0] : seite.nr;
     return `
-// ── Aufmacher-Doppelseite: ${seite.headline} ──
+// ── Feature-Opener: ${seite.headline} (Seite ${nr}, gerade/links) ──
 #import "templates/base.typ": *
 #set page(width: page-w, height: page-h, margin: 0mm)
 
 #place(top + left,
   rect(width: page-w, height: page-h,
-    fill: gradient.linear(rgb("#1a2a1a"), rgb("#2d4a2d"), angle: 135deg)
+    fill: gradient.linear(rgb("#0d1f2d"), rgb("#1e3650"), rgb("#2a4a6a"), angle: 155deg)
   )
 )
-#place(bottom + left, dx: margin-outer, dy: -8mm,
-  text(size: 8pt, fill: white.transparentize(40%), font: "Inter")[${seiteL}]
+#place(bottom + left,
+  rect(width: page-w, height: 110mm,
+    fill: gradient.linear(
+      rgb("#000000").transparentize(100%),
+      rgb("#000000").transparentize(10%)
+    )
+  )
+)
+#place(top + left, dx: margin-inner, dy: margin-top - 3mm,
+  block(width: page-w - margin-inner - margin-outer)[
+    #set text(size: 7pt, fill: white.transparentize(35%), tracking: 0.5pt, font: "Inter")
+    #grid(columns: (auto, 1fr), column-gutter: 2.5mm,
+      box(width: 8mm, height: 5.5mm, fill: col-accent)[
+        #place(center + horizon, text(size: 7.5pt, weight: "bold", fill: white)[${nr}])
+      ],
+      align(right + horizon)[${seite.rubrik ? `upper("${seite.rubrik}")` : ""}]
+    )
+  ]
+)
+#place(bottom + left, dx: margin-inner, dy: -(margin-bottom + 8mm),
+  block(width: page-w - margin-inner - margin-outer)[
+    ${seite.unterzeile ? `#set text(size: 11pt, weight: "bold", fill: col-accent, font: "Inter", tracking: 0.3pt)\n    #set par(justify: false)\n    #upper("${seite.unterzeile}")\n    #v(3mm)` : ""}
+    #set text(size: 88pt, weight: "black", fill: white, font: "Inter")
+    #set par(leading: 0.78em, justify: false)
+    ${seite.headline}
+    ${seite.byline ? `#v(4mm)\n    #set text(size: 8pt, weight: "bold", fill: white.transparentize(30%), tracking: 0.6pt, font: "Inter")\n    #upper("${seite.byline}")` : ""}
+  ]
+)
+`;
+  }
+
+  if (seite.typ === "intro-page") {
+    const nr = Array.isArray(seite.nr) ? seite.nr[0] : seite.nr;
+    const intro = body.slice(0, 600);
+    return `
+// ── Intro-Seite: Seite ${nr} (ungerade/rechts) ──
+#import "templates/base.typ": *
+#set page(width: page-w, height: page-h, margin: 0mm)
+
+#place(top + left,
+  rect(width: page-w, height: page-h,
+    fill: gradient.linear(rgb("#1a2a3a"), rgb("#2e4a5e"), rgb("#4a708a"), angle: 135deg)
+  )
+)
+#place(top + left,
+  rect(width: page-w, height: 30mm,
+    fill: gradient.linear(rgb("#000000").transparentize(40%), rgb("#000000").transparentize(100%))
+  )
+)
+#place(top + right, dx: -margin-outer, dy: margin-top - 3mm,
+  grid(columns: (1fr, auto), column-gutter: 2.5mm,
+    align(left + horizon)[
+      #set text(size: 7pt, fill: white.transparentize(35%), tracking: 0.5pt, font: "Inter")
+      ${seite.rubrik ? `#upper("${seite.rubrik}")` : ""}
+    ],
+    box(width: 8mm, height: 5.5mm, fill: col-accent)[
+      #place(center + horizon, text(size: 7.5pt, weight: "bold", fill: white)[${nr}])
+    ]
+  )
+)
+#place(bottom + left,
+  block(width: page-w, fill: rgb("#ffffff").transparentize(12%),
+    inset: (x: margin-inner + 4mm, top: 10mm, bottom: margin-bottom + 6mm),
+  )[
+    #columns(2, gutter: col-gutter)[
+      #set text(size: 13pt, weight: "bold", fill: col-text, font: "Inter")
+      #set par(leading: 1.35em, justify: false)
+      ${intro}
+    ]
+  ]
+)
+`;
+  }
+
+  // spread-opener wird zu opener-solo + intro-page aufgeteilt (Legacy-Fallback)
+  if (seite.typ === "spread-opener") {
+    const [seiteL, seiteR] = Array.isArray(seite.nr) ? seite.nr : [seite.nr, seite.nr + 1];
+    return `
+// ── Aufmacher-Opener: ${seite.headline} (Seite ${seiteL}) ──
+#import "templates/base.typ": *
+#set page(width: page-w, height: page-h, margin: 0mm)
+#place(top + left,
+  rect(width: page-w, height: page-h,
+    fill: gradient.linear(rgb("#0d1f2d"), rgb("#1e3650"), angle: 155deg)
+  )
+)
+#place(bottom + left,
+  rect(width: page-w, height: 110mm,
+    fill: gradient.linear(rgb("#000000").transparentize(100%), rgb("#000000").transparentize(10%))
+  )
+)
+#place(bottom + left, dx: margin-inner, dy: -(margin-bottom + 8mm),
+  block(width: page-w - margin-inner - margin-outer)[
+    #set text(size: 88pt, weight: "black", fill: white, font: "Inter")
+    #set par(leading: 0.78em, justify: false)
+    ${seite.headline}
+  ]
 )
 #pagebreak()
 
@@ -186,15 +289,8 @@ function seiteToTypst(seite, articles) {
            left: margin-inner, right: margin-outer))
 #kolumnentitel(rubrik: "${seite.rubrik ?? ""}", seite: ${seiteR})
 #v(8mm)
-#t-dachzeile("${seite.dachzeile ?? ""}")
-#v(3.5mm)
-#t-headline-lg[${seite.headline}]
-#v(5mm)
-#line(length: 30mm, stroke: 2.5pt + col-accent)
-#v(5mm)
-${seite.unterzeile ? `#t-unterzeile[${seite.unterzeile}]\n#v(5mm)` : ""}
 ${seite.byline ? `#hrule(thickness: 0.3pt)\n#v(2.5mm)\n#t-byline[${seite.byline}]\n#v(2.5mm)\n#hrule(thickness: 0.3pt)\n#v(7mm)` : ""}
-#columns(2, gutter: col-gutter)[
+#columns(3, gutter: col-gutter)[
   #t-body[${body.slice(0, 2000)}]
 ]
 #place(bottom + right, dy: 12mm, t-pagina(${seiteR}))
@@ -228,7 +324,7 @@ ${seite.byline ? `#hrule(thickness: 0.3pt)\n#v(2.5mm)\n#t-byline[${seite.byline}
 ${seite.unterzeile ? `#v(3mm)\n#t-unterzeile[${seite.unterzeile}]` : ""}
 ${seite.byline ? `#v(3mm)\n#hrule(thickness: 0.3pt)\n#v(2mm)\n#t-byline[${seite.byline}]\n#v(2mm)\n#hrule(thickness: 0.3pt)` : ""}
 #v(5mm)
-#columns(2, gutter: col-gutter)[
+#columns(3, gutter: col-gutter)[
   #t-body[${body.slice(0, 1500)}]
 ]
 #place(bottom + right, dy: 12mm, t-pagina(${nr}))
