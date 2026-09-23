@@ -74,9 +74,12 @@ const server = http.createServer((req, res) => {
         writeFileSync(destPath, text, "utf-8");
       }
 
-      // assets: { "bild.jpg": "<base64>" } — Binärdateien
+      // assets: { "imgs/bild.jpg": "<base64>" } — Binärdateien (inkl. Unterverzeichnisse)
       for (const [filename, b64] of Object.entries(assets)) {
-        writeFileSync(join(tmpDir, filename), Buffer.from(b64, "base64"));
+        const destPath = join(tmpDir, filename);
+        const destDir = destPath.split("/").slice(0, -1).join("/");
+        if (destDir) mkdirSync(destDir, { recursive: true });
+        writeFileSync(destPath, Buffer.from(b64, "base64"));
       }
 
       const result = spawnSync(TYPST_BIN, [

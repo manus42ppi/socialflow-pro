@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Printer, Plus, FileText, CheckCircle,
+import { Printer, Plus, FileText, CheckCircle, AlertCircle,
          Loader, Eye, Download, RotateCcw, BookOpen } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY } from "../constants/colors.js";
 import { useApp } from "../context/AppContext.jsx";

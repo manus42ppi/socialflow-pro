@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
-  Flag, Trash2, BookOpen, CalendarRange, Eye, Inbox,
-  Flame, Globe, Target, FileText, Code2, Share2, Printer,
+  Flag, Trash2, CalendarRange, Eye, Inbox,
+  Flame, Globe, Target, FileText, Code2, Share2, Wand2, Package, Layers, Printer,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -14,13 +14,6 @@ export const CHCLR = {
 };
 
 // ── NAV GROUPS ──────────────────────────────────────────────────────────────
-// Structure inspired by best-in-class tools (Buffer, Planable, CoSchedule):
-// – WORKSPACE         = home/overview (like Hootsuite Home)
-// – CONTENT CREATION  = create, write, draft (verb-oriented like Buffer)
-// – CONTENT PLANNING  = campaigns, calendar, timeline (Planable/CoSchedule pattern)
-// – MEDIENBIBLIOTHEK  = assets & stock search (Later/Sprout Social pattern)
-// – ANALYSE           = performance reports
-// Utility items (Trash, Admin) live at the sidebar bottom – not in a group
 export const NAV_GROUPS = [
   {
     label: "WORKSPACE",
@@ -29,26 +22,33 @@ export const NAV_GROUPS = [
     ],
   },
   {
-    label: "CONTENT CREATION",
+    label: "ERSTELLEN",
     items: [
-      { id:"stories",     label:"Storys",            I:BookOpen     },
+      { id:"content",     label:"Inhalte",           I:Layers       },
+      { id:"produkte",    label:"Produkte",          I:Package      },
       { id:"ugc",         label:"UGC Portal",        I:Inbox        },
+    ],
+  },
+  {
+    label: "PUBLISHING",
+    items: [
       { id:"publisher",   label:"Publisher",         I:Send         },
+      { id:"campaigns",   label:"Kampagnen",         I:Flag         },
+      { id:"calendar",    label:"Kalender",          I:Calendar     },
+      { id:"planner",     label:"Planner",           I:CalendarRange },
       { id:"druck",       label:"Druckausgaben",     I:Printer      },
     ],
   },
   {
-    label: "CONTENT PLANNING",
+    label: "ASSETS",
     items: [
-      { id:"campaigns",   label:"Kampagnen",         I:Flag         },
-      { id:"calendar",    label:"Kalender",          I:Calendar     },
-      { id:"planner",     label:"Planner",           I:CalendarRange },
+      { id:"media",       label:"Medienbibliothek",  I:Image        },
     ],
   },
   {
-    label: "MEDIENBIBLIOTHEK",
+    label: "CREATION VOODOO",
     items: [
-      { id:"media",       label:"Medienbibliothek",  I:Image        },
+      { id:"voodoo", label:"Creation Voodoo", I:Wand2 },
     ],
   },
   {
@@ -66,12 +66,10 @@ export const NAV_GROUPS = [
   },
 ];
 
-// Utility items shown at the sidebar bottom (trash icon + badge, like Hootsuite)
 export const NAV_UTILITY = [
   { id:"trash", label:"Papierkorb", I:Trash2 },
 ];
 
-// Flat list kept for any legacy/TopBar references
 export const NAV = [
   ...NAV_GROUPS.flatMap(g => g.items),
   ...NAV_UTILITY,
@@ -80,9 +78,11 @@ export const NAV = [
 
 export const TITLE = {
   dashboard:          "Dashboard",
+  content:            "Inhalte",
   publisher:          "Publisher",
   trash:              "Papierkorb",
   stories:            "Storys",
+  produkte:           "Produkte",
   ugc:                "UGC Portal",
   campaigns:          "Kampagnen",
   media:              "Medienbibliothek",
@@ -97,5 +97,6 @@ export const TITLE = {
   "content-audit":    "Content-Audit",
   "structure-audit":  "Structure-Audit",
   "social-intel":     "Social Intelligence",
+  voodoo:             "Creation Voodoo",
   druck:              "Druckausgaben",
 };

@@ -121,7 +121,7 @@ preview_eval({ serverId, expression: `(() => {
 ```js
 preview_eval({ serverId, expression: `(() => {
   const clickable = Array.from(document.querySelectorAll('[style*="cursor"]'));
-  const target = clickable.find(el => el.textContent.trim() === 'Storys');
+  const target = clickable.find(el => el.textContent.trim() === 'Inhalte');
   target?.click();
 })()` })
 ```
@@ -230,6 +230,7 @@ src/
 │
 ├── pages/
 │   ├── Dashboard.jsx
+│   ├── ContentLibraryPage.jsx  # ← NEU: Unified Content Hub (COPE / Hub & Spoke)
 │   ├── PublisherPage.jsx
 │   ├── CalendarPage.jsx
 │   ├── PlannerPage.jsx
@@ -261,10 +262,15 @@ src/
 
 functions/
 ├── ai.js          # POST /ai → Anthropic API Proxy (claude-sonnet-4-6)
+├── tts.js         # POST /tts → OpenAI TTS Proxy (nova voice, audio/mpeg stream)
 ├── store.js       # POST /store → Cloudflare KV (Clerk-JWT required)
 ├── instagram.js   # POST /instagram
 ├── ig-monitor.js  # POST /ig-monitor → Business Discovery API
 └── rss.js         # GET /rss → RSS-Feed Proxy
+
+components/
+└── spark/
+    └── SparkOrb.jsx  # Floating Voice Assistant (SpeechRecognition + OpenAI TTS)
 ```
 
 ---
@@ -372,7 +378,22 @@ useEffect(() => {
 ```
 
 ### Routing
-Rein State-basiert via `nav`-String. Kein React Router. Browser-Back funktioniert nicht.
+React Router v7 (`react-router-dom`). `BrowserRouter` in `main.jsx` → `Routes`/`Route` in `App.jsx`.  
+Navigation via `useNavigate` / `useLocation`. `goNav(target)` im AppContext navigiert zu `/${target}`.  
+Modals (edPost, edStory, schPost, detailPost) bleiben Context-basiert — keine URL-Parameter.
+
+### Sidebar-Navigation (NAV_GROUPS in `nav.js`)
+
+| Gruppe | Items |
+|---|---|
+| WORKSPACE | Dashboard |
+| ERSTELLEN | **Inhalte** (unified Hub & Spoke), Produkte, UGC Portal |
+| PUBLISHING | Publisher (Kanban), Kampagnen, Kalender, Planner |
+| ASSETS | Medienbibliothek |
+| CREATION VOODOO | Creation Voodoo |
+| ANALYSE | Performance, Monitoring, Trends, Domain-Analyse, Wettbewerber, Content-Audit, Structure-Audit, Social Intelligence |
+
+**„Storys" existiert NICHT mehr als Menüpunkt** — Artikel/Stories werden vollständig über „Inhalte" (`/content`) verwaltet. Die `/stories`-Route ist noch im Router vorhanden (Backwards-Compat), aber nicht in der Sidebar.
 
 ---
 
@@ -475,10 +496,97 @@ function AddBlockButton({ block }) {
 
 ---
 
-## 9. Tests
+## 9. Content Library – COPE / Hub & Spoke
+
+### Konzept
+
+**COPE = Create Once, Publish Everywhere.**  
+Ein Artikel (Hub) wird einmal geschrieben und daraus werden automatisch Posts (Spokes) für Social Media abgeleitet. Die `ContentLibraryPage` zeigt Articles und Posts in einer einzigen, einheitlichen Liste.
+
+### Route & Navigation
+
+| Route | Komponente | Nav-Label |
+|---|---|---|
+| `/content` | `ContentLibraryPage.jsx` | „Inhalte" (Layers-Icon) |
+
+### Hub & Spoke Beziehung
+
+```
+Story (Hub)  ────  story.derivatives[{id, channel, postId, createdAt}]
+                          ↓
+                    Post (Spoke)     ← verlinkt via postId
+```
+
+**Keine Datenmigration nötig** — die Beziehung wird zur Laufzeit aus `story.derivatives[].postId` aufgelöst:
+
+```js
+// ContentLibraryPage – childMap aufbauen
+const childMap = useMemo(() => {
+  const map = {};
+  stories.forEach(s => {
+    const ids = (s.derivatives || []).map(d => d.postId).filter(Boolean);
+    map[s.id] = allPosts.filter(p => ids.includes(p.id));
+  });
+  return map;
+}, [stories, allPosts]);
+
+// Posts die NICHT abgeleitet sind (eigenständige Posts)
+const derivedIds = new Set(Object.values(childMap).flat().map(p => p.id));
+const standalonePosts = allPosts.filter(p => !derivedIds.has(p.id));
+```
+
+### Content-Typen
+
+```js
+const CT = {
+  article: { label:"Artikel", Icon:BookOpen, color:"#3B82F6", bg:"#EFF6FF", border:"#BFDBFE" },
+  post:    { label:"Post",    Icon:Send,     color:"#059669", bg:"#ECFDF5", border:"#A7F3D0" },
+};
+```
+
+### UI-Struktur
+
+- **Stats-Strip:** 3 Karten (Artikel-Count, Post-Count, Published-Count)
+- **Filter-Bar:** Suche + Typ-Chips (Alle/Artikel/Posts) + Status-Select + Kanal-Icons
+- **Liste:** Artikel mit aufklappbaren Ableitungen (blaue Spoke-Rows mit Verbindungslinie), darunter eigenständige Posts
+- **"Neuer Inhalt"-Button:** TypePicker-Dropdown → `newStory()` oder `newPost()`
+
+### Ableitungen erstellen
+
+Neue Ableitungen werden im **StoryEditorModal → Tab "Info" → Ableitungen** erstellt.  
+Die ContentLibraryPage zeigt sie nur lesend (klick auf Ableitung → öffnet Post-Editor).
+
+---
+
+## 10. Spark Voice Assistant
+
+### Übersicht
+
+`SparkOrb.jsx` ist ein schwebender Sprach-Assistent (bottom-right, immer sichtbar).
+
+**States:** `IDLE | LISTENING | THINKING | SPEAKING`
+
+**TTS-Chain:**
+1. `/tts` Cloudflare Function → OpenAI TTS (nova voice) → `audio/mpeg`
+2. Fallback: Browser `SpeechSynthesis` (bevorzugt Google Deutsch neural)
+
+**Erkennungszyklus:**
+- SR: `continuous:true`, `interimResults:true`, `lang:'de-DE'`
+- 1,2s Silence-Timer → `processText()` → AI-Call → `speak()`
+- SR pausiert VOR dem Sprechen (kein Feedback-Loop), startet 400ms NACH Sprechende neu
+
+**AI-Prompt:** Gibt JSON zurück `{ speak: "...", actions: [...] }`
+
+**Actions:** `navigate(target)`, `createStory()`, `createPost()`
+
+**Secrets:** `OPENAI_API_KEY` im Cloudflare Pages Dashboard (nie committen)
+
+---
+
+## 11. Tests
 
 ```bash
-# Alle Tests ausführen (141 Tests, alle müssen grün sein)
+# Alle Tests ausführen (alle müssen grün sein vor jedem Push)
 node node_modules/.bin/vitest run
 
 # E2E Tests (Playwright, Chromium)
@@ -496,7 +604,7 @@ node node_modules/.bin/playwright test
 
 ---
 
-## 10. Datenmodelle
+## 12. Datenmodelle
 
 ### Post
 ```js
@@ -528,7 +636,7 @@ node node_modules/.bin/playwright test
 
 ---
 
-## 11. Kritische Regeln
+## 13. Kritische Regeln
 
 | ❌ Verboten | ✅ Korrekt |
 |---|---|
@@ -547,7 +655,7 @@ node node_modules/.bin/playwright test
 
 ---
 
-## 12. Secrets & Umgebungsvariablen
+## 14. Secrets & Umgebungsvariablen
 
 Niemals committen. In Cloudflare Pages Dashboard setzen:
 - `ANTHROPIC_API_KEY` – für `/ai` Function
@@ -558,19 +666,24 @@ API-Keys für Stock-Suche (Unsplash, Pexels, Pixabay):
 
 ---
 
-## 13. Entwicklungsstand (Mai 2026)
+## 15. Entwicklungsstand (Mai 2026)
 
 ### ✅ Fertig
 - Dashboard, Publisher (Kanban), Kalender, Planner (Gantt), Kampagnen
 - Medienbibliothek (Upload, KI-Analyse, Fokuspunkt)
 - Performance (Mock-Analytics), Instagram Monitoring
-- Post-Editor (KI-Panel), Story-Workflow (BlockNote, SEO, Ableitungen)
+- **PostEditorModal** (BlockNote Full-Screen) — ersetzt Editor.jsx; Medienbibliothek-Picker in BlockNote integriert
+- Story-Workflow (BlockNote, SEO, Varianten)
 - Multi-Tenant / Mandanten-System (4 Demo-Mandanten)
 - UGC Portal (Einreichungen, Genehmigungs-Workflow)
 - Build-Metadaten: `v1.0.{BUILD_NUMBER}` in Sidebar + Login
+- **Spark Voice Assistant** (SparkOrb.jsx) – SpeechRecognition + OpenAI TTS nova + Browser-Fallback
+- **Content Library** (ContentLibraryPage.jsx) – COPE / Hub & Spoke, Articles + Posts unified view
+- **Nav-Redesign**: ERSTELLEN / PUBLISHING / ASSETS — „Storys" aus Sidebar entfernt (jetzt in „Inhalte")
 
 ### 🔄 Geplant / Nächste Schritte
 - Medienbibliothek: KI-Analyse-Persistenz, Overlay-Fixes, Datei-Typ/Auflösung (Plan existiert)
+- Content Library: Inline-Bearbeitung, Drag & Drop Reihenfolge, Bulk-Aktionen
 - Workspace-Zugriffsrechte änderbar machen
 - Mobile Responsive
 - Echter Publish-Endpunkt
