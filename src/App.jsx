@@ -33,6 +33,7 @@ import ProductsPage from "./pages/ProductsPage.jsx";
 import ProductEditorModal from "./modals/ProductEditorModal.jsx";
 import ContentLibraryPage from "./pages/ContentLibraryPage.jsx";
 import SparkOrb from "./components/spark/SparkOrb.jsx";
+import DruckPage from "./pages/DruckPage.jsx";
 
 // ── APP ROOT ───────────────────────────────────────────────────────────────
 export default function App() {
@@ -91,6 +92,7 @@ function AppShell() {
                 <Route path="/admin"           element={<AdminPage />} />
                 <Route path="/ugc"             element={<UGCPortalPage />} />
                 <Route path="/voodoo"          element={<VoodooPage />} />
+                <Route path="/druck"           element={<DruckPage />} />
                 <Route path="*"               element={<Dashboard />} />
               </Routes>
             </div>

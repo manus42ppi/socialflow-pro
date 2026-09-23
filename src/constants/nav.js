@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Send, Image, Calendar, BarChart2, Settings,
   Flag, Trash2, CalendarRange, Eye, Inbox,
-  Flame, Globe, Target, FileText, Code2, Share2, Wand2, Package, Layers,
+  Flame, Globe, Target, FileText, Code2, Share2, Wand2, Package, Layers, Printer,
 } from "lucide-react";
 
 // ── CHANNEL COLORS ──────────────────────────────────────────────────────────
@@ -14,19 +14,6 @@ export const CHCLR = {
 };
 
 // ── NAV GROUPS ──────────────────────────────────────────────────────────────
-// Workflow-orientierte Struktur (analog zu Buffer, Planable, CoSchedule):
-//
-//  WORKSPACE   – Überblick / Home
-//  ERSTELLEN   – Inhalte schreiben & ableiten (Hub & Spoke)
-//               „Inhalte" ist der unified Content Hub (Artikel + Posts + Varianten).
-//               Storys sind direkt in „Inhalte" integriert → kein separater Menüpunkt.
-//  PUBLISHING  – Workflow, Planung & Veröffentlichung
-//               Publisher (Kanban), Kampagnen, Kalender, Planner
-//  ASSETS      – Medienbibliothek
-//  CREATION VOODOO – KI-Webseitengenerator (Eigenmarke)
-//  ANALYSE     – Performance, Monitoring, SEO, Wettbewerber
-//
-// Utility-Items (Papierkorb, Admin) stehen am Sidebar-Ende – nicht in einer Gruppe.
 export const NAV_GROUPS = [
   {
     label: "WORKSPACE",
@@ -49,6 +36,7 @@ export const NAV_GROUPS = [
       { id:"campaigns",   label:"Kampagnen",         I:Flag         },
       { id:"calendar",    label:"Kalender",          I:Calendar     },
       { id:"planner",     label:"Planner",           I:CalendarRange },
+      { id:"druck",       label:"Druckausgaben",     I:Printer      },
     ],
   },
   {
@@ -78,12 +66,10 @@ export const NAV_GROUPS = [
   },
 ];
 
-// Utility items shown at the sidebar bottom (trash icon + badge, like Hootsuite)
 export const NAV_UTILITY = [
   { id:"trash", label:"Papierkorb", I:Trash2 },
 ];
 
-// Flat list kept for any legacy/TopBar references
 export const NAV = [
   ...NAV_GROUPS.flatMap(g => g.items),
   ...NAV_UTILITY,
@@ -112,4 +98,5 @@ export const TITLE = {
   "structure-audit":  "Structure-Audit",
   "social-intel":     "Social Intelligence",
   voodoo:             "Creation Voodoo",
+  druck:              "Druckausgaben",
 };

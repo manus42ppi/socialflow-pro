@@ -12,6 +12,12 @@
       "runtimeExecutable": "/Users/mas/DEV/socialflow-pro/.claude/start-dev-full.sh",
       "runtimeArgs": [],
       "port": 8788
+    },
+    {
+      "name": "typst-bridge",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["typst-bridge/server.js"],
+      "port": 9000
     }
   ]
 }
