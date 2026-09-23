@@ -28,10 +28,11 @@ const DEMO_AUSGABEN = [
 
 // ── Status-Konfiguration ──────────────────────────────────────────
 const STATUS = {
-  generating: { label: "Wird generiert…", color: C.info,       bg: "#EFF6FF", I: Loader    },
-  ready:      { label: "Bereit zur Prüfung", color: C.warning,  bg: T.warningBg, I: Eye     },
-  approved:   { label: "Freigegeben",       color: C.success,  bg: T.successBg, I: CheckCircle },
-  error:      { label: "Fehler",            color: T.error600, bg: T.errorBg,  I: AlertCircle },
+  generating: { label: "Wird generiert…",   color: C.info,       bg: "#EFF6FF",     I: Loader       },
+  "plan-only":{ label: "Layout-Plan bereit",color: C.info,       bg: "#EFF6FF",     I: FileText     },
+  ready:      { label: "Bereit zur Prüfung",color: C.warning,    bg: T.warningBg,   I: Eye          },
+  approved:   { label: "Freigegeben",       color: C.success,    bg: T.successBg,   I: CheckCircle  },
+  error:      { label: "Fehler",            color: T.error600,   bg: T.errorBg,     I: AlertCircle  },
 };
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────
@@ -82,6 +83,16 @@ function AusgabeKarte({ ausgabe, onPreview, onRegenerate }) {
             </span>
           )}
         </div>
+        {ausgabe.status === "error" && ausgabe.errorMsg && (
+          <div style={{ fontSize: 11, color: T.error600, marginTop: 4, opacity: 0.8 }}>
+            {ausgabe.errorMsg.slice(0, 120)}
+          </div>
+        )}
+        {ausgabe.status === "plan-only" && (
+          <div style={{ fontSize: 11, color: C.info, marginTop: 4, opacity: 0.8 }}>
+            Typst-Bridge nicht erreichbar — Layout-Plan gespeichert, PDF-Export lokal möglich.
+          </div>
+        )}
       </div>
 
       {/* Status-Badge */}
@@ -315,8 +326,15 @@ export default function DruckPage() {
       const data = await res.json();
 
       if (data.ok) {
+        const noPdf = !data.pdf;
         setAusgaben(prev => prev.map(a => a.id === id
-          ? { ...a, status: "ready", pdfBase64: data.pdf, layoutPlan: data.layoutPlan, seitenanzahl: data.pages * 2, generatedAt: new Date().toISOString() }
+          ? { ...a,
+              status: noPdf ? "plan-only" : "ready",
+              pdfBase64: data.pdf,
+              layoutPlan: data.layoutPlan,
+              seitenanzahl: data.pages * 2,
+              generatedAt: new Date().toISOString(),
+            }
           : a
         ));
       } else {

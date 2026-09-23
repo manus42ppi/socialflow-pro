@@ -149,7 +149,7 @@ const LAYOUT_SCHEMA = `
 }
 `;
 
-async function generateLayoutPlan(articles, styleGuide, examples, env) {
+async function generateLayoutPlan(articles, styleGuide, examples, env, siteOrigin) {
   const examplesText = examples.length > 0
     ? `\nFREIGEGEBENE AUSGABEN ZUM LERNEN:\n${JSON.stringify(examples, null, 2)}`
     : "";
@@ -195,7 +195,7 @@ Gib AUSSCHLIESSLICH gültiges JSON zurück, kein Markdown, keine Erklärungen.
 Schema:
 ${LAYOUT_SCHEMA}`;
 
-  const response = await fetch(`${env.SITE_URL ?? ""}/ai`, {
+  const response = await fetch(`${siteOrigin}/ai`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -480,11 +480,17 @@ function layoutToTypst(layoutPlan, articles, assets = {}) {
 
 async function compileTypst(source, files, assets, env) {
   const bridgeUrl = env.TYPST_BRIDGE_URL ?? TYPST_BRIDGE_LOCAL;
-  const res = await fetch(`${bridgeUrl}/compile`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ source, files, assets }),
-  });
+  let res;
+  try {
+    res = await fetch(`${bridgeUrl}/compile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source, files, assets }),
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch (err) {
+    return null; // Bridge nicht erreichbar — Layout-Plan bleibt nutzbar
+  }
   const data = await res.json();
   if (!data.ok) throw new Error(`Typst-Fehler: ${data.error}`);
   return data.pdf; // base64
@@ -549,7 +555,8 @@ export async function onRequest({ request, env }) {
       loadExamples(env.SOCIALFLOW_KV, workspaceId, articles.length),
     ]);
 
-    const layoutPlan = await generateLayoutPlan(articles, styleGuide, examples, env);
+    const siteOrigin = env.SITE_URL ?? new URL(request.url).origin;
+    const layoutPlan = await generateLayoutPlan(articles, styleGuide, examples, env, siteOrigin);
     const assets = await fetchImages(layoutPlan);
     const typstSource = layoutToTypst(layoutPlan, articles, assets);
     const pdfBase64 = await compileTypst(typstSource, templateFiles ?? {}, assets, env);
@@ -563,7 +570,7 @@ export async function onRequest({ request, env }) {
       }));
     }
 
-    return jsonRes({ ok: true, pdf: pdfBase64, layoutPlan, pages: layoutPlan.seiten?.length ?? 0 });
+    return jsonRes({ ok: true, pdf: pdfBase64 ?? null, pdfAvailable: !!pdfBase64, layoutPlan, pages: layoutPlan.seiten?.length ?? 0 });
 
   } catch (err) {
     console.error("print-generate Fehler:", err.message);
