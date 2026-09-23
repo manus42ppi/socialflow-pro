@@ -72,6 +72,50 @@
   content
 }
 
+// Fließtext Serif — für Feature-Artikel (Minion Pro / Hoefler Text / PT Serif)
+#let t-body-serif(content) = {
+  set text(size: 8.5pt,
+    font: ("Minion Pro", "Hoefler Text", "PT Serif", "Inter"),
+    fill: col-text, hyphenate: true, lang: "de")
+  set par(justify: false, leading: 1.48em, first-line-indent: 0mm)
+  content
+}
+
+// Drop Cap / Initiale für Artikel-Einstieg
+#let t-dropcap(letter, body) = {
+  grid(
+    columns: (auto, 1fr),
+    column-gutter: 2mm,
+    align: (horizon, top),
+    // Große Initiale — vertikal mittig zur ersten Textzeile
+    text(size: 3.2em, weight: "black", fill: col-text, font: "Inter")[#letter],
+    {
+      set text(size: 8.5pt,
+        font: ("Minion Pro", "Hoefler Text", "PT Serif", "Inter"),
+        fill: col-text, hyphenate: true, lang: "de")
+      set par(leading: 1.48em, justify: false)
+      body
+    }
+  )
+}
+
+// Pull Quote — volle Spaltenbreite, atomic (breakable: false verhindert Seitenumbruch mittendrin)
+#let t-pullquote-wide(content, color: col-accent) = {
+  block(breakable: false, width: 100%)[
+    #v(3mm)
+    #line(length: 100%, stroke: 0.4pt + color)
+    #v(3mm)
+    #block(width: 100%, inset: (x: 6mm, y: 0mm))[
+      #set text(size: 14pt, weight: "bold", style: "italic", fill: col-text, font: "Inter")
+      #set par(justify: false, leading: 1.28em)
+      #content
+    ]
+    #v(3mm)
+    #line(length: 100%, stroke: 0.4pt + color)
+    #v(3mm)
+  ]
+}
+
 #let t-caption(content) = {
   set text(size: 8pt, style: "italic", fill: col-caption, font: "Inter")
   content
