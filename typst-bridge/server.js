@@ -17,8 +17,10 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// Typst binary: lokale Installation unter ~/.local/bin, Fallback auf PATH
-const TYPST_BIN = `${homedir()}/.local/bin/typst`;
+// Typst binary: Umgebungsvariable > PATH > lokale Installation
+const TYPST_BIN = process.env.TYPST_BIN
+  ?? (() => { try { execSync("typst --version", { stdio: "pipe" }); return "typst"; } catch { return null; } })()
+  ?? `${homedir()}/.local/bin/typst`;
 const FONTS_DIR = join(__dirname, "fonts");
 
 const PORT = 9000;
