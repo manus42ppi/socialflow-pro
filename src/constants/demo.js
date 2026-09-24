@@ -1,4 +1,5 @@
 // ── DEMO DATA ───────────────────────────────────────────────────────────────
+import { MAGAZINE_STORIES } from "./magazineStories.js";
 export const CHANNELS = [
   { id:"instagram", label:"Instagram",     color:"#E1306C", bg:"#fff0f6", maxChars:2200  },
   { id:"twitter",   label:"X/Twitter",     color:"#000000", bg:"#f7f7f7", maxChars:280   },
@@ -202,7 +203,7 @@ export const DEMO_POSTS = [
 
 // Increment whenever DEMO_STORIES or DEMO_POSTS structure/content changes.
 // AppContext uses this to invalidate stale localStorage demo caches.
-export const DEMO_STORIES_VERSION = "1";
+export const DEMO_STORIES_VERSION = "2";
 export const DEMO_POSTS_VERSION   = "1";
 
 export const DEMO_STORIES = [
@@ -645,6 +646,7 @@ export const DEMO_STORIES = [
     ],
     workspaceId:"ws-ppi-media",
   },
+  ...MAGAZINE_STORIES,
 ];
 
 // Increment this whenever DEMO_MEDIA URLs or structure changes.
