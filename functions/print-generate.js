@@ -150,6 +150,7 @@ const LAYOUT_SCHEMA = `
 `;
 
 async function generateLayoutPlan(articles, styleGuide, examples, env, siteOrigin) {
+  if (!env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY nicht gesetzt — bitte in Cloudflare Pages Dashboard (Einstellungen → Umgebungsvariablen) hinterlegen");
   const examplesText = examples.length > 0
     ? `\nFREIGEGEBENE AUSGABEN ZUM LERNEN:\n${JSON.stringify(examples, null, 2)}`
     : "";
@@ -209,8 +210,15 @@ ${LAYOUT_SCHEMA}`;
     }),
   });
 
-  if (!response.ok) throw new Error(`AI-Call fehlgeschlagen: ${response.status}`);
-  const data = await response.json();
+  if (!response.ok) {
+    const errText = await response.text().catch(() => response.status.toString());
+    throw new Error(`AI-Call fehlgeschlagen: ${response.status} — ${errText.slice(0, 200)}`);
+  }
+  const respText = await response.text();
+  let data;
+  try { data = JSON.parse(respText); } catch {
+    throw new Error(`Anthropic-Antwort ist kein gültiges JSON: ${respText.slice(0, 200)}`);
+  }
   const text = data.content?.[0]?.text ?? "";
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
