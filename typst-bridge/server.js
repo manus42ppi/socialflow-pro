@@ -11,7 +11,7 @@
 
 import http from "http";
 import { execSync, spawnSync } from "child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, cpSync, existsSync } from "fs";
 import { tmpdir, homedir } from "os";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -68,6 +68,10 @@ const server = http.createServer((req, res) => {
 
     try {
       writeFileSync(inputFile, source, "utf-8");
+
+      // Eigene templates/ automatisch in tmpDir kopieren (überschreibbar durch files)
+      const localTemplates = join(__dirname, "templates");
+      if (existsSync(localTemplates)) cpSync(localTemplates, join(tmpDir, "templates"), { recursive: true });
 
       // files: { "templates/base.typ": "<typst source>" } — Plain-Text-Dateien
       for (const [relPath, text] of Object.entries(files)) {
