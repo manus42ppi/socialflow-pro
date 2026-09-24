@@ -205,7 +205,7 @@ ${LAYOUT_SCHEMA}`;
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 2000,
+      max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -222,8 +222,13 @@ ${LAYOUT_SCHEMA}`;
   const text = data.content?.[0]?.text ?? "";
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("Kein JSON in Claude-Antwort gefunden");
-  return JSON.parse(jsonMatch[0]);
+  if (!jsonMatch) throw new Error("Kein JSON in Claude-Antwort gefunden. Antwort-Anfang: " + text.slice(0, 200));
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch (parseErr) {
+    // Truncated JSON: show position of error for debugging
+    throw new Error(\`Layout-JSON ungültig (evtl. abgeschnitten): \${parseErr.message}. JSON-Anfang: \${jsonMatch[0].slice(0, 300)}\`);
+  }
 }
 
 // ── Layout-JSON → Typst-Quellcode ──────────────────────────────
