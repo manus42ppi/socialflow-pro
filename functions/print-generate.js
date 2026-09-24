@@ -193,6 +193,8 @@ Seitennummern: Seiten 1 (U1), 2 (U2), 3 (IHV) sind fix. Artikel ab Seite 4.
 Gerade = links, ungerade = rechts. Seitenanzahl = Vielfaches von 4.
 
 Gib AUSSCHLIESSLICH gültiges JSON zurück, kein Markdown, keine Erklärungen.
+KEINE echten Zeilenumbrüche in String-Werten — nutze stattdessen \\n (escaped).
+Keine Texte länger als 80 Zeichen in einem Feld. Kompaktes JSON.
 Schema:
 ${LAYOUT_SCHEMA}`;
 
@@ -205,7 +207,7 @@ ${LAYOUT_SCHEMA}`;
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -223,11 +225,14 @@ ${LAYOUT_SCHEMA}`;
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Kein JSON in Claude-Antwort gefunden. Antwort-Anfang: " + text.slice(0, 200));
+  // Sanitize: literal newlines inside JSON string values → escaped
+  const sanitized = jsonMatch[0].replace(/"(?:[^"\\]|\\.)*"/g, m =>
+    m.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t")
+  );
   try {
-    return JSON.parse(jsonMatch[0]);
+    return JSON.parse(sanitized);
   } catch (parseErr) {
-    // Truncated JSON: show position of error for debugging
-    throw new Error(\`Layout-JSON ungültig (evtl. abgeschnitten): \${parseErr.message}. JSON-Anfang: \${jsonMatch[0].slice(0, 300)}\`);
+    throw new Error(`Layout-JSON ungültig (evtl. abgeschnitten): ${parseErr.message}. Antwort-Anfang: ${text.slice(0, 400)}`);
   }
 }
 
