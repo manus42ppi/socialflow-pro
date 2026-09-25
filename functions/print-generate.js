@@ -28,6 +28,13 @@ function esc(text) {
     .slice(0, 300);
 }
 
+function splitHeadline(raw) {
+  return String(raw ?? "")
+    .replace(/^\[|\]$/g, "")  // strip AI-added brackets
+    .split(/\\n|\n/)
+    .filter(l => l.trim().length > 0);
+}
+
 function introText(text, maxChars = 300) {
   if (!text) return "";
   if (text.length <= maxChars) return text;
@@ -215,7 +222,7 @@ function imgBox(bildKey, assets = {}, w = "100%", h = "82mm") {
 function buildCoverPage(coverData, articles, assets) {
   const bk = coverData.bildKey ?? `${articles[0]?.id ?? "placeholder"}-0`;
   const teasers = (coverData.teasers ?? []).slice(0, 5).map(t => String(t).slice(0, 30));
-  const headlineLines = String(coverData.headline ?? "PULSSCHLAG").split(/\\n|\n/);
+  const headlineLines = splitHeadline(coverData.headline ?? "PULSSCHLAG");
   const hasBild = !!assets[`${bk}.jpg`];
 
   const bgBlock = hasBild
@@ -262,13 +269,13 @@ ${bgBlock}
   #block(width: page-w - (margin-outer * 2.4))[
     #set text(size: 76pt, weight: "black", fill: white, font: "Inter", tracking: -2.5pt)
     #set par(leading: 0.75em, justify: false)
-    [${headlineLines.map(esc).join(" \\ ")}]
+    ${headlineLines.map(esc).join(" \\ ")}
   ]
 ]
 ${coverData.unterzeile ? `#place(center + bottom, dy: -(${teasers.length > 0 ? "70mm" : "42mm"}))[
   #block(width: page-w - (margin-outer * 2.4))[
     #set text(size: 14pt, weight: "light", fill: white.transparentize(18%), font: "Inter")
-    [${esc(coverData.unterzeile)}]
+    ${esc(coverData.unterzeile).replace(/^\\\[/, "").replace(/\\\]$/, "")}
   ]
 ]` : ""}
 ${teaserBlock}`;
@@ -393,7 +400,7 @@ function seiteToTypst(seite, articles, assets = {}) {
 
   // ── opener-solo ──
   if (seite.typ === "opener-solo" || seite.typ === "spread-opener") {
-    const headlineLines = String(seite.headline ?? esc(art.title ?? "")).split(/\\n|\n/);
+    const headlineLines = splitHeadline(seite.headline ?? art.title ?? "");
     return `// ── Feature-Opener Seite ${nr} ──
 #import "templates/base.typ": *
 #set page(width: page-w, height: page-h, margin: 0mm)
@@ -467,7 +474,7 @@ function seiteToTypst(seite, articles, assets = {}) {
     const firstChar = featureBody.slice(0, 1);
     const isLetter = /[a-zA-ZäöüÄÖÜß]/.test(firstChar);
     const bodyRest = esc(isLetter ? featureBody.slice(1) : featureBody);
-    const headlineLines = String(seite.headline ?? esc(art.title ?? "")).split(/\\n|\n/);
+    const headlineLines = splitHeadline(seite.headline ?? art.title ?? "");
 
     return `// ── Standard Feature Seite ${nr}: ${esc((seite.headline ?? "").replace(/\\n/g, " ").slice(0, 40))} ──
 #import "templates/base.typ": *
@@ -482,7 +489,7 @@ ${imgBox(bk, assets)}
 #block(width: 100%)[
   #set text(size: 27pt, weight: "bold", fill: col-text, font: "Inter")
   #set par(leading: 0.85em, justify: false)
-  [${headlineLines.map(esc).join(" \\ ")}]
+  ${headlineLines.map(esc).join(" \\ ")}
 ]
 ${seite.unterzeile ? `#v(2mm)\n#t-unterzeile[${esc(seite.unterzeile)}]` : ""}
 #v(3mm)
