@@ -36,7 +36,7 @@ export const NAV_GROUPS = [
       { id:"campaigns",   label:"Kampagnen",         I:Flag         },
       { id:"calendar",    label:"Kalender",          I:Calendar     },
       { id:"planner",     label:"Planner",           I:CalendarRange },
-      { id:"druck",       label:"Druckausgaben",     I:Printer      },
+      { id:"druck",       label:"Liquid Layout",      I:Printer      },
     ],
   },
   {
@@ -98,5 +98,5 @@ export const TITLE = {
   "structure-audit":  "Structure-Audit",
   "social-intel":     "Social Intelligence",
   voodoo:             "Creation Voodoo",
-  druck:              "Druckausgaben",
+  druck:              "Liquid Layout",
 };

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Printer, Plus, FileText, CheckCircle, AlertCircle,
          Loader, Eye, Download, RotateCcw, BookOpen } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY } from "../constants/colors.js";
@@ -166,7 +166,7 @@ function NeueAusgabeDialog({ stories, onGenerate, onClose }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ background: C.surface, borderRadius: T.rLg, padding: 32, width: 560, maxWidth: "90vw", maxHeight: "80vh", display: "flex", flexDirection: "column", gap: 20 }}>
         <div>
-          <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 20, color: C.text }}>Neue Druckausgabe</h2>
+          <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 20, color: C.text }}>Neue Liquid-Layout-Ausgabe</h2>
           <p style={{ margin: "6px 0 0", fontSize: 13, color: C.textSoft }}>Wähle Artikel für diese Ausgabe. Die KI erstellt automatisch den Layout-Plan.</p>
         </div>
 
@@ -294,6 +294,35 @@ export default function DruckPage() {
   const [showNeueAusgabe, setShowNeueAusgabe] = useState(false);
   const [vorschau, setVorschau] = useState(null);
   const [loading, setLoading] = useState(null);
+  const loadedRef = useRef(false);
+  const wsKey = `druck_ausgaben_${currentWorkspaceId ?? "default"}`;
+
+  // Load persisted editions from localStorage
+  useEffect(() => {
+    loadedRef.current = false;
+    try {
+      const saved = localStorage.getItem(wsKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAusgaben(parsed);
+          loadedRef.current = true;
+          return;
+        }
+      }
+    } catch {}
+    setAusgaben(DEMO_AUSGABEN);
+    loadedRef.current = true;
+  }, [wsKey]);
+
+  // Persist editions on every change (without pdfBase64 to stay within localStorage quota)
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    try {
+      const toSave = ausgaben.map(({ pdfBase64: _pdf, ...rest }) => rest);
+      localStorage.setItem(wsKey, JSON.stringify(toSave));
+    } catch {}
+  }, [ausgaben, wsKey]);
 
   const handleGenerate = useCallback(async ({ titel, artikelIds }) => {
     setShowNeueAusgabe(false);
@@ -308,15 +337,21 @@ export default function DruckPage() {
 
     try {
       const selectedStories = stories.filter(s => artikelIds.includes(s.id));
-      const articles = selectedStories.map(s => ({
-        id: s.id,
-        title: s.title,
-        wordCount: (s.blocks ?? []).reduce((n, b) => n + (b.content?.[0]?.text?.split(" ").length ?? 0), 0),
-        category: s.category ?? "feature",
-        hasHeroImage: (s.materials ?? []).some(m => m.type === "image"),
-        content: (s.blocks ?? []).map(b => b.content?.[0]?.text ?? "").join("\n\n"),
-        body: (s.blocks ?? []).map(b => b.content?.[0]?.text ?? "").join("\n\n"),
-      }));
+      const articles = selectedStories.map(s => {
+        const imgMaterials = (s.materials ?? []).filter(m => m.type === "image");
+        return {
+          id: s.id,
+          title: s.title,
+          wordCount: (s.blocks ?? []).reduce((n, b) => n + (b.content?.[0]?.text?.split(" ").length ?? 0), 0),
+          category: s.category ?? "feature",
+          hasHeroImage: imgMaterials.length > 0,
+          imageUrls: imgMaterials.map(m => m.url),
+          subtitle: s.subtitle ?? "",
+          teaser: (s.blocks ?? []).find(b => b.type === "paragraph")?.content?.[0]?.text?.slice(0, 120) ?? "",
+          content: (s.blocks ?? []).map(b => b.content?.[0]?.text ?? "").join("\n\n"),
+          body: (s.blocks ?? []).map(b => b.content?.[0]?.text ?? "").join("\n\n"),
+        };
+      });
 
       const res = await fetch("/print-generate", {
         method: "POST",
@@ -384,10 +419,10 @@ export default function DruckPage() {
         <div>
           <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 26, color: C.text, display: "flex", alignItems: "center", gap: 10 }}>
             <Printer size={24} style={{ color: C.accent }} />
-            Druckausgaben
+            Liquid Layout
           </h1>
           <p style={{ margin: "6px 0 0", color: C.textSoft, fontSize: 14 }}>
-            KI-generierte Print-Layouts aus deinen Artikeln
+            KI-generiertes Magazin-Layout — professionell, iterativ, druckfertig
           </p>
         </div>
         <button
