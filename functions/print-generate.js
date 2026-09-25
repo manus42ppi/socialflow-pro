@@ -508,7 +508,13 @@ async function fetchImages(layoutPlan) {
         const res = await fetch(url, { redirect: "follow" });
         if (!res.ok) return;
         const buf = await res.arrayBuffer();
-        assets[key] = Buffer.from(buf).toString("base64");
+        // Workers runtime has no Node.js Buffer — use chunked btoa instead
+        const bytes = new Uint8Array(buf);
+        const chunks = [];
+        for (let i = 0; i < bytes.length; i += 8192) {
+          chunks.push(String.fromCharCode(...bytes.subarray(i, i + 8192)));
+        }
+        assets[key] = btoa(chunks.join(""));
       } catch {
         // Gradient-Fallback in Typst
       }
