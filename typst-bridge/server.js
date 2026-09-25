@@ -11,14 +11,16 @@
 
 import http from "http";
 import { execSync, spawnSync } from "child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "fs";
 import { tmpdir, homedir } from "os";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// Typst binary: lokale Installation unter ~/.local/bin, Fallback auf PATH
-const TYPST_BIN = `${homedir()}/.local/bin/typst`;
+// Typst binary: Umgebungsvariable > PATH > lokale Installation
+const TYPST_BIN = process.env.TYPST_BIN
+  ?? (() => { try { execSync("typst --version", { stdio: "pipe" }); return "typst"; } catch { return null; } })()
+  ?? `${homedir()}/.local/bin/typst`;
 const FONTS_DIR = join(__dirname, "fonts");
 
 const PORT = 9000;
@@ -67,7 +69,17 @@ const server = http.createServer((req, res) => {
     try {
       writeFileSync(inputFile, source, "utf-8");
 
-      // files: { "templates/base.typ": "<typst source>" } — Plain-Text-Dateien
+      // Lokale Templates immer zuerst kopieren (Fallback wenn files leer)
+      const localTemplates = join(__dirname, "templates");
+      try {
+        const tmplDir = join(tmpDir, "templates");
+        mkdirSync(tmplDir, { recursive: true });
+        for (const f of readdirSync(localTemplates)) {
+          writeFileSync(join(tmplDir, f), readFileSync(join(localTemplates, f), "utf-8"), "utf-8");
+        }
+      } catch { /* kein templates-Verzeichnis → egal */ }
+
+      // files: { "templates/base.typ": "<typst source>" } — überschreiben lokale Kopie
       for (const [relPath, text] of Object.entries(files)) {
         const destPath = join(tmpDir, relPath);
         mkdirSync(join(tmpDir, relPath.split("/").slice(0, -1).join("/")), { recursive: true });
