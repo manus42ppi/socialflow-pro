@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Printer, Plus, FileText, CheckCircle, AlertCircle,
          Loader, Eye, Download, RotateCcw, BookOpen } from "lucide-react";
 import { C, T, FONT, FONT_DISPLAY } from "../constants/colors.js";
@@ -283,6 +283,35 @@ export default function DruckPage() {
   const [showNeueAusgabe, setShowNeueAusgabe] = useState(false);
   const [vorschau, setVorschau] = useState(null);
   const [loading, setLoading] = useState(null);
+  const loadedRef = useRef(false);
+  const wsKey = `druck_ausgaben_${currentWorkspaceId ?? "default"}`;
+
+  // Load persisted editions from localStorage
+  useEffect(() => {
+    loadedRef.current = false;
+    try {
+      const saved = localStorage.getItem(wsKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAusgaben(parsed);
+          loadedRef.current = true;
+          return;
+        }
+      }
+    } catch {}
+    setAusgaben(DEMO_AUSGABEN);
+    loadedRef.current = true;
+  }, [wsKey]);
+
+  // Persist editions on every change (without pdfBase64 to stay within localStorage quota)
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    try {
+      const toSave = ausgaben.map(({ pdfBase64: _pdf, ...rest }) => rest);
+      localStorage.setItem(wsKey, JSON.stringify(toSave));
+    } catch {}
+  }, [ausgaben, wsKey]);
 
   const handleGenerate = useCallback(async ({ titel, artikelIds }) => {
     setShowNeueAusgabe(false);
@@ -297,15 +326,19 @@ export default function DruckPage() {
 
     try {
       const selectedStories = stories.filter(s => artikelIds.includes(s.id));
-      const articles = selectedStories.map(s => ({
-        id: s.id,
-        title: s.title,
-        wordCount: (s.blocks ?? []).reduce((n, b) => n + (b.content?.[0]?.text?.split(" ").length ?? 0), 0),
-        category: s.category ?? "feature",
-        hasHeroImage: (s.materials ?? []).some(m => m.type === "image"),
-        content: (s.blocks ?? []).map(b => b.content?.[0]?.text ?? "").join("\n\n"),
-        body: (s.blocks ?? []).map(b => b.content?.[0]?.text ?? "").join("\n\n"),
-      }));
+      const articles = selectedStories.map(s => {
+        const imgMaterials = (s.materials ?? []).filter(m => m.type === "image");
+        return {
+          id: s.id,
+          title: s.title,
+          wordCount: (s.blocks ?? []).reduce((n, b) => n + (b.content?.[0]?.text?.split(" ").length ?? 0), 0),
+          category: s.category ?? "feature",
+          hasHeroImage: imgMaterials.length > 0,
+          imageUrls: imgMaterials.map(m => m.url),
+          content: (s.blocks ?? []).map(b => b.content?.[0]?.text ?? "").join("\n\n"),
+          body: (s.blocks ?? []).map(b => b.content?.[0]?.text ?? "").join("\n\n"),
+        };
+      });
 
       const res = await fetch("/print-generate", {
         method: "POST",

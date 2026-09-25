@@ -550,6 +550,21 @@ export async function onRequest({ request, env }) {
     ]);
 
     const layoutPlan = await generateLayoutPlan(articles, styleGuide, examples, env);
+
+    // Inject bildUrls from article imageUrls so fetchImages can download them
+    const imageMap = {};
+    for (const a of articles) {
+      (a.imageUrls ?? []).forEach((url, idx) => {
+        imageMap[`${a.id}-${idx}`] = url;
+      });
+    }
+    for (const seite of layoutPlan.seiten ?? []) {
+      if (seite.bildKey && !seite.bildUrls) {
+        const url = imageMap[seite.bildKey];
+        if (url) seite.bildUrls = [url];
+      }
+    }
+
     const assets = await fetchImages(layoutPlan);
     const typstSource = layoutToTypst(layoutPlan, articles, assets);
     const pdfBase64 = await compileTypst(typstSource, templateFiles ?? {}, assets, env);
